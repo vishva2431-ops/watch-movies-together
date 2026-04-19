@@ -13,8 +13,8 @@ export default function HomePage() {
 
   const currentMobile = localStorage.getItem("userMobile") || "";
   const isAdminUser =
-    currentUser === "Vishva_N" &&
-    currentMobile === "9025783849";
+    currentUser?.trim() === "Vishva_N" &&
+    currentMobile?.trim() === "9025783849";
 
   useEffect(() => {
     API.get("/movies")
