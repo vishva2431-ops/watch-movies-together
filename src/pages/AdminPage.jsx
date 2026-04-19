@@ -11,8 +11,11 @@ export default function AdminPage() {
   const [video, setVideo] = useState(null);
   const [movies, setMovies] = useState([]);
   const [message, setMessage] = useState("");
+  const [uploadPercent, setUploadPercent] = useState(0);
+  const [uploading, setUploading] = useState(false);
 
   const userName = localStorage.getItem("userName") || "Guest";
+  const backendUrl = "https://watchparty-springboot.onrender.com";
 
   const loadMovies = async () => {
     try {
@@ -36,6 +39,10 @@ export default function AdminPage() {
     }
 
     try {
+      setUploading(true);
+      setUploadPercent(0);
+      setMessage("Uploading...");
+
       const formData = new FormData();
       formData.append("groupTitle", groupTitle);
       formData.append("partTitle", partTitle);
@@ -48,9 +55,16 @@ export default function AdminPage() {
         headers: {
           "Content-Type": "multipart/form-data",
         },
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setUploadPercent(percent);
+          }
+        },
       });
 
       setMessage("Movie part uploaded successfully ✅");
+      setUploadPercent(100);
 
       setGroupTitle("");
       setPartTitle("");
@@ -68,6 +82,9 @@ export default function AdminPage() {
     } catch (err) {
       console.error(err);
       setMessage("Upload failed ❌");
+      setUploadPercent(0);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -155,8 +172,28 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <button className="btn-primary admin-submit-btn" type="submit">
-              Upload Part
+            {uploading || uploadPercent > 0 ? (
+              <div className="upload-progress-section">
+                <div className="upload-progress-top">
+                  <span>{uploading ? "Uploading file..." : "Upload completed"}</span>
+                  <span>{uploadPercent}%</span>
+                </div>
+
+                <div className="upload-progress-bar">
+                  <div
+                    className="upload-progress-fill"
+                    style={{ width: `${uploadPercent}%` }}
+                  ></div>
+                </div>
+              </div>
+            ) : null}
+
+            <button
+              className="btn-primary admin-submit-btn"
+              type="submit"
+              disabled={uploading}
+            >
+              {uploading ? `Uploading ${uploadPercent}%` : "Upload Part"}
             </button>
           </form>
         </div>
@@ -176,7 +213,7 @@ export default function AdminPage() {
                 <div className="admin-movie-item" key={movie.id}>
                   <div className="admin-movie-left">
                     <img
-                      src={`http://localhost:8080${movie.posterUrl}`}
+                      src={`${backendUrl}${movie.posterUrl}`}
                       alt={movie.groupTitle}
                       className="admin-movie-poster"
                     />
