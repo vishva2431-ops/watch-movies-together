@@ -8,31 +8,31 @@ export default function LoginPage() {
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
-  const handleMobileLogin = async () => {
-    if (!name.trim() || !mobile.trim()) {
-      setMessage("Enter name and mobile number");
-      return;
-    }
+ const handleMobileLogin = async () => {
+  if (!name.trim() || !mobile.trim()) {
+    setMessage("Enter name and mobile number");
+    return;
+  }
 
-    try {
-      const res = await API.post("/auth/mobile-login", {
-        name: name.trim(),
-        mobile: mobile.trim(),
-      });
+  try {
+    const res = await API.post("/auth/mobile-login", {
+      name: name.trim(),
+      mobile: mobile.trim(),
+    });
 
-      localStorage.setItem("userName", res.data.name || name.trim());
-      localStorage.setItem("userMobile", res.data.mobile || mobile.trim());
-      localStorage.setItem("loginMethod", res.data.loginMethod || "MOBILE");
+    localStorage.setItem("userName", res.data.name || name.trim());
+    localStorage.setItem("userMobile", res.data.mobile || mobile.trim());
+    localStorage.setItem("loginMethod", res.data.loginMethod || "MOBILE");
 
-      setMessage("Login successful ✅");
-      setTimeout(() => {
-        navigate("/home");
-      }, 800);
-    } catch (err) {
-      console.error("Mobile login error:", err);
-      setMessage("Mobile login failed ❌");
-    }
-  };
+    setMessage("Login successful ✅");
+    setTimeout(() => navigate("/home"), 800);
+  } catch (err) {
+    console.error("Mobile login error:", err);
+    console.error("Response data:", err?.response?.data);
+    console.error("Status:", err?.response?.status);
+    setMessage(`Mobile login failed ❌ ${err?.response?.data || ""}`);
+  }
+};
 
   const handleGuestLogin = async () => {
     try {
