@@ -11,5 +11,3 @@ export const getMediaUrl = (path) => {
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
   return `${API_BASE_URL}${path}`;
 };
-
-export const getWsUrl = () => `${API_BASE_URL}/ws`;

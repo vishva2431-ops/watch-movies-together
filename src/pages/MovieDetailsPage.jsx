@@ -27,7 +27,7 @@ export default function MovieDetailsPage() {
     try {
       const res = await API.post("/rooms/create", {
         movieId: selectedPart.id,
-        userName,
+        userName
       });
       navigate(`/room/${res.data.roomCode}`);
     } catch (err) {

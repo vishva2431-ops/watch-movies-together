@@ -58,6 +58,10 @@ export default function AdminPage() {
           if (progressEvent.total) {
             const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
             setUploadPercent(percent);
+
+            if (percent === 100) {
+              setMessage("Upload finished from browser. Waiting for server...");
+            }
           }
         },
       });
