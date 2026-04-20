@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { API } from "../api";
+import { API, getMediaUrl } from "../api";
 import Header from "../components/Header";
 
 export default function MovieDetailsPage() {
@@ -27,7 +27,7 @@ export default function MovieDetailsPage() {
     try {
       const res = await API.post("/rooms/create", {
         movieId: selectedPart.id,
-        userName
+        userName,
       });
       navigate(`/room/${res.data.roomCode}`);
     } catch (err) {
@@ -45,7 +45,7 @@ export default function MovieDetailsPage() {
           <div className="movie-detail-left">
             <img
               className="movie-detail-poster"
-              src={`http://localhost:8080${selectedPart.posterUrl}`}
+              src={getMediaUrl(selectedPart.posterUrl)}
               alt={selectedPart.groupTitle}
             />
           </div>
@@ -73,7 +73,7 @@ export default function MovieDetailsPage() {
 
               {selectedPart && (
                 <a
-                  href={`http://localhost:8080${selectedPart.videoUrl}`}
+                  href={getMediaUrl(selectedPart.videoUrl)}
                   download
                 >
                   <button className="btn-secondary">

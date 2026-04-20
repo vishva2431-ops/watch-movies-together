@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { API } from "../api";
+import { API, getMediaUrl } from "../api";
 import Header from "../components/Header";
 
 export default function AdminPage() {
@@ -15,12 +15,11 @@ export default function AdminPage() {
   const [uploading, setUploading] = useState(false);
 
   const userName = localStorage.getItem("userName") || "Guest";
-  const backendUrl = "https://watchparty-springboot.onrender.com";
 
   const loadMovies = async () => {
     try {
       const res = await API.get("/movies");
-      setMovies(res.data);
+      setMovies(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error(err);
     }
@@ -33,8 +32,8 @@ export default function AdminPage() {
   const handleUpload = async (e) => {
     e.preventDefault();
 
-    if (!groupTitle || !partTitle || !partNumber || !description || !poster || !video) {
-      setMessage("Please fill all fields and choose files");
+    if (!groupTitle.trim() || !poster || !video) {
+      setMessage("Movie name, poster image, and movie video are required");
       return;
     }
 
@@ -44,10 +43,10 @@ export default function AdminPage() {
       setMessage("Uploading...");
 
       const formData = new FormData();
-      formData.append("groupTitle", groupTitle);
-      formData.append("partTitle", partTitle);
-      formData.append("partNumber", partNumber);
-      formData.append("description", description);
+      formData.append("groupTitle", groupTitle.trim());
+      formData.append("partTitle", partTitle.trim() || groupTitle.trim());
+      formData.append("partNumber", partNumber || "1");
+      formData.append("description", description.trim() || "");
       formData.append("poster", poster);
       formData.append("video", video);
 
@@ -63,25 +62,29 @@ export default function AdminPage() {
         },
       });
 
-      setMessage("Movie part uploaded successfully ✅");
-      setUploadPercent(100);
+      await loadMovies();
 
+      setMessage("Movie part uploaded successfully ✅");
       setGroupTitle("");
       setPartTitle("");
       setPartNumber("");
       setDescription("");
       setPoster(null);
       setVideo(null);
+      setUploadPercent(100);
 
       const posterInput = document.getElementById("posterInput");
       const videoInput = document.getElementById("videoInput");
       if (posterInput) posterInput.value = "";
       if (videoInput) videoInput.value = "";
-
-      loadMovies();
     } catch (err) {
       console.error(err);
-      setMessage("Upload failed ❌");
+      const errorMessage =
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        err?.response?.data?.details ||
+        "Upload failed ❌";
+      setMessage(String(errorMessage));
       setUploadPercent(0);
     } finally {
       setUploading(false);
@@ -104,7 +107,7 @@ export default function AdminPage() {
 
           <form className="admin-form" onSubmit={handleUpload}>
             <div className="admin-field">
-              <label>Group Title</label>
+              <label>Group Title *</label>
               <input
                 className="input-modern"
                 type="text"
@@ -120,7 +123,7 @@ export default function AdminPage() {
                 <input
                   className="input-modern"
                   type="text"
-                  placeholder="Example: Stranger Things 1"
+                  placeholder="Optional"
                   value={partTitle}
                   onChange={(e) => setPartTitle(e.target.value)}
                 />
@@ -131,7 +134,7 @@ export default function AdminPage() {
                 <input
                   className="input-modern"
                   type="number"
-                  placeholder="1"
+                  placeholder="Optional"
                   value={partNumber}
                   onChange={(e) => setPartNumber(e.target.value)}
                 />
@@ -142,7 +145,7 @@ export default function AdminPage() {
               <label>Description</label>
               <textarea
                 className="input-modern admin-textarea"
-                placeholder="Enter description"
+                placeholder="Optional"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
               />
@@ -150,7 +153,7 @@ export default function AdminPage() {
 
             <div className="admin-upload-grid">
               <div className="upload-box">
-                <label className="upload-label">Poster Image</label>
+                <label className="upload-label">Poster Image *</label>
                 <input
                   id="posterInput"
                   className="file-input"
@@ -161,7 +164,7 @@ export default function AdminPage() {
               </div>
 
               <div className="upload-box">
-                <label className="upload-label">Movie Video</label>
+                <label className="upload-label">Movie Video *</label>
                 <input
                   id="videoInput"
                   className="file-input"
@@ -172,13 +175,12 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {uploading || uploadPercent > 0 ? (
+            {(uploading || uploadPercent > 0) && (
               <div className="upload-progress-section">
                 <div className="upload-progress-top">
                   <span>{uploading ? "Uploading file..." : "Upload completed"}</span>
                   <span>{uploadPercent}%</span>
                 </div>
-
                 <div className="upload-progress-bar">
                   <div
                     className="upload-progress-fill"
@@ -186,13 +188,9 @@ export default function AdminPage() {
                   ></div>
                 </div>
               </div>
-            ) : null}
+            )}
 
-            <button
-              className="btn-primary admin-submit-btn"
-              type="submit"
-              disabled={uploading}
-            >
+            <button className="btn-primary admin-submit-btn" type="submit" disabled={uploading}>
               {uploading ? `Uploading ${uploadPercent}%` : "Upload Part"}
             </button>
           </form>
@@ -213,7 +211,7 @@ export default function AdminPage() {
                 <div className="admin-movie-item" key={movie.id}>
                   <div className="admin-movie-left">
                     <img
-                      src={`${backendUrl}${movie.posterUrl}`}
+                      src={getMediaUrl(movie.posterUrl)}
                       alt={movie.groupTitle}
                       className="admin-movie-poster"
                     />

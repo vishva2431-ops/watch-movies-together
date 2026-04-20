@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import SockJS from "sockjs-client/dist/sockjs";
 import Stomp from "stompjs";
-import { API } from "../api";
+import { API, getMediaUrl, getWsUrl } from "../api";
 import Header from "../components/Header";
 import ChatBox from "../components/ChatBox";
 import PlayerGestureLayer from "../components/PlayerGestureLayer";
@@ -19,6 +19,7 @@ export default function RoomPage() {
   const [messages, setMessages] = useState([]);
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [selectedQuality, setSelectedQuality] = useState("AUTO");
+  const [roomMessage, setRoomMessage] = useState("Loading room...");
 
   const userName = localStorage.getItem("userName") || "Guest";
 
@@ -29,83 +30,91 @@ export default function RoomPage() {
 
     return () => {
       if (stompClientRef.current) {
-        stompClientRef.current.disconnect(() => {});
+        try {
+          stompClientRef.current.disconnect(() => {});
+        } catch (err) {
+          console.error(err);
+        }
       }
     };
   }, [roomCode]);
 
-  // ✅ Load room
   const loadRoom = async () => {
     try {
       const res = await API.get(`/rooms/${roomCode}`);
       setRoom(res.data);
       setSelectedMovie(res.data.movie || null);
       setSelectedQuality(res.data.currentQuality || "AUTO");
+      setRoomMessage("");
     } catch (err) {
       console.error(err);
+      setRoomMessage("Room not found ❌");
     }
   };
 
-  // ✅ Load all movies
   const loadMovies = async () => {
     try {
       const res = await API.get("/movies");
-      setAllMovies(res.data);
+      setAllMovies(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error(err);
     }
   };
 
-  // ✅ WebSocket
   const connectSocket = () => {
-    const socket = new SockJS("http://localhost:8080/ws");
-    const client = Stomp.over(socket);
-    client.debug = () => {};
+    try {
+      const socket = new SockJS(getWsUrl());
+      const client = Stomp.over(socket);
+      client.debug = () => {};
 
-    client.connect({}, () => {
-      // sync playback
-      client.subscribe(`/topic/room/${roomCode}`, (message) => {
-        const data = JSON.parse(message.body);
+      client.connect({}, () => {
+        client.subscribe(`/topic/room/${roomCode}`, (message) => {
+          const data = JSON.parse(message.body);
 
-        if (!videoRef.current) return;
+          if (!videoRef.current) return;
 
-        if (typeof data.currentTime === "number") {
-          const diff = Math.abs(
-            (videoRef.current.currentTime || 0) - data.currentTime
-          );
-          if (diff > 2) {
-            videoRef.current.currentTime = data.currentTime;
+          if (typeof data.currentTime === "number") {
+            const diff = Math.abs(
+              (videoRef.current.currentTime || 0) - data.currentTime
+            );
+            if (diff > 2) {
+              videoRef.current.currentTime = data.currentTime;
+            }
           }
-        }
 
-        if (data.action === "PLAY") {
-          videoRef.current.play().catch(() => {});
-        }
+          if (data.action === "PLAY") {
+            videoRef.current.play().catch(() => {});
+          }
 
-        if (data.action === "PAUSE") {
-          videoRef.current.pause();
-        }
+          if (data.action === "PAUSE") {
+            videoRef.current.pause();
+          }
 
-        if (data.action === "RATE" && data.playbackRate) {
-          videoRef.current.playbackRate = data.playbackRate;
-        }
+          if (data.action === "RATE" && data.playbackRate) {
+            videoRef.current.playbackRate = data.playbackRate;
+          }
 
-        if (data.quality) {
-          setSelectedQuality(data.quality);
-        }
+          if (data.quality) {
+            setSelectedQuality(data.quality);
+          }
+
+          if (data.movie) {
+            setSelectedMovie(data.movie);
+          }
+        });
+
+        client.subscribe(`/topic/chat/${roomCode}`, (message) => {
+          const data = JSON.parse(message.body);
+          setMessages((prev) => [...prev, data]);
+        });
       });
 
-      // chat
-      client.subscribe(`/topic/chat/${roomCode}`, (message) => {
-        const data = JSON.parse(message.body);
-        setMessages((prev) => [...prev, data]);
-      });
-    });
-
-    stompClientRef.current = client;
+      stompClientRef.current = client;
+    } catch (err) {
+      console.error("Socket connection error:", err);
+    }
   };
 
-  // ✅ send sync
   const sendSync = (payload) => {
     if (!stompClientRef.current) return;
 
@@ -119,7 +128,6 @@ export default function RoomPage() {
     );
   };
 
-  // ✅ send chat
   const sendChat = (text) => {
     if (!stompClientRef.current || !text.trim()) return;
 
@@ -134,7 +142,6 @@ export default function RoomPage() {
     );
   };
 
-  // ✅ video controls
   const handlePlay = () => {
     sendSync({
       action: "PLAY",
@@ -151,19 +158,6 @@ export default function RoomPage() {
     });
   };
 
-  const seekTo = (time) => {
-    if (!videoRef.current) return;
-
-    videoRef.current.currentTime = time;
-
-    sendSync({
-      action: "SEEK",
-      currentTime: time,
-      quality: selectedQuality,
-    });
-  };
-
-  // ✅ FULL SCREEN FUNCTION
   const goFullScreen = () => {
     if (!videoRef.current) return;
 
@@ -176,7 +170,6 @@ export default function RoomPage() {
     }
   };
 
-  // ✅ switch movie
   const handleMovieSwitch = async (movie) => {
     setSelectedMovie(movie);
 
@@ -185,13 +178,12 @@ export default function RoomPage() {
         movieId: movie.id,
       });
 
-      setTimeout(() => loadRoom(), 300);
+      await loadRoom();
     } catch (err) {
       console.error(err);
     }
   };
 
-  // ✅ search filter
   const filteredMovies = useMemo(() => {
     const value = roomSearch.toLowerCase();
 
@@ -207,7 +199,6 @@ export default function RoomPage() {
     <div className="page room-shell">
       <Header userName={userName} />
 
-      {/* TOP BAR */}
       <div className="room-topbar">
         <div className="room-code-pill">Room: {roomCode}</div>
 
@@ -218,65 +209,76 @@ export default function RoomPage() {
           onChange={(e) => setRoomSearch(e.target.value)}
         />
 
-        <button onClick={() => navigate("/home")}>
-          Back
-        </button>
+        <button onClick={() => navigate("/home")}>Back</button>
       </div>
 
       <div className="room-page">
-        {/* LEFT SIDE */}
         <div className="room-main-area">
           <div className="room-video-card">
-            {selectedMovie ? (
+            {roomMessage ? (
+              <div>{roomMessage}</div>
+            ) : selectedMovie ? (
               <>
                 <h2>{selectedMovie.groupTitle}</h2>
                 <p>{selectedMovie.partTitle}</p>
 
-                <video
-                  ref={videoRef}
-                  src={`http://localhost:8080${selectedMovie.videoUrl}`}
-                  controls
-                  onPlay={handlePlay}
-                  onPause={handlePause}
-                />
+                <div className="video-wrapper">
+                  <video
+                    ref={videoRef}
+                    src={getMediaUrl(selectedMovie.videoUrl)}
+                    controls
+                    onPlay={handlePlay}
+                    onPause={handlePause}
+                  />
+                  <PlayerGestureLayer
+                    onSeekBackward={() =>
+                      videoRef.current &&
+                      (videoRef.current.currentTime = Math.max(videoRef.current.currentTime - 10, 0))
+                    }
+                    onSeekForward={() =>
+                      videoRef.current &&
+                      (videoRef.current.currentTime = videoRef.current.currentTime + 10)
+                    }
+                    onTogglePlayPause={() => {
+                      if (!videoRef.current) return;
+                      if (videoRef.current.paused) {
+                        videoRef.current.play().catch(() => {});
+                      } else {
+                        videoRef.current.pause();
+                      }
+                    }}
+                  />
+                </div>
 
-                {/* ACTION BUTTONS */}
                 <div className="room-action-row">
-                  <button onClick={goFullScreen}>
-                    Full Screen
-                  </button>
+                  <button onClick={goFullScreen}>Full Screen</button>
 
-                  <a
-                    href={`http://localhost:8080${selectedMovie.videoUrl}`}
-                    download
-                  >
-                    <button>
-                      Download
-                    </button>
+                  <a href={getMediaUrl(selectedMovie.videoUrl)} download>
+                    <button>Download</button>
                   </a>
                 </div>
               </>
             ) : (
-              <div>
-                Room created successfully. Select a movie below.
-              </div>
+              <div>Room created successfully. Select a movie below.</div>
             )}
           </div>
 
-          {/* MOVIE LIST */}
           <div>
-            {filteredMovies.map((movie) => (
-              <button
-                key={movie.id}
-                onClick={() => handleMovieSwitch(movie)}
-              >
-                {movie.groupTitle} - {movie.partTitle}
-              </button>
-            ))}
+            {filteredMovies.length === 0 ? (
+              <div className="empty-state">No movies available.</div>
+            ) : (
+              filteredMovies.map((movie) => (
+                <button
+                  key={movie.id}
+                  onClick={() => handleMovieSwitch(movie)}
+                >
+                  {movie.groupTitle} - {movie.partTitle}
+                </button>
+              ))
+            )}
           </div>
         </div>
 
-        {/* CHAT */}
         <ChatBox messages={messages} onSend={sendChat} />
       </div>
     </div>

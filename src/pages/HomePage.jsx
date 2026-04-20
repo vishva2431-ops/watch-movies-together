@@ -13,16 +13,22 @@ export default function HomePage() {
 
   const currentMobile = localStorage.getItem("userMobile") || "";
   const isAdminUser =
-    currentUser?.trim() === "Vishva_N" &&
-    currentMobile?.trim() === "9025783849";
+    currentUser.trim() === "Vishva_N" &&
+    currentMobile.trim() === "9025783849";
+
+  const loadMovies = async () => {
+    try {
+      const res = await API.get("/movies");
+      setMovies(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   useEffect(() => {
-    API.get("/movies")
-      .then((res) => setMovies(res.data))
-      .catch((err) => console.error(err));
-
     const localName = localStorage.getItem("userName") || "Guest";
     setCurrentUser(localName);
+    loadMovies();
   }, []);
 
   const filteredMovies = useMemo(() => {
@@ -37,7 +43,10 @@ export default function HomePage() {
 
   const createRoomOnly = async () => {
     try {
-      const res = await API.post("/rooms/create", {});
+      const res = await API.post("/rooms/create", {
+        userName: currentUser,
+      });
+
       const roomCode = res.data.roomCode;
 
       if (roomCode) {
@@ -55,7 +64,7 @@ export default function HomePage() {
     try {
       const res = await API.post("/rooms/create", {
         movieId,
-        userName: currentUser
+        userName: currentUser,
       });
 
       const roomCode = res.data.roomCode;
@@ -97,17 +106,11 @@ export default function HomePage() {
           placeholder="Enter room code"
         />
 
-        <button
-          className="btn-primary tools-btn"
-          onClick={joinRoom}
-        >
+        <button className="btn-primary tools-btn" onClick={joinRoom}>
           Join Room
         </button>
 
-        <button
-          className="btn-primary tools-btn"
-          onClick={createRoomOnly}
-        >
+        <button className="btn-primary tools-btn" onClick={createRoomOnly}>
           Create Room
         </button>
 
@@ -140,13 +143,17 @@ export default function HomePage() {
       </div>
 
       <div className="movie-grid">
-        {filteredMovies.map((movie) => (
-          <MovieCard
-            key={movie.id}
-            movie={movie}
-            onCreateRoom={createRoomFromMovie}
-          />
-        ))}
+        {filteredMovies.length === 0 ? (
+          <div className="empty-state">No movies found.</div>
+        ) : (
+          filteredMovies.map((movie) => (
+            <MovieCard
+              key={movie.id}
+              movie={movie}
+              onCreateRoom={createRoomFromMovie}
+            />
+          ))
+        )}
       </div>
     </div>
   );

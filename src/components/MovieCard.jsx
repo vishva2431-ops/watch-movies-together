@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { getMediaUrl } from "../api";
 
 export default function MovieCard({ movie, onCreateRoom }) {
   const navigate = useNavigate();
@@ -6,7 +7,7 @@ export default function MovieCard({ movie, onCreateRoom }) {
   return (
     <div className="movie-card hover-card">
       <img
-        src={`http://localhost:8080${movie.posterUrl}`}
+        src={getMediaUrl(movie.posterUrl)}
         alt={movie.groupTitle || movie.title}
         onClick={() => navigate(`/movie/${movie.groupTitle}`)}
       />
