@@ -158,6 +158,10 @@ export default function RoomPage() {
     });
   };
 
+  const handleBack = () => {
+    navigate(-1);
+  };
+
   const goFullScreen = () => {
     if (!videoRef.current) return;
 
@@ -209,7 +213,9 @@ export default function RoomPage() {
           onChange={(e) => setRoomSearch(e.target.value)}
         />
 
-        <button onClick={() => navigate("/home")}>Back</button>
+        <button onClick={handleBack} className="btn-secondary">
+          ← Back
+        </button>
       </div>
 
       <div className="room-page">
@@ -233,11 +239,15 @@ export default function RoomPage() {
                   <PlayerGestureLayer
                     onSeekBackward={() =>
                       videoRef.current &&
-                      (videoRef.current.currentTime = Math.max(videoRef.current.currentTime - 10, 0))
+                      (videoRef.current.currentTime = Math.max(
+                        videoRef.current.currentTime - 10,
+                        0
+                      ))
                     }
                     onSeekForward={() =>
                       videoRef.current &&
-                      (videoRef.current.currentTime = videoRef.current.currentTime + 10)
+                      (videoRef.current.currentTime =
+                        videoRef.current.currentTime + 10)
                     }
                     onTogglePlayPause={() => {
                       if (!videoRef.current) return;
