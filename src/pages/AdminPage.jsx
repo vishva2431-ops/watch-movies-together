@@ -9,6 +9,9 @@ const initialForm = {
   description: "",
 };
 
+const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
 export default function AdminPage() {
   const [form, setForm] = useState(initialForm);
   const [poster, setPoster] = useState(null);
@@ -49,12 +52,62 @@ export default function AdminPage() {
 
     const posterInput = document.getElementById("posterInput");
     const videoInput = document.getElementById("videoInput");
+
     if (posterInput) posterInput.value = "";
     if (videoInput) videoInput.value = "";
   };
 
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const uploadFileToCloudinary = async (file, resourceType, progressStart, progressEnd) => {
+    if (!file) return "";
+
+    if (!CLOUD_NAME || !UPLOAD_PRESET) {
+      throw new Error("Cloudinary environment variables are missing");
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", UPLOAD_PRESET);
+
+    const url =
+      resourceType === "image"
+        ? `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`
+        : `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload`;
+
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+
+      xhr.open("POST", url);
+
+      xhr.upload.onprogress = (event) => {
+        if (!event.lengthComputable) return;
+        const percent = Math.round((event.loaded * 100) / event.total);
+        const mapped = Math.round(
+          progressStart + ((progressEnd - progressStart) * percent) / 100
+        );
+        setUploadProgress(mapped);
+      };
+
+      xhr.onload = () => {
+        try {
+          const response = JSON.parse(xhr.responseText);
+          if (xhr.status >= 200 && xhr.status < 300 && response.secure_url) {
+            setUploadProgress(progressEnd);
+            resolve(response.secure_url);
+          } else {
+            reject(new Error(response.error?.message || "Cloudinary upload failed"));
+          }
+        } catch {
+          reject(new Error("Invalid Cloudinary response"));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error("Cloudinary upload failed"));
+      xhr.send(formData);
+    });
   };
 
   const handleUpload = async (e) => {
@@ -75,47 +128,48 @@ export default function AdminPage() {
     setUploadProgress(0);
 
     try {
-      const formData = new FormData();
-      formData.append("groupTitle", form.groupTitle.trim());
-      formData.append("partTitle", form.partTitle.trim());
-      formData.append("partNumber", form.partNumber.trim());
-      formData.append("description", form.description.trim());
+      let posterUrl = "";
+      let videoUrl = "";
 
-      if (poster) formData.append("poster", poster);
-      if (video) formData.append("video", video);
+      if (poster) {
+        posterUrl = await uploadFileToCloudinary(poster, "image", 0, 30);
+      }
 
-      const requestConfig = {
-        headers: { "Content-Type": "multipart/form-data" },
-        onUploadProgress: (progressEvent) => {
-          if (!progressEvent.total) return;
-          const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          setUploadProgress(percent);
-        },
+      if (video) {
+        videoUrl = await uploadFileToCloudinary(video, "video", poster ? 30 : 0, 90);
+      }
+
+      const payload = {
+        groupTitle: form.groupTitle.trim(),
+        partTitle: form.partTitle.trim(),
+        partNumber: form.partNumber.trim(),
+        description: form.description.trim(),
+        posterUrl,
+        videoUrl,
       };
 
       if (editingId) {
-        await API.put(`/movies/${editingId}`, formData, requestConfig);
+        await API.put(`/movies/${editingId}/save`, payload);
         setMessage("Movie updated successfully ✅");
       } else {
-        await API.post("/admin/upload", formData, requestConfig);
-        setMessage("Movie uploaded successfully ✅");
+        await API.post("/admin/save-movie", payload);
+        setMessage("Movie saved successfully ✅");
       }
 
+      setUploadProgress(100);
       resetForm();
       await loadMovies();
     } catch (err) {
       console.error(err);
-      const status = err?.response?.status;
       const errorMessage =
         err?.response?.data?.message ||
         err?.response?.data ||
-        (status === 404
-          ? "Upload API not found in backend ❌"
-          : "Upload failed ❌");
+        err?.message ||
+        "Upload failed ❌";
       setMessage(errorMessage);
     } finally {
       setSubmitting(false);
-      setTimeout(() => setUploadProgress(0), 800);
+      setTimeout(() => setUploadProgress(0), 1000);
     }
   };
 
@@ -142,21 +196,14 @@ export default function AdminPage() {
 
     try {
       await API.delete(`/movies/${id}`);
-
       if (editingId === id) {
         resetForm();
       }
-
       setMovies((prev) => prev.filter((movie) => movie.id !== id));
       setMessage("Movie deleted successfully ✅");
     } catch (err) {
       console.error(err);
-      const status = err?.response?.status;
-      setMessage(
-        status === 404
-          ? "Delete API not found in backend or movie not found ❌"
-          : "Delete failed ❌"
-      );
+      setMessage("Delete failed ❌");
     } finally {
       setDeletingId("");
     }
@@ -194,7 +241,9 @@ export default function AdminPage() {
                   style={{ width: `${uploadProgress}%` }}
                 />
               </div>
-              <div className="upload-progress-text">{uploadProgress}% uploading...</div>
+              <div className="upload-progress-text">
+                {uploadProgress}% uploading...
+              </div>
             </div>
           )}
 
@@ -284,7 +333,7 @@ export default function AdminPage() {
                     : "Uploading..."
                   : editingId
                   ? "Update Movie"
-                  : "Upload Part"}
+                  : "Save Movie"}
               </button>
 
               {editingId && (
