@@ -73,7 +73,7 @@ select {
   background: rgba(255,255,255,0.06);
   color: #fff;
   border-radius: 16px;
-  padding: 16px 18px;
+  padding: 14px 16px;
   font-size: 15px;
   transition: 0.25s ease;
 }
@@ -94,7 +94,7 @@ button {
   border: none;
   cursor: pointer;
   border-radius: 16px;
-  padding: 15px 18px;
+  padding: 14px 18px;
   font-size: 16px;
   font-weight: 600;
   transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
@@ -105,24 +105,12 @@ button:hover {
 }
 
 .btn-primary {
-  width: 100%;
-  margin-top: 12px;
   background: linear-gradient(90deg, #7c3aed, #a855f7);
   color: white;
   box-shadow: 0 10px 24px rgba(124, 58, 237, 0.35);
 }
 
-.btn-google {
-  width: 100%;
-  margin-top: 12px;
-  background: linear-gradient(90deg, #2563eb, #3b82f6);
-  color: white;
-  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.35);
-}
-
 .btn-secondary {
-  width: 100%;
-  margin-top: 12px;
   background: rgba(255,255,255,0.08);
   color: white;
 }
@@ -130,6 +118,13 @@ button:hover {
 .small-btn {
   width: auto;
   min-width: 120px;
+}
+
+.compact-btn {
+  width: auto !important;
+  min-width: 130px;
+  margin: 0 !important;
+  padding: 12px 18px;
 }
 
 .header {
@@ -159,24 +154,17 @@ button:hover {
   font-weight: 600;
 }
 
-.top-tools {
+.home-top-row {
   display: flex;
   gap: 12px;
-  flex-wrap: wrap;
   align-items: center;
-  margin-bottom: 18px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
 }
 
-.tools-input {
+.room-code-input {
   flex: 1;
-  min-width: 220px;
-  margin: 0;
-}
-
-.tools-btn {
-  width: auto;
-  min-width: 140px;
-  margin: 0;
+  min-width: 260px;
 }
 
 .search-bar-wrap {
@@ -237,13 +225,6 @@ button:hover {
   min-width: 120px;
 }
 
-.card {
-  background: rgba(16, 18, 30, 0.84);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 24px;
-  padding: 22px;
-}
-
 .home-page-bg {
   padding-top: 26px;
 }
@@ -257,6 +238,10 @@ button:hover {
   grid-template-columns: 1.05fr 0.95fr;
   gap: 24px;
   align-items: start;
+}
+
+.admin-layout-stacked {
+  grid-template-columns: 1.05fr 0.95fr;
 }
 
 .admin-form-card,
@@ -340,8 +325,42 @@ button:hover {
   color: #fff;
 }
 
+.admin-action-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .admin-submit-btn {
   margin-top: 4px;
+  width: auto;
+  min-width: 160px;
+}
+
+.upload-progress-wrap {
+  margin-bottom: 18px;
+}
+
+.upload-progress-bar {
+  width: 100%;
+  height: 14px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.upload-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #7c3aed, #a855f7);
+  transition: width 0.25s ease;
+}
+
+.upload-progress-text {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #d9c8ff;
 }
 
 .admin-movie-list {
@@ -390,53 +409,25 @@ button:hover {
   line-height: 1.45;
 }
 
+.admin-item-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.admin-item-btn {
+  width: auto !important;
+  min-width: 120px;
+  margin: 0 !important;
+}
+
 .empty-state {
   padding: 28px;
   text-align: center;
   color: #b8bfd1;
   background: rgba(255,255,255,0.04);
   border-radius: 18px;
-}
-
-.movie-detail-layout {
-  display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: 28px;
-  align-items: start;
-}
-
-.movie-detail-poster {
-  width: 100%;
-  border-radius: 24px;
-  object-fit: cover;
-  box-shadow: 0 18px 40px rgba(0,0,0,0.35);
-}
-
-.part-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin: 22px 0;
-}
-
-.part-btn {
-  border: none;
-  padding: 12px 18px;
-  border-radius: 14px;
-  background: rgba(255,255,255,0.08);
-  color: #fff;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.active-part {
-  background: linear-gradient(90deg, #7c3aed, #a855f7);
-}
-
-.detail-actions {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
 }
 
 .login-message {
@@ -468,10 +459,6 @@ button:hover {
   font-weight: 700;
   color: #fff;
   white-space: nowrap;
-}
-
-.room-search-wrap {
-  width: 100%;
 }
 
 .room-back-btn {
@@ -706,21 +693,16 @@ button:hover {
 }
 
 @media (max-width: 1100px) {
-  .top-tools {
+  .home-top-row {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .tools-btn {
-    width: 100%;
+  .compact-btn,
+  .room-code-input {
+    width: 100% !important;
   }
 
-  .tools-input {
-    width: 100%;
-  }
-}
-
-@media (max-width: 1024px) {
   .room-page {
     grid-template-columns: 1fr;
   }
@@ -731,32 +713,13 @@ button:hover {
 }
 
 @media (max-width: 1000px) {
-  .admin-layout {
+  .admin-layout,
+  .admin-layout-stacked {
     grid-template-columns: 1fr;
-  }
-
-  .movie-detail-layout {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 900px) {
-  .login-title {
-    font-size: 36px;
-  }
-
-  .movie-card img {
-    height: 240px;
   }
 }
 
 @media (max-width: 700px) {
-  .admin-form-card,
-  .admin-list-card {
-    padding: 18px;
-    border-radius: 22px;
-  }
-
   .admin-split-grid,
   .admin-upload-grid {
     grid-template-columns: 1fr;
@@ -771,30 +734,8 @@ button:hover {
     height: 220px;
   }
 
-  .movie-detail-poster {
-    max-width: 360px;
-    margin: 0 auto;
-    display: block;
-  }
-
-  .part-btn {
-    width: 100%;
-  }
-
-  .detail-actions {
-    flex-direction: column;
-  }
-
-  .section-title {
-    font-size: 24px;
-  }
-
   .room-topbar {
     grid-template-columns: 1fr;
-  }
-
-  .selected-movie-head h2 {
-    font-size: 24px;
   }
 
   .room-parts-grid {
@@ -815,33 +756,11 @@ button:hover {
     padding: 16px;
   }
 
-  .login-card {
-    padding: 22px;
-    border-radius: 22px;
-  }
-
-  .login-title {
-    font-size: 34px;
+  .header {
+    align-items: flex-start;
   }
 
   .movie-grid {
     grid-template-columns: 1fr;
-  }
-
-  .movie-content h3 {
-    font-size: 20px;
-  }
-
-  .movie-card-actions {
-    flex-direction: column;
-  }
-
-  .movie-card-actions .btn-primary,
-  .movie-card-actions .btn-secondary {
-    width: 100%;
-  }
-
-  .header {
-    align-items: flex-start;
   }
 }

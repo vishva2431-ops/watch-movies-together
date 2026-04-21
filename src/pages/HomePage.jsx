@@ -9,15 +9,19 @@ export default function HomePage() {
   const [joinCode, setJoinCode] = useState("");
   const [search, setSearch] = useState("");
   const [currentUser, setCurrentUser] = useState(localStorage.getItem("userName") || "Guest");
+  const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
   const currentMobile = localStorage.getItem("userMobile") || "";
-  const isAdminUser = currentUser === "Vishva_N" && currentMobile === "9025783849";
+  const isAdminUser = currentUser === "Vishva_N" && currentMobile === "YOUR_MOBILE_NUMBER";
 
   useEffect(() => {
     API.get("/movies")
       .then((res) => setMovies(res.data || []))
-      .catch((err) => console.error(err));
+      .catch((err) => {
+        console.error(err);
+        setMessage("Unable to load movies ❌");
+      });
 
     const localName = localStorage.getItem("userName") || "Guest";
     setCurrentUser(localName);
@@ -54,22 +58,28 @@ export default function HomePage() {
 
   const createRoomOnly = async () => {
     try {
+      setMessage("");
       const res = await API.post("/rooms/create", { userName: currentUser });
       const roomCode = res.data.roomCode;
 
       if (roomCode) {
         navigate(`/room/${roomCode}`);
       } else {
-        alert("Room creation failed");
+        setMessage("Room creation failed ❌");
       }
     } catch (err) {
       console.error(err);
-      alert("Room creation failed");
+      setMessage(
+        err?.response?.status === 404
+          ? "Room create API not found in backend ❌"
+          : "Room creation failed ❌"
+      );
     }
   };
 
   const createRoomFromMovie = async (movieId) => {
     try {
+      setMessage("");
       const res = await API.post("/rooms/create", {
         movieId,
         userName: currentUser,
@@ -79,26 +89,31 @@ export default function HomePage() {
       if (roomCode) {
         navigate(`/room/${roomCode}`);
       } else {
-        alert("Room creation failed");
+        setMessage("Room creation failed ❌");
       }
     } catch (err) {
       console.error(err);
-      alert("Room creation failed");
+      setMessage(
+        err?.response?.status === 404
+          ? "Room create API not found in backend ❌"
+          : "Room creation failed ❌"
+      );
     }
   };
 
   const joinRoom = async () => {
     if (!joinCode.trim()) {
-      alert("Enter room code");
+      setMessage("Enter room code");
       return;
     }
 
     try {
+      setMessage("");
       await API.get(`/rooms/${joinCode.trim()}`);
       navigate(`/room/${joinCode.trim()}`);
     } catch (err) {
       console.error(err);
-      alert("Invalid room code");
+      setMessage("Invalid room code ❌");
     }
   };
 
@@ -106,29 +121,31 @@ export default function HomePage() {
     <div className="page home-page-bg">
       <Header userName={currentUser} />
 
-      <div className="top-tools">
+      {message && <div className="login-message">{message}</div>}
+
+      <div className="home-top-row">
         <input
-          className="input-modern tools-input"
+          className="input-modern room-code-input"
           value={joinCode}
           onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
           placeholder="Enter room code"
         />
 
-        <button className="btn-primary tools-btn" onClick={joinRoom}>
+        <button className="btn-primary compact-btn" onClick={joinRoom}>
           Join Room
         </button>
 
-        <button className="btn-primary tools-btn" onClick={createRoomOnly}>
+        <button className="btn-primary compact-btn" onClick={createRoomOnly}>
           Create Room
         </button>
 
         {isAdminUser && (
           <>
-            <button className="btn-secondary tools-btn" onClick={() => navigate("/admin")}>
+            <button className="btn-secondary compact-btn" onClick={() => navigate("/admin")}>
               Admin
             </button>
 
-            <button className="btn-secondary tools-btn" onClick={() => navigate("/admin/users")}>
+            <button className="btn-secondary compact-btn" onClick={() => navigate("/admin/users")}>
               Users
             </button>
           </>

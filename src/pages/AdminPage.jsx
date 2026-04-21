@@ -19,6 +19,7 @@ export default function AdminPage() {
   const [loadingMovies, setLoadingMovies] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState("");
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const userName = localStorage.getItem("userName") || "Guest";
 
@@ -44,10 +45,10 @@ export default function AdminPage() {
     setPoster(null);
     setVideo(null);
     setEditingId(null);
+    setUploadProgress(0);
 
     const posterInput = document.getElementById("posterInput");
     const videoInput = document.getElementById("videoInput");
-
     if (posterInput) posterInput.value = "";
     if (videoInput) videoInput.value = "";
   };
@@ -71,6 +72,7 @@ export default function AdminPage() {
 
     setSubmitting(true);
     setMessage("");
+    setUploadProgress(0);
 
     try {
       const formData = new FormData();
@@ -82,15 +84,20 @@ export default function AdminPage() {
       if (poster) formData.append("poster", poster);
       if (video) formData.append("video", video);
 
+      const requestConfig = {
+        headers: { "Content-Type": "multipart/form-data" },
+        onUploadProgress: (progressEvent) => {
+          if (!progressEvent.total) return;
+          const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          setUploadProgress(percent);
+        },
+      };
+
       if (editingId) {
-        await API.put(`/movies/${editingId}`, formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        await API.put(`/movies/${editingId}`, formData, requestConfig);
         setMessage("Movie updated successfully ✅");
       } else {
-        await API.post("/admin/upload", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        await API.post("/admin/upload", formData, requestConfig);
         setMessage("Movie uploaded successfully ✅");
       }
 
@@ -108,6 +115,7 @@ export default function AdminPage() {
       setMessage(errorMessage);
     } finally {
       setSubmitting(false);
+      setTimeout(() => setUploadProgress(0), 800);
     }
   };
 
@@ -177,6 +185,18 @@ export default function AdminPage() {
           </p>
 
           {message && <div className="login-message">{message}</div>}
+
+          {submitting && (
+            <div className="upload-progress-wrap">
+              <div className="upload-progress-bar">
+                <div
+                  className="upload-progress-fill"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+              <div className="upload-progress-text">{uploadProgress}% uploading...</div>
+            </div>
+          )}
 
           <form className="admin-form" onSubmit={handleUpload}>
             <div className="admin-field">
@@ -307,14 +327,10 @@ export default function AdminPage() {
                   <div className="admin-movie-info">
                     <h3>{movie.groupTitle}</h3>
                     {movie.partTitle ? (
-                      <p>
-                        <strong>Part:</strong> {movie.partTitle}
-                      </p>
+                      <p><strong>Part:</strong> {movie.partTitle}</p>
                     ) : null}
                     {movie.partNumber ? (
-                      <p>
-                        <strong>Part Number:</strong> {movie.partNumber}
-                      </p>
+                      <p><strong>Part Number:</strong> {movie.partNumber}</p>
                     ) : null}
                     <p>{movie.description}</p>
 
