@@ -16,16 +16,22 @@ export default function AdminPage() {
   const [movies, setMovies] = useState([]);
   const [message, setMessage] = useState("");
   const [editingId, setEditingId] = useState(null);
+  const [loadingMovies, setLoadingMovies] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState("");
 
   const userName = localStorage.getItem("userName") || "Guest";
 
   const loadMovies = async () => {
+    setLoadingMovies(true);
     try {
       const res = await API.get("/movies");
-      setMovies(res.data || []);
+      setMovies(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error(err);
       setMessage("Unable to load movies ❌");
+    } finally {
+      setLoadingMovies(false);
     }
   };
 
@@ -41,6 +47,7 @@ export default function AdminPage() {
 
     const posterInput = document.getElementById("posterInput");
     const videoInput = document.getElementById("videoInput");
+
     if (posterInput) posterInput.value = "";
     if (videoInput) videoInput.value = "";
   };
@@ -61,6 +68,9 @@ export default function AdminPage() {
       setMessage("Poster and movie video are required");
       return;
     }
+
+    setSubmitting(true);
+    setMessage("");
 
     try {
       const formData = new FormData();
@@ -85,11 +95,19 @@ export default function AdminPage() {
       }
 
       resetForm();
-      loadMovies();
+      await loadMovies();
     } catch (err) {
       console.error(err);
-      const errorMessage = err?.response?.data?.message || "Upload failed ❌";
+      const status = err?.response?.status;
+      const errorMessage =
+        err?.response?.data?.message ||
+        err?.response?.data ||
+        (status === 404
+          ? "Upload API not found in backend ❌"
+          : "Upload failed ❌");
       setMessage(errorMessage);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -111,16 +129,28 @@ export default function AdminPage() {
     const confirmed = window.confirm("Delete this movie?");
     if (!confirmed) return;
 
+    setDeletingId(id);
+    setMessage("");
+
     try {
       await API.delete(`/movies/${id}`);
+
       if (editingId === id) {
         resetForm();
       }
+
+      setMovies((prev) => prev.filter((movie) => movie.id !== id));
       setMessage("Movie deleted successfully ✅");
-      loadMovies();
     } catch (err) {
       console.error(err);
-      setMessage("Delete failed ❌");
+      const status = err?.response?.status;
+      setMessage(
+        status === 404
+          ? "Delete API not found in backend or movie not found ❌"
+          : "Delete failed ❌"
+      );
+    } finally {
+      setDeletingId("");
     }
   };
 
@@ -223,8 +253,18 @@ export default function AdminPage() {
             </div>
 
             <div className="admin-action-row">
-              <button className="btn-primary admin-submit-btn" type="submit">
-                {editingId ? "Update Movie" : "Upload Part"}
+              <button
+                className="btn-primary admin-submit-btn"
+                type="submit"
+                disabled={submitting}
+              >
+                {submitting
+                  ? editingId
+                    ? "Updating..."
+                    : "Uploading..."
+                  : editingId
+                  ? "Update Movie"
+                  : "Upload Part"}
               </button>
 
               {editingId && (
@@ -232,6 +272,7 @@ export default function AdminPage() {
                   className="btn-secondary admin-submit-btn"
                   type="button"
                   onClick={resetForm}
+                  disabled={submitting}
                 >
                   Cancel Edit
                 </button>
@@ -248,7 +289,9 @@ export default function AdminPage() {
           </p>
 
           <div className="admin-movie-list admin-movie-list-stacked">
-            {movies.length === 0 ? (
+            {loadingMovies ? (
+              <div className="empty-state">Loading movies...</div>
+            ) : movies.length === 0 ? (
               <div className="empty-state">No movie parts uploaded yet.</div>
             ) : (
               movies.map((movie) => (
@@ -256,16 +299,22 @@ export default function AdminPage() {
                   <div className="admin-movie-left">
                     <img
                       src={buildMediaUrl(movie.posterUrl)}
-                      alt={movie.groupTitle}
+                      alt={movie.groupTitle || "Movie Poster"}
                       className="admin-movie-poster"
                     />
                   </div>
 
                   <div className="admin-movie-info">
                     <h3>{movie.groupTitle}</h3>
-                    {movie.partTitle && <p><strong>Part:</strong> {movie.partTitle}</p>}
+                    {movie.partTitle ? (
+                      <p>
+                        <strong>Part:</strong> {movie.partTitle}
+                      </p>
+                    ) : null}
                     {movie.partNumber ? (
-                      <p><strong>Part Number:</strong> {movie.partNumber}</p>
+                      <p>
+                        <strong>Part Number:</strong> {movie.partNumber}
+                      </p>
                     ) : null}
                     <p>{movie.description}</p>
 
@@ -282,8 +331,9 @@ export default function AdminPage() {
                         className="btn-primary admin-item-btn"
                         type="button"
                         onClick={() => handleDelete(movie.id)}
+                        disabled={deletingId === movie.id}
                       >
-                        Delete
+                        {deletingId === movie.id ? "Deleting..." : "Delete"}
                       </button>
                     </div>
                   </div>

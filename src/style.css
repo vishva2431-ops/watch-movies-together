@@ -845,7 +845,3 @@ button:hover {
     align-items: flex-start;
   }
 }
-.small-btn {
-  width: auto;
-  min-width: 120px;
-}
