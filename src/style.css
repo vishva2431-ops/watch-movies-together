@@ -764,3 +764,16 @@ button:hover {
     grid-template-columns: 1fr;
   }
 }
+.login-actions {
+  display: flex;
+  gap: 14px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.login-actions .btn-primary,
+.login-actions .btn-secondary {
+  width: auto;
+  margin-top: 0;
+  min-width: 220px;
+}
