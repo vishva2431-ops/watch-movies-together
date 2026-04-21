@@ -2,10 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import SockJS from "sockjs-client/dist/sockjs";
 import Stomp from "stompjs";
-import { API, getMediaUrl, getWsUrl } from "../api";
+import { API, API_BASE_URL, buildMediaUrl } from "../api";
 import Header from "../components/Header";
 import ChatBox from "../components/ChatBox";
-import PlayerGestureLayer from "../components/PlayerGestureLayer";
 
 export default function RoomPage() {
   const { roomCode } = useParams();
@@ -19,7 +18,6 @@ export default function RoomPage() {
   const [messages, setMessages] = useState([]);
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [selectedQuality, setSelectedQuality] = useState("AUTO");
-  const [roomMessage, setRoomMessage] = useState("Loading room...");
 
   const userName = localStorage.getItem("userName") || "Guest";
 
@@ -30,11 +28,7 @@ export default function RoomPage() {
 
     return () => {
       if (stompClientRef.current) {
-        try {
-          stompClientRef.current.disconnect(() => {});
-        } catch (err) {
-          console.error(err);
-        }
+        stompClientRef.current.disconnect(() => {});
       }
     };
   }, [roomCode]);
@@ -45,74 +39,62 @@ export default function RoomPage() {
       setRoom(res.data);
       setSelectedMovie(res.data.movie || null);
       setSelectedQuality(res.data.currentQuality || "AUTO");
-      setRoomMessage("");
     } catch (err) {
       console.error(err);
-      setRoomMessage("Room not found ❌");
     }
   };
 
   const loadMovies = async () => {
     try {
       const res = await API.get("/movies");
-      setAllMovies(Array.isArray(res.data) ? res.data : []);
+      setAllMovies(res.data || []);
     } catch (err) {
       console.error(err);
     }
   };
 
   const connectSocket = () => {
-    try {
-      const socket = new SockJS(getWsUrl());
-      const client = Stomp.over(socket);
-      client.debug = () => {};
+    const socket = new SockJS(`${API_BASE_URL}/ws`);
+    const client = Stomp.over(socket);
+    client.debug = () => {};
 
-      client.connect({}, () => {
-        client.subscribe(`/topic/room/${roomCode}`, (message) => {
-          const data = JSON.parse(message.body);
+    client.connect({}, () => {
+      client.subscribe(`/topic/room/${roomCode}`, (message) => {
+        const data = JSON.parse(message.body);
 
-          if (!videoRef.current) return;
+        if (!videoRef.current) return;
 
-          if (typeof data.currentTime === "number") {
-            const diff = Math.abs(
-              (videoRef.current.currentTime || 0) - data.currentTime
-            );
-            if (diff > 2) {
-              videoRef.current.currentTime = data.currentTime;
-            }
+        if (typeof data.currentTime === "number") {
+          const diff = Math.abs((videoRef.current.currentTime || 0) - data.currentTime);
+          if (diff > 2) {
+            videoRef.current.currentTime = data.currentTime;
           }
+        }
 
-          if (data.action === "PLAY") {
-            videoRef.current.play().catch(() => {});
-          }
+        if (data.action === "PLAY") {
+          videoRef.current.play().catch(() => {});
+        }
 
-          if (data.action === "PAUSE") {
-            videoRef.current.pause();
-          }
+        if (data.action === "PAUSE") {
+          videoRef.current.pause();
+        }
 
-          if (data.action === "RATE" && data.playbackRate) {
-            videoRef.current.playbackRate = data.playbackRate;
-          }
+        if (data.action === "RATE" && data.playbackRate) {
+          videoRef.current.playbackRate = data.playbackRate;
+        }
 
-          if (data.quality) {
-            setSelectedQuality(data.quality);
-          }
-
-          if (data.movie) {
-            setSelectedMovie(data.movie);
-          }
-        });
-
-        client.subscribe(`/topic/chat/${roomCode}`, (message) => {
-          const data = JSON.parse(message.body);
-          setMessages((prev) => [...prev, data]);
-        });
+        if (data.quality) {
+          setSelectedQuality(data.quality);
+        }
       });
 
-      stompClientRef.current = client;
-    } catch (err) {
-      console.error("Socket connection error:", err);
-    }
+      client.subscribe(`/topic/chat/${roomCode}`, (message) => {
+        const data = JSON.parse(message.body);
+        setMessages((prev) => [...prev, data]);
+      });
+    });
+
+    stompClientRef.current = client;
   };
 
   const sendSync = (payload) => {
@@ -158,10 +140,6 @@ export default function RoomPage() {
     });
   };
 
-  const handleBack = () => {
-    navigate(-1);
-  };
-
   const goFullScreen = () => {
     if (!videoRef.current) return;
 
@@ -182,7 +160,7 @@ export default function RoomPage() {
         movieId: movie.id,
       });
 
-      await loadRoom();
+      setTimeout(() => loadRoom(), 300);
     } catch (err) {
       console.error(err);
     }
@@ -213,79 +191,70 @@ export default function RoomPage() {
           onChange={(e) => setRoomSearch(e.target.value)}
         />
 
-        <button onClick={handleBack} className="btn-secondary">
-          ← Back
+        <button className="btn-secondary room-back-btn" onClick={() => navigate("/home")}>
+          Back
         </button>
       </div>
 
       <div className="room-page">
         <div className="room-main-area">
           <div className="room-video-card">
-            {roomMessage ? (
-              <div>{roomMessage}</div>
-            ) : selectedMovie ? (
+            {selectedMovie ? (
               <>
-                <h2>{selectedMovie.groupTitle}</h2>
-                <p>{selectedMovie.partTitle}</p>
+                <div className="selected-movie-head">
+                  <div>
+                    <h2>{selectedMovie.groupTitle}</h2>
+                    <p>
+                      {selectedMovie.partTitle}
+                      {selectedMovie.partNumber ? ` • Part ${selectedMovie.partNumber}` : ""}
+                    </p>
+                  </div>
+                  <div className="quality-pill">{selectedQuality}</div>
+                </div>
 
-                <div className="video-wrapper">
+                <div className="player-wrapper">
                   <video
                     ref={videoRef}
-                    src={getMediaUrl(selectedMovie.videoUrl)}
+                    className="video-player"
+                    src={buildMediaUrl(selectedMovie.videoUrl)}
                     controls
                     onPlay={handlePlay}
                     onPause={handlePause}
                   />
-                  <PlayerGestureLayer
-                    onSeekBackward={() =>
-                      videoRef.current &&
-                      (videoRef.current.currentTime = Math.max(
-                        videoRef.current.currentTime - 10,
-                        0
-                      ))
-                    }
-                    onSeekForward={() =>
-                      videoRef.current &&
-                      (videoRef.current.currentTime =
-                        videoRef.current.currentTime + 10)
-                    }
-                    onTogglePlayPause={() => {
-                      if (!videoRef.current) return;
-                      if (videoRef.current.paused) {
-                        videoRef.current.play().catch(() => {});
-                      } else {
-                        videoRef.current.pause();
-                      }
-                    }}
-                  />
                 </div>
 
                 <div className="room-action-row">
-                  <button onClick={goFullScreen}>Full Screen</button>
+                  <button className="btn-secondary room-action-btn" onClick={goFullScreen}>
+                    Full Screen
+                  </button>
 
-                  <a href={getMediaUrl(selectedMovie.videoUrl)} download>
-                    <button>Download</button>
+                  <a className="download-link" href={buildMediaUrl(selectedMovie.videoUrl)} download>
+                    <button className="btn-primary room-action-btn">Download</button>
                   </a>
                 </div>
               </>
             ) : (
-              <div>Room created successfully. Select a movie below.</div>
+              <div className="empty-room-box">Room created successfully. Select a movie below.</div>
             )}
           </div>
 
-          <div>
-            {filteredMovies.length === 0 ? (
-              <div className="empty-state">No movies available.</div>
-            ) : (
-              filteredMovies.map((movie) => (
+          <div className="room-parts-card">
+            <h3 className="room-section-title">Available Movies</h3>
+            <div className="room-parts-grid">
+              {filteredMovies.map((movie) => (
                 <button
+                  className={`room-part-item ${selectedMovie?.id === movie.id ? "room-part-active" : ""}`}
                   key={movie.id}
                   onClick={() => handleMovieSwitch(movie)}
                 >
-                  {movie.groupTitle} - {movie.partTitle}
+                  <div className="room-part-title">{movie.groupTitle}</div>
+                  <div className="room-part-sub">
+                    {movie.partTitle}
+                    {movie.partNumber ? ` • Part ${movie.partNumber}` : ""}
+                  </div>
                 </button>
-              ))
-            )}
+              ))}
+            </div>
           </div>
         </div>
 

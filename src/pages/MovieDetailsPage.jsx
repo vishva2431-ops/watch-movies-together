@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { API, getMediaUrl } from "../api";
+import { API, buildMediaUrl } from "../api";
 import Header from "../components/Header";
 
 export default function MovieDetailsPage() {
@@ -11,10 +11,10 @@ export default function MovieDetailsPage() {
   const userName = localStorage.getItem("userName") || "Guest";
 
   useEffect(() => {
-    API.get(`/movies/${groupTitle}/parts`)
+    API.get(`/movies/${decodeURIComponent(groupTitle)}/parts`)
       .then((res) => {
-        setParts(res.data);
-        if (res.data.length > 0) {
+        setParts(res.data || []);
+        if ((res.data || []).length > 0) {
           setSelectedPart(res.data[0]);
         }
       })
@@ -27,7 +27,7 @@ export default function MovieDetailsPage() {
     try {
       const res = await API.post("/rooms/create", {
         movieId: selectedPart.id,
-        userName
+        userName,
       });
       navigate(`/room/${res.data.roomCode}`);
     } catch (err) {
@@ -45,7 +45,7 @@ export default function MovieDetailsPage() {
           <div className="movie-detail-left">
             <img
               className="movie-detail-poster"
-              src={getMediaUrl(selectedPart.posterUrl)}
+              src={buildMediaUrl(selectedPart.posterUrl)}
               alt={selectedPart.groupTitle}
             />
           </div>
@@ -62,6 +62,7 @@ export default function MovieDetailsPage() {
                   onClick={() => setSelectedPart(part)}
                 >
                   {part.partTitle}
+                  {part.partNumber ? ` - Part ${part.partNumber}` : ""}
                 </button>
               ))}
             </div>
@@ -71,16 +72,9 @@ export default function MovieDetailsPage() {
                 Create Room
               </button>
 
-              {selectedPart && (
-                <a
-                  href={getMediaUrl(selectedPart.videoUrl)}
-                  download
-                >
-                  <button className="btn-secondary">
-                    Download Selected Part
-                  </button>
-                </a>
-              )}
+              <a href={buildMediaUrl(selectedPart.videoUrl)} download>
+                <button className="btn-secondary">Download Selected Part</button>
+              </a>
             </div>
           </div>
         </div>

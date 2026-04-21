@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 
-const QUICK_EMOJIS = ["😀", "😂","🥵", "🫂","😘","😍", "🔥", "👍", "🎉", "❤️", "😎", "😭", "👏",];
+const QUICK_EMOJIS = ["😀", "😂", "🥵", "🫂", "😘", "😍", "🔥", "👍", "🎉", "❤️", "😎", "😭", "👏"];
 
 export default function ChatBox({ messages, onSend }) {
   const [text, setText] = useState("");

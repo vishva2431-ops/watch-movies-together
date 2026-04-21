@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API } from "../api";
 
@@ -8,13 +8,6 @@ export default function LoginPage() {
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const userName = localStorage.getItem("userName");
-    if (userName) {
-      navigate("/home", { replace: true });
-    }
-  }, [navigate]);
-
   const mobileLogin = async () => {
     if (!name.trim() || !mobile.trim()) {
       setMessage("Enter name and mobile number");
@@ -22,26 +15,17 @@ export default function LoginPage() {
     }
 
     try {
-      const res = await API.post("/auth/mobile-login", {
-        name: name.trim(),
-        mobile: mobile.trim(),
-      });
+      const res = await API.post("/auth/mobile-login", { name, mobile });
 
-      localStorage.setItem("userName", res.data.name || name.trim());
-      localStorage.setItem("userMobile", res.data.mobile || mobile.trim());
-      localStorage.setItem("loginMethod", res.data.loginMethod || "MOBILE");
-      localStorage.setItem("userRole", res.data.role || "USER");
+      localStorage.setItem("userName", res.data.name || name);
+      localStorage.setItem("userMobile", res.data.mobile || mobile);
+      localStorage.setItem("loginMethod", "MOBILE");
 
       setMessage("Login successful ✅");
       setTimeout(() => navigate("/home"), 900);
     } catch (err) {
-      console.error("Mobile login error:", err);
-      const errorMessage =
-        err?.response?.data?.error ||
-        err?.response?.data?.message ||
-        err?.response?.data?.details ||
-        "Mobile login failed ❌";
-      setMessage(String(errorMessage));
+      console.error(err);
+      setMessage("Mobile login failed ❌");
     }
   };
 
@@ -52,18 +36,13 @@ export default function LoginPage() {
 
       localStorage.setItem("userName", res.data.name || guestName);
       localStorage.removeItem("userMobile");
-      localStorage.setItem("loginMethod", res.data.loginMethod || "GUEST");
-      localStorage.setItem("userRole", res.data.role || "USER");
+      localStorage.setItem("loginMethod", "GUEST");
 
       setMessage("Guest login successful ✅");
       setTimeout(() => navigate("/home"), 900);
     } catch (err) {
-      console.error("Guest login error:", err);
-      const errorMessage =
-        err?.response?.data?.error ||
-        err?.response?.data?.message ||
-        "Guest login failed ❌";
-      setMessage(String(errorMessage));
+      console.error(err);
+      setMessage("Guest login failed ❌");
     }
   };
 

@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { getMediaUrl } from "../api";
+import { buildMediaUrl } from "../api";
 
 export default function MovieCard({ movie, onCreateRoom }) {
   const navigate = useNavigate();
@@ -7,9 +7,9 @@ export default function MovieCard({ movie, onCreateRoom }) {
   return (
     <div className="movie-card hover-card">
       <img
-        src={getMediaUrl(movie.posterUrl)}
+        src={buildMediaUrl(movie.posterUrl)}
         alt={movie.groupTitle || movie.title}
-        onClick={() => navigate(`/movie/${movie.groupTitle}`)}
+        onClick={() => navigate(`/movie/${encodeURIComponent(movie.groupTitle)}`)}
       />
 
       <div className="movie-content">
@@ -19,7 +19,7 @@ export default function MovieCard({ movie, onCreateRoom }) {
         <div className="movie-card-actions">
           <button
             className="btn-secondary"
-            onClick={() => navigate(`/movie/${movie.groupTitle}`)}
+            onClick={() => navigate(`/movie/${encodeURIComponent(movie.groupTitle)}`)}
           >
             View Parts
           </button>

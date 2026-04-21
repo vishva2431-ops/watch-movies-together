@@ -4,24 +4,24 @@ export default function Header({ userName }) {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    localStorage.removeItem("userName");
-    localStorage.removeItem("userMobile");
-    localStorage.removeItem("loginMethod");
-    localStorage.removeItem("userRole");
-    navigate("/", { replace: true });
+    localStorage.clear();   // clear login data
+    navigate("/");          // go to login page
   };
 
   return (
-    <div className="header-bar">
-      <div className="header-left">
-        <h2 className="app-logo" onClick={() => navigate("/home")}>
-          Watch Party
-        </h2>
+    <div className="header">
+      <div>
+        <h2>Watch Party</h2>
+        <p className="header-sub">Watch movies together in sync</p>
       </div>
 
-      <div className="header-right">
-        <span className="user-chip">{userName}</span>
-        <button className="btn-secondary" onClick={handleLogout}>
+      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <div className="user-pill">{userName || "Guest"}</div>
+
+        <button
+          className="btn-secondary small-btn"
+          onClick={handleLogout}
+        >
           Logout
         </button>
       </div>

@@ -1,27 +1,31 @@
-import { useEffect, useState } from "react";
-import { API, getMediaUrl } from "../api";
+import { useEffect, useMemo, useState } from "react";
+import { API, buildMediaUrl } from "../api";
 import Header from "../components/Header";
 
+const initialForm = {
+  groupTitle: "",
+  partTitle: "",
+  partNumber: "",
+  description: "",
+};
+
 export default function AdminPage() {
-  const [groupTitle, setGroupTitle] = useState("");
-  const [partTitle, setPartTitle] = useState("");
-  const [partNumber, setPartNumber] = useState("");
-  const [description, setDescription] = useState("");
+  const [form, setForm] = useState(initialForm);
   const [poster, setPoster] = useState(null);
   const [video, setVideo] = useState(null);
   const [movies, setMovies] = useState([]);
   const [message, setMessage] = useState("");
-  const [uploadPercent, setUploadPercent] = useState(0);
-  const [uploading, setUploading] = useState(false);
+  const [editingId, setEditingId] = useState(null);
 
   const userName = localStorage.getItem("userName") || "Guest";
 
   const loadMovies = async () => {
     try {
       const res = await API.get("/movies");
-      setMovies(Array.isArray(res.data) ? res.data : []);
+      setMovies(res.data || []);
     } catch (err) {
       console.error(err);
+      setMessage("Unable to load movies ❌");
     }
   };
 
@@ -29,80 +33,115 @@ export default function AdminPage() {
     loadMovies();
   }, []);
 
+  const resetForm = () => {
+    setForm(initialForm);
+    setPoster(null);
+    setVideo(null);
+    setEditingId(null);
+
+    const posterInput = document.getElementById("posterInput");
+    const videoInput = document.getElementById("videoInput");
+    if (posterInput) posterInput.value = "";
+    if (videoInput) videoInput.value = "";
+  };
+
+  const handleChange = (field, value) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
   const handleUpload = async (e) => {
     e.preventDefault();
 
-    if (!groupTitle.trim() || !poster || !video) {
-      setMessage("Movie name, poster image, and movie video are required");
+    if (!form.groupTitle.trim() || !form.description.trim()) {
+      setMessage("Group title and description are required");
+      return;
+    }
+
+    if (!editingId && (!poster || !video)) {
+      setMessage("Poster and movie video are required");
       return;
     }
 
     try {
-      setUploading(true);
-      setUploadPercent(0);
-      setMessage("Uploading...");
-
       const formData = new FormData();
-      formData.append("groupTitle", groupTitle.trim());
-      formData.append("partTitle", partTitle.trim() || groupTitle.trim());
-      formData.append("partNumber", partNumber || "1");
-      formData.append("description", description.trim() || "");
-      formData.append("poster", poster);
-      formData.append("video", video);
+      formData.append("groupTitle", form.groupTitle.trim());
+      formData.append("partTitle", form.partTitle.trim());
+      formData.append("partNumber", form.partNumber.trim());
+      formData.append("description", form.description.trim());
 
-      await API.post("/admin/upload", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-        onUploadProgress: (progressEvent) => {
-          if (progressEvent.total) {
-            const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            setUploadPercent(percent);
+      if (poster) formData.append("poster", poster);
+      if (video) formData.append("video", video);
 
-            if (percent === 100) {
-              setMessage("Upload finished from browser. Waiting for server...");
-            }
-          }
-        },
-      });
+      if (editingId) {
+        await API.put(`/movies/${editingId}`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        setMessage("Movie updated successfully ✅");
+      } else {
+        await API.post("/admin/upload", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        setMessage("Movie uploaded successfully ✅");
+      }
 
-      await loadMovies();
-
-      setMessage("Movie part uploaded successfully ✅");
-      setGroupTitle("");
-      setPartTitle("");
-      setPartNumber("");
-      setDescription("");
-      setPoster(null);
-      setVideo(null);
-      setUploadPercent(100);
-
-      const posterInput = document.getElementById("posterInput");
-      const videoInput = document.getElementById("videoInput");
-      if (posterInput) posterInput.value = "";
-      if (videoInput) videoInput.value = "";
+      resetForm();
+      loadMovies();
     } catch (err) {
       console.error(err);
-      const errorMessage =
-        err?.response?.data?.error ||
-        err?.response?.data?.message ||
-        err?.response?.data?.details ||
-        "Upload failed ❌";
-      setMessage(String(errorMessage));
-      setUploadPercent(0);
-    } finally {
-      setUploading(false);
+      const errorMessage = err?.response?.data?.message || "Upload failed ❌";
+      setMessage(errorMessage);
     }
   };
+
+  const startEdit = (movie) => {
+    setEditingId(movie.id);
+    setForm({
+      groupTitle: movie.groupTitle || "",
+      partTitle: movie.partTitle || "",
+      partNumber: movie.partNumber ? String(movie.partNumber) : "",
+      description: movie.description || "",
+    });
+    setPoster(null);
+    setVideo(null);
+    setMessage("Editing selected movie ✏️");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleDelete = async (id) => {
+    const confirmed = window.confirm("Delete this movie?");
+    if (!confirmed) return;
+
+    try {
+      await API.delete(`/movies/${id}`);
+      if (editingId === id) {
+        resetForm();
+      }
+      setMessage("Movie deleted successfully ✅");
+      loadMovies();
+    } catch (err) {
+      console.error(err);
+      setMessage("Delete failed ❌");
+    }
+  };
+
+  const groupedSummary = useMemo(() => {
+    return movies.reduce((count, movie) => {
+      const key = movie.groupTitle || "Untitled";
+      count[key] = (count[key] || 0) + 1;
+      return count;
+    }, {});
+  }, [movies]);
 
   return (
     <div className="page admin-page-bg">
       <Header userName={userName} />
 
-      <div className="admin-layout">
+      <div className="admin-layout admin-layout-stacked">
         <div className="admin-form-card">
           <div className="section-badge">Admin Panel</div>
-          <h2 className="section-title">Upload Movie Part</h2>
+          <h2 className="section-title">
+            {editingId ? "Edit Movie" : "Upload Movie Part"}
+          </h2>
           <p className="section-subtitle">
             Group all parts under one title and upload them neatly.
           </p>
@@ -111,13 +150,13 @@ export default function AdminPage() {
 
           <form className="admin-form" onSubmit={handleUpload}>
             <div className="admin-field">
-              <label>Group Title *</label>
+              <label>Group Title</label>
               <input
                 className="input-modern"
                 type="text"
                 placeholder="Example: Stranger Things"
-                value={groupTitle}
-                onChange={(e) => setGroupTitle(e.target.value)}
+                value={form.groupTitle}
+                onChange={(e) => handleChange("groupTitle", e.target.value)}
               />
             </div>
 
@@ -128,8 +167,8 @@ export default function AdminPage() {
                   className="input-modern"
                   type="text"
                   placeholder="Optional"
-                  value={partTitle}
-                  onChange={(e) => setPartTitle(e.target.value)}
+                  value={form.partTitle}
+                  onChange={(e) => handleChange("partTitle", e.target.value)}
                 />
               </div>
 
@@ -139,8 +178,8 @@ export default function AdminPage() {
                   className="input-modern"
                   type="number"
                   placeholder="Optional"
-                  value={partNumber}
-                  onChange={(e) => setPartNumber(e.target.value)}
+                  value={form.partNumber}
+                  onChange={(e) => handleChange("partNumber", e.target.value)}
                 />
               </div>
             </div>
@@ -149,73 +188,74 @@ export default function AdminPage() {
               <label>Description</label>
               <textarea
                 className="input-modern admin-textarea"
-                placeholder="Optional"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Enter description"
+                value={form.description}
+                onChange={(e) => handleChange("description", e.target.value)}
               />
             </div>
 
             <div className="admin-upload-grid">
               <div className="upload-box">
-                <label className="upload-label">Poster Image *</label>
+                <label className="upload-label">
+                  Poster Image {editingId ? "(optional while editing)" : ""}
+                </label>
                 <input
                   id="posterInput"
                   className="file-input"
                   type="file"
                   accept="image/*"
-                  onChange={(e) => setPoster(e.target.files[0])}
+                  onChange={(e) => setPoster(e.target.files?.[0] || null)}
                 />
               </div>
 
               <div className="upload-box">
-                <label className="upload-label">Movie Video *</label>
+                <label className="upload-label">
+                  Movie Video {editingId ? "(optional while editing)" : ""}
+                </label>
                 <input
                   id="videoInput"
                   className="file-input"
                   type="file"
                   accept="video/*"
-                  onChange={(e) => setVideo(e.target.files[0])}
+                  onChange={(e) => setVideo(e.target.files?.[0] || null)}
                 />
               </div>
             </div>
 
-            {(uploading || uploadPercent > 0) && (
-              <div className="upload-progress-section">
-                <div className="upload-progress-top">
-                  <span>{uploading ? "Uploading file..." : "Upload completed"}</span>
-                  <span>{uploadPercent}%</span>
-                </div>
-                <div className="upload-progress-bar">
-                  <div
-                    className="upload-progress-fill"
-                    style={{ width: `${uploadPercent}%` }}
-                  ></div>
-                </div>
-              </div>
-            )}
+            <div className="admin-action-row">
+              <button className="btn-primary admin-submit-btn" type="submit">
+                {editingId ? "Update Movie" : "Upload Part"}
+              </button>
 
-            <button className="btn-primary admin-submit-btn" type="submit" disabled={uploading}>
-              {uploading ? `Uploading ${uploadPercent}%` : "Upload Part"}
-            </button>
+              {editingId && (
+                <button
+                  className="btn-secondary admin-submit-btn"
+                  type="button"
+                  onClick={resetForm}
+                >
+                  Cancel Edit
+                </button>
+              )}
+            </div>
           </form>
         </div>
 
         <div className="admin-list-card">
           <div className="section-badge">Uploaded Content</div>
-          <h2 className="section-title">Movie Groups</h2>
+          <h2 className="section-title">Uploaded Movies</h2>
           <p className="section-subtitle">
-            Check what has already been uploaded.
+            Total groups: {Object.keys(groupedSummary).length} | Total uploads: {movies.length}
           </p>
 
-          <div className="admin-movie-list">
+          <div className="admin-movie-list admin-movie-list-stacked">
             {movies.length === 0 ? (
               <div className="empty-state">No movie parts uploaded yet.</div>
             ) : (
               movies.map((movie) => (
-                <div className="admin-movie-item" key={movie.id}>
+                <div className="admin-movie-item admin-movie-item-stacked" key={movie.id}>
                   <div className="admin-movie-left">
                     <img
-                      src={getMediaUrl(movie.posterUrl)}
+                      src={buildMediaUrl(movie.posterUrl)}
                       alt={movie.groupTitle}
                       className="admin-movie-poster"
                     />
@@ -223,9 +263,29 @@ export default function AdminPage() {
 
                   <div className="admin-movie-info">
                     <h3>{movie.groupTitle}</h3>
-                    <p><strong>Part:</strong> {movie.partTitle}</p>
-                    <p><strong>Part Number:</strong> {movie.partNumber}</p>
+                    {movie.partTitle && <p><strong>Part:</strong> {movie.partTitle}</p>}
+                    {movie.partNumber ? (
+                      <p><strong>Part Number:</strong> {movie.partNumber}</p>
+                    ) : null}
                     <p>{movie.description}</p>
+
+                    <div className="admin-item-actions">
+                      <button
+                        className="btn-secondary admin-item-btn"
+                        type="button"
+                        onClick={() => startEdit(movie)}
+                      >
+                        Edit
+                      </button>
+
+                      <button
+                        className="btn-primary admin-item-btn"
+                        type="button"
+                        onClick={() => handleDelete(movie.id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))

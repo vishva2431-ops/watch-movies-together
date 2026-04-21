@@ -12,41 +12,49 @@ export default function HomePage() {
   const navigate = useNavigate();
 
   const currentMobile = localStorage.getItem("userMobile") || "";
-  const isAdminUser =
-    currentUser.trim() === "Vishva_N" &&
-    currentMobile.trim() === "9025783849";
-
-  const loadMovies = async () => {
-    try {
-      const res = await API.get("/movies");
-      setMovies(Array.isArray(res.data) ? res.data : []);
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  const isAdminUser = currentUser === "Vishva_N" && currentMobile === "9025783849";
 
   useEffect(() => {
+    API.get("/movies")
+      .then((res) => setMovies(res.data || []))
+      .catch((err) => console.error(err));
+
     const localName = localStorage.getItem("userName") || "Guest";
     setCurrentUser(localName);
-    loadMovies();
   }, []);
+
+  const groupedMovies = useMemo(() => {
+    const map = new Map();
+
+    for (const movie of movies) {
+      const key = (movie.groupTitle || "").trim().toLowerCase();
+      if (!key) continue;
+
+      const existing = map.get(key);
+      const currentNumber = movie.partNumber ?? Number.MAX_SAFE_INTEGER;
+      const existingNumber = existing?.partNumber ?? Number.MAX_SAFE_INTEGER;
+
+      if (!existing || currentNumber < existingNumber) {
+        map.set(key, movie);
+      }
+    }
+
+    return Array.from(map.values());
+  }, [movies]);
 
   const filteredMovies = useMemo(() => {
     const value = search.toLowerCase();
 
-    return movies.filter((movie) =>
+    return groupedMovies.filter((movie) =>
       movie.groupTitle?.toLowerCase().includes(value) ||
       movie.partTitle?.toLowerCase().includes(value) ||
       String(movie.partNumber || "").includes(value)
     );
-  }, [movies, search]);
+  }, [groupedMovies, search]);
 
   const createRoomOnly = async () => {
     try {
-      const res = await API.post("/rooms/create", {
-        userName: currentUser,
-      });
-
+      const res = await API.post("/rooms/create", { userName: currentUser });
       const roomCode = res.data.roomCode;
 
       if (roomCode) {
@@ -116,17 +124,11 @@ export default function HomePage() {
 
         {isAdminUser && (
           <>
-            <button
-              className="btn-secondary tools-btn"
-              onClick={() => navigate("/admin")}
-            >
+            <button className="btn-secondary tools-btn" onClick={() => navigate("/admin")}>
               Admin
             </button>
 
-            <button
-              className="btn-secondary tools-btn"
-              onClick={() => navigate("/admin/users")}
-            >
+            <button className="btn-secondary tools-btn" onClick={() => navigate("/admin/users")}>
               Users
             </button>
           </>
@@ -143,17 +145,9 @@ export default function HomePage() {
       </div>
 
       <div className="movie-grid">
-        {filteredMovies.length === 0 ? (
-          <div className="empty-state">No movies found.</div>
-        ) : (
-          filteredMovies.map((movie) => (
-            <MovieCard
-              key={movie.id}
-              movie={movie}
-              onCreateRoom={createRoomFromMovie}
-            />
-          ))
-        )}
+        {filteredMovies.map((movie) => (
+          <MovieCard key={movie.id} movie={movie} onCreateRoom={createRoomFromMovie} />
+        ))}
       </div>
     </div>
   );
