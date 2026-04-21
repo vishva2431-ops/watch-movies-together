@@ -49,11 +49,7 @@ export default function RoomPage() {
       setSelectedQuality(res.data?.currentQuality || "AUTO");
     } catch (err) {
       console.error(err);
-      setRoomError(
-        err?.response?.status === 404
-          ? "Room not found ❌"
-          : "Unable to load room ❌"
-      );
+      setRoomError("Unable to load room ❌");
     }
   };
 
@@ -192,11 +188,7 @@ export default function RoomPage() {
       setTimeout(() => loadRoom(), 300);
     } catch (err) {
       console.error(err);
-      setRoomError(
-        err?.response?.status === 404
-          ? "Room movie update API not found ❌"
-          : "Unable to switch movie ❌"
-      );
+      setRoomError("Unable to switch movie ❌");
     }
   };
 
@@ -233,7 +225,7 @@ export default function RoomPage() {
       {roomError && <div className="login-message">{roomError}</div>}
       {moviesError && <div className="login-message">{moviesError}</div>}
 
-      <div className="room-page">
+      <div className="room-page room-page-single">
         <div className="room-main-area">
           <div className="room-video-card">
             {selectedMovie ? (
@@ -278,11 +270,13 @@ export default function RoomPage() {
               </>
             ) : (
               <div className="empty-room-box">
-                {room
-                  ? "Room created successfully. Select a movie below."
-                  : "Loading room..."}
+                {room ? "Room created successfully. Select a movie below." : "Loading room..."}
               </div>
             )}
+          </div>
+
+          <div className="room-chat-card">
+            <ChatBox messages={messages} onSend={sendChat} />
           </div>
 
           <div className="room-parts-card">
@@ -311,8 +305,6 @@ export default function RoomPage() {
             )}
           </div>
         </div>
-
-        <ChatBox messages={messages} onSend={sendChat} />
       </div>
     </div>
   );

@@ -69,11 +69,7 @@ export default function HomePage() {
       }
     } catch (err) {
       console.error(err);
-      setMessage(
-        err?.response?.status === 404
-          ? "Room create API not found in backend ❌"
-          : "Room creation failed ❌"
-      );
+      setMessage("Room creation failed ❌");
     }
   };
 
@@ -93,11 +89,7 @@ export default function HomePage() {
       }
     } catch (err) {
       console.error(err);
-      setMessage(
-        err?.response?.status === 404
-          ? "Room create API not found in backend ❌"
-          : "Room creation failed ❌"
-      );
+      setMessage("Room creation failed ❌");
     }
   };
 
@@ -123,32 +115,34 @@ export default function HomePage() {
 
       {message && <div className="login-message">{message}</div>}
 
-      <div className="home-top-row">
-        <input
-          className="input-modern room-code-input"
-          value={joinCode}
-          onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-          placeholder="Enter room code"
-        />
+      <div className="home-toolbar">
+        <div className="room-join-row">
+          <input
+            className="input-modern home-room-input"
+            value={joinCode}
+            onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+            placeholder="Enter room code"
+          />
 
-        <button className="btn-primary compact-btn" onClick={joinRoom}>
-          Join Room
-        </button>
+          <button className="btn-primary home-action-btn" onClick={joinRoom}>
+            Join Room
+          </button>
 
-        <button className="btn-primary compact-btn" onClick={createRoomOnly}>
-          Create Room
-        </button>
+          <button className="btn-primary home-action-btn" onClick={createRoomOnly}>
+            Create Room
+          </button>
+        </div>
 
         {isAdminUser && (
-          <>
-            <button className="btn-secondary compact-btn" onClick={() => navigate("/admin")}>
+          <div className="home-admin-row">
+            <button className="btn-secondary home-mini-btn" onClick={() => navigate("/admin")}>
               Admin
             </button>
 
-            <button className="btn-secondary compact-btn" onClick={() => navigate("/admin/users")}>
+            <button className="btn-secondary home-mini-btn" onClick={() => navigate("/admin/users")}>
               Users
             </button>
-          </>
+          </div>
         )}
       </div>
 

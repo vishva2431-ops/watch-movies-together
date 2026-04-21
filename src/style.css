@@ -777,3 +777,152 @@ button:hover {
   margin-top: 0;
   min-width: 220px;
 }
+/* HOME PAGE UPDATED LAYOUT */
+.home-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+
+.room-join-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.home-room-input {
+  flex: 1;
+  min-width: 260px;
+  margin: 0;
+}
+
+.home-action-btn {
+  width: auto !important;
+  min-width: 160px;
+  margin: 0 !important;
+  padding: 12px 18px !important;
+}
+
+.home-admin-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.home-mini-btn {
+  width: auto !important;
+  min-width: 110px;
+  margin: 0 !important;
+  padding: 11px 16px !important;
+  border-radius: 14px;
+}
+
+/* HEADER SMALLER RIGHT SIDE LOOK */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 30px;
+}
+
+.header-sub {
+  color: #b8bfd1;
+  margin: 8px 0 0;
+}
+
+.user-pill {
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* SEARCH BAR */
+.search-bar-wrap {
+  margin-bottom: 22px;
+}
+
+/* ROOM PAGE UPDATED */
+.room-page-single {
+  display: block;
+}
+
+.room-main-area {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.room-chat-card {
+  background: rgba(16, 18, 30, 0.88);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 24px;
+  padding: 16px;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.28);
+}
+
+.room-chat-card .whatsapp-chat-box {
+  height: 420px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+
+/* MAKE BUTTONS NOT FULL WIDTH ON HOME */
+.btn-primary,
+.btn-secondary {
+  padding: 14px 18px;
+}
+
+@media (max-width: 1100px) {
+  .home-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .room-join-row {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .home-room-input,
+  .home-action-btn {
+    width: 100% !important;
+  }
+
+  .home-admin-row {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 700px) {
+  .home-admin-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .home-mini-btn {
+    width: 100% !important;
+  }
+
+  .room-chat-card .whatsapp-chat-box {
+    height: 360px;
+  }
+}
