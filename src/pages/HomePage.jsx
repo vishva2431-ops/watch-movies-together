@@ -13,7 +13,7 @@ export default function HomePage() {
   const navigate = useNavigate();
 
   const currentMobile = localStorage.getItem("userMobile") || "";
-  const isAdminUser = currentUser === "Vishva_N" && currentMobile === "YOUR_MOBILE_NUMBER";
+  const isAdminUser = currentUser === "Vishva_N" && currentMobile === "9025783849";
 
   useEffect(() => {
     API.get("/movies")
