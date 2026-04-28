@@ -61,61 +61,61 @@ export default function AdminPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
- const uploadFileToCloudinary = async (file, progressStart, progressEnd) => {
-  if (!file) return "";
+  const uploadFileToCloudinary = async (file, progressStart, progressEnd) => {
+    if (!file) return "";
 
-  if (!CLOUD_NAME || !UPLOAD_PRESET) {
-    throw new Error("Cloudinary environment variables are missing");
-  }
+    if (!CLOUD_NAME || !UPLOAD_PRESET) {
+      throw new Error("Cloudinary environment variables are missing");
+    }
 
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("upload_preset", UPLOAD_PRESET);
-  formData.append("folder", "movies");
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", UPLOAD_PRESET);
+    formData.append("folder", "movies");
 
- const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`;
+    const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`;
 
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
 
-    xhr.open("POST", url, true);
+      xhr.open("POST", url, true);
 
-    xhr.upload.onprogress = (event) => {
-      if (!event.lengthComputable) return;
+      xhr.upload.onprogress = (event) => {
+        if (!event.lengthComputable) return;
 
-      const percent = Math.round((event.loaded * 100) / event.total);
-      const mapped = Math.round(
-        progressStart + ((progressEnd - progressStart) * percent) / 100
-      );
+        const percent = Math.round((event.loaded * 100) / event.total);
+        const mapped = Math.round(
+          progressStart + ((progressEnd - progressStart) * percent) / 100
+        );
 
-      setUploadProgress(mapped);
-    };
+        setUploadProgress(mapped);
+      };
 
-    xhr.onload = () => {
-      let response = {};
+      xhr.onload = () => {
+        let response = {};
 
-      try {
-        response = JSON.parse(xhr.responseText);
-      } catch {
-        reject(new Error("Invalid Cloudinary response"));
-        return;
-      }
+        try {
+          response = JSON.parse(xhr.responseText);
+        } catch {
+          reject(new Error("Invalid Cloudinary response"));
+          return;
+        }
 
-      if (xhr.status >= 200 && xhr.status < 300 && response.secure_url) {
-        setUploadProgress(progressEnd);
-        resolve(response.secure_url);
-      } else {
-        reject(new Error(response.error?.message || "Cloudinary upload failed"));
-      }
-    };
+        if (xhr.status >= 200 && xhr.status < 300 && response.secure_url) {
+          setUploadProgress(progressEnd);
+          resolve(response.secure_url);
+        } else {
+          reject(new Error(response.error?.message || "Cloudinary upload failed"));
+        }
+      };
 
-    xhr.onerror = () => {
-      reject(new Error("Cloudinary upload failed. Disable adblock/VPN or try another browser."));
-    };
+      xhr.onerror = () => {
+        reject(new Error("Cloudinary upload failed. Disable adblock/VPN or try another browser."));
+      };
 
-    xhr.send(formData);
-  });
-};
+      xhr.send(formData);
+    });
+  };
   const handleUpload = async (e) => {
     e.preventDefault();
 
@@ -138,11 +138,11 @@ export default function AdminPage() {
       let videoUrl = "";
 
       if (poster) {
-        posterUrl = await uploadFileToCloudinary(poster, "image", 0, 30);
+        posterUrl = await uploadFileToCloudinary(poster, 0, 30);
       }
 
       if (video) {
-        videoUrl = await uploadFileToCloudinary(video, "video", poster ? 30 : 0, 90);
+        videoUrl = await uploadFileToCloudinary(video, poster ? 30 : 0, 90);
       }
 
       const payload = {
