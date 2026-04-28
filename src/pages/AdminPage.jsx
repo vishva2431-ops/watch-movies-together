@@ -72,10 +72,7 @@ export default function AdminPage() {
     formData.append("file", file);
     formData.append("upload_preset", UPLOAD_PRESET);
 
-    const url =
-      resourceType === "image"
-        ? `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`
-        : `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload`;
+    const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`;
 
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
@@ -332,8 +329,8 @@ export default function AdminPage() {
                     ? "Updating..."
                     : "Uploading..."
                   : editingId
-                  ? "Update Movie"
-                  : "Save Movie"}
+                    ? "Update Movie"
+                    : "Save Movie"}
               </button>
 
               {editingId && (
