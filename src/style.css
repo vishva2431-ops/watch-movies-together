@@ -1087,14 +1087,14 @@ min-width: 0;
 }
 @media (max-width:768px) {
   .login-buttons{
-    display: flex;
-    justify-content: center;
-    gap: 14px;
-    margin-top: 18px;
+    display: flex !important;
+    justify-content: center !important;
+    gap: 14px !important;
+    margin-top: 18px !important ;
   }
   .login-buttons .btn-primary, .login-buttons .btn-secondary{
-    width: 130px;
-    height: 130px;
+    width: 110px;
+    height: 110px;
     font-size: 14px;
     padding: 12px;
     border-radius: 24px;
