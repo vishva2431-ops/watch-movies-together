@@ -9,25 +9,33 @@ export default function LoginPage() {
   const navigate = useNavigate();
 
   const mobileLogin = async () => {
-    if (!name.trim() || !mobile.trim()) {
-      setMessage("Enter name and mobile number");
-      return;
+  try {
+    const finalName = name.trim() || "User";
+
+    await API.post("/auth/mobile-login", {
+      name: finalName,
+      mobile,
+    });
+
+    const ADMIN_MOBILE = "9025783849";
+    const ADMIN_NAME = "Vishva_N";
+
+    localStorage.setItem("userName", finalName);
+    localStorage.setItem("mobile", mobile);
+    localStorage.setItem("loginMethod", "MOBILE");
+
+    if (mobile === ADMIN_MOBILE && finalName === ADMIN_NAME) {
+      localStorage.setItem("isAdmin", "true");
+    } else {
+      localStorage.setItem("isAdmin", "false");
     }
 
-    try {
-      const res = await API.post("/auth/mobile-login", { name, mobile });
-
-      localStorage.setItem("userName", res.data.name || name);
-      localStorage.setItem("userMobile", res.data.mobile || mobile);
-      localStorage.setItem("loginMethod", "MOBILE");
-
-      setMessage("Login successful ✅");
-      setTimeout(() => navigate("/home"), 900);
-    } catch (err) {
-      console.error(err);
-      setMessage("Mobile login failed ❌");
-    }
-  };
+    navigate("/home");
+  } catch (err) {
+    console.error(err);
+    setMessage("Mobile login failed ❌");
+  }
+};
 
   const guestLogin = async () => {
     try {
@@ -35,8 +43,9 @@ export default function LoginPage() {
       const res = await API.post("/auth/guest", { name: guestName });
 
       localStorage.setItem("userName", res.data.name || guestName);
-      localStorage.removeItem("userMobile");
+      localStorage.removeItem("mobile");
       localStorage.setItem("loginMethod", "GUEST");
+      localStorage.setItem("isAdmin", "false");
 
       setMessage("Guest login successful ✅");
       setTimeout(() => navigate("/home"), 900);
@@ -76,13 +85,15 @@ export default function LoginPage() {
             />
           </div>
 
-          <button className="btn-primary" onClick={mobileLogin}>
-            Login with Mobile
-          </button>
+          <div className="login-buttons">
+            <button className="btn-primary" onClick={mobileLogin}>
+              Login with Mobile
+            </button>
 
-          <button className="btn-secondary" onClick={guestLogin}>
-            Continue as Guest
-          </button>
+            <button className="btn-secondary" onClick={guestLogin}>
+              Continue as Guest
+            </button>
+          </div>
         </div>
       </div>
     </div>

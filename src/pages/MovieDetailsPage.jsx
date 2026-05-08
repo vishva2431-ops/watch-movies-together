@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { API, buildMediaUrl } from "../api";
+import { API, getMoviePoster } from "../api";
 import Header from "../components/Header";
 
 export default function MovieDetailsPage() {
@@ -8,32 +8,23 @@ export default function MovieDetailsPage() {
   const [parts, setParts] = useState([]);
   const [selectedPart, setSelectedPart] = useState(null);
   const navigate = useNavigate();
+
   const userName = localStorage.getItem("userName") || "Guest";
 
   useEffect(() => {
-    API.get(`/movies/${decodeURIComponent(groupTitle)}/parts`)
-      .then((res) => {
-        setParts(res.data || []);
-        if ((res.data || []).length > 0) {
-          setSelectedPart(res.data[0]);
-        }
-      })
-      .catch(console.error);
+    API.get(`/movies/${groupTitle}/parts`).then((res) => {
+      setParts(res.data);
+      setSelectedPart(res.data[0]);
+    });
   }, [groupTitle]);
 
   const createRoom = async () => {
-    if (!selectedPart) return;
+    const res = await API.post("/rooms/create", {
+      movieId: selectedPart.id,
+      userName,
+    });
 
-    try {
-      const res = await API.post("/rooms/create", {
-        movieId: selectedPart.id,
-        userName,
-      });
-      navigate(`/room/${res.data.roomCode}`);
-    } catch (err) {
-      console.error(err);
-      alert("Room creation failed");
-    }
+    navigate(`/room/${res.data.roomCode}`);
   };
 
   return (
@@ -41,41 +32,30 @@ export default function MovieDetailsPage() {
       <Header userName={userName} />
 
       {selectedPart && (
-        <div className="movie-detail-layout">
-          <div className="movie-detail-left">
-            <img
-              className="movie-detail-poster"
-              src={buildMediaUrl(selectedPart.posterUrl)}
-              alt={selectedPart.groupTitle}
-            />
-          </div>
+        <div className="movie-details-card">
+          <img src={getMoviePoster(selectedPart)} alt={selectedPart.groupTitle} />
 
-          <div className="movie-detail-right">
+          <div>
             <h1>{selectedPart.groupTitle}</h1>
             <p>{selectedPart.description}</p>
 
-            <div className="part-list">
+            <select
+              className="input-modern"
+              value={selectedPart.id}
+              onChange={(e) =>
+                setSelectedPart(parts.find((p) => p.id === e.target.value))
+              }
+            >
               {parts.map((part) => (
-                <button
-                  key={part.id}
-                  className={`part-btn ${selectedPart?.id === part.id ? "active-part" : ""}`}
-                  onClick={() => setSelectedPart(part)}
-                >
+                <option key={part.id} value={part.id}>
                   {part.partTitle}
-                  {part.partNumber ? ` - Part ${part.partNumber}` : ""}
-                </button>
+                </option>
               ))}
-            </div>
+            </select>
 
-            <div className="detail-actions">
-              <button className="btn-primary" onClick={createRoom}>
-                Create Room
-              </button>
-
-              <a href={buildMediaUrl(selectedPart.videoUrl)} download>
-                <button className="btn-secondary">Download Selected Part</button>
-              </a>
-            </div>
+            <button className="btn-primary" onClick={createRoom}>
+              Create Watch Room
+            </button>
           </div>
         </div>
       )}

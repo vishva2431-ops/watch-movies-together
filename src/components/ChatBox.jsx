@@ -1,71 +1,51 @@
-import { useRef, useState } from "react";
-
-const QUICK_EMOJIS = ["😀", "😂", "🥵", "🫂", "😘", "😍", "🔥", "👍", "🎉", "❤️", "😎", "😭", "👏"];
+import { useState } from "react";
 
 export default function ChatBox({ messages, onSend }) {
   const [text, setText] = useState("");
-  const inputRef = useRef(null);
 
-  const sendMessage = () => {
+  const handleSend = () => {
     if (!text.trim()) return;
+
     onSend(text);
     setText("");
-    inputRef.current?.focus();
   };
 
-  const addEmoji = (emoji) => {
-    setText((prev) => prev + emoji);
-    inputRef.current?.focus();
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSend();
+    }
   };
 
   return (
-    <div className="chat-box whatsapp-chat-box">
-      <div className="chat-box-header">
-        <h3>Room Chat</h3>
-        <span className="chat-online-dot">Live</span>
-      </div>
+    <div className="chat-box">
+      <h3 className="chat-title">Room Chat</h3>
 
       <div className="chat-messages">
         {messages.length === 0 ? (
-          <div className="empty-chat-state">No messages yet. Start the conversation.</div>
+          <p className="chat-empty">No messages yet</p>
         ) : (
           messages.map((msg, index) => (
-            <div key={index} className="chat-bubble">
-              <div className="chat-sender">{msg.sender}</div>
-              <div className="chat-text">{msg.text}</div>
+            <div key={index} className="chat-message">
+              <strong>{msg.sender}: </strong>
+              <span>{msg.text}</span>
             </div>
           ))
         )}
       </div>
 
-      <div className="emoji-bar">
-        {QUICK_EMOJIS.map((emoji) => (
-          <button
-            key={emoji}
-            type="button"
-            className="emoji-btn"
-            onClick={() => addEmoji(emoji)}
-          >
-            {emoji}
-          </button>
-        ))}
-      </div>
-
-      <div className="chat-input-row whatsapp-input-row">
+      <div className="chat-input-row">
         <input
-          ref={inputRef}
-          className="input-modern"
+          className="chat-input"
           type="text"
           placeholder="Type a message..."
           value={text}
           onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") sendMessage();
-          }}
+          onKeyDown={handleKeyDown}
         />
 
-        <button className="send-btn" onClick={sendMessage}>
-          Send
+        <button className="send-btn" onClick={handleSend}>
+          ➤
         </button>
       </div>
     </div>

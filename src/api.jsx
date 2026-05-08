@@ -1,34 +1,27 @@
 import axios from "axios";
 
-const isLocalHost =
-  typeof window !== "undefined" &&
-  ["localhost", "127.0.0.1"].includes(window.location.hostname);
-
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  (isLocalHost
-    ? "http://localhost:8080"
-    : "https://watchparty-springboot.onrender.com");
-
-export const WS_BASE_URL = API_BASE_URL.replace(/^http/, "ws");
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
 export const API = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
 });
 
-export const buildMediaUrl = (path) => {
-  if (!path) return "";
+export const getDrivePreviewUrl = (fileId) =>
+  fileId ? `https://drive.google.com/file/d/${fileId}/preview` : "";
 
-  // already full URL (Cloudinary, external)
-  if (path.startsWith("http://") || path.startsWith("https://")) {
-    return path;
-  }
+export const getDriveDownloadUrl = (fileId) =>
+  fileId ? `https://drive.google.com/uc?export=download&id=${fileId}` : "";
 
-  // avoid double slash
-  if (path.startsWith("/")) {
-    return `${API_BASE_URL}${path}`;
-  }
+export const getDrivePosterUrl = (fileId) =>
+  fileId ? `https://drive.google.com/thumbnail?id=${fileId}&sz=w800` : "";
 
-  return `${API_BASE_URL}/${path}`;
-};
+export const getMoviePoster = (movie) =>
+  movie?.posterUrl || getDrivePosterUrl(movie?.drivePosterFileId);
+
+export const getMovieVideo = (movie) =>
+  getDriveDownloadUrl(movie?.driveVideoFileId);
+
+export const getMoviePreview = (movie) =>
+  movie?.videoUrl || getDrivePreviewUrl(movie?.driveVideoFileId);
