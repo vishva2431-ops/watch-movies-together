@@ -102,7 +102,7 @@ export default function AdminPage() {
           <form className="admin-form" onSubmit={handleSubmit}>
             <div className="admin-field">
               <label>Group Title</label>
-              <input className="input-modern" value={groupTitle} onChange={(e) => setGroupTitle(e.target.value)} placeholder="Lover" />
+              <input className="input-modern" value={groupTitle} onChange={(e) => setGroupTitle(e.target.value)} placeholder="Movie Name" />
             </div>
 
             <div className="admin-field">
