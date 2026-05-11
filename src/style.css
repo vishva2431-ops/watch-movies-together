@@ -245,6 +245,7 @@ button:hover {
   margin: 0;
   min-width: 120px;
 }
+
 /* MOVIE CARD CENTER ALIGN */
 .movie-content {
   text-align: center;
@@ -440,7 +441,7 @@ button:hover {
 }
 
 .admin-movie-item {
-  display:flex;
+  display: flex;
   grid-template-columns: 92px 1fr;
   gap: 24px;
   align-items: flex-start;
@@ -466,9 +467,9 @@ button:hover {
   flex-shrink: 0;
 }
 
-.admin-movie-info{
-flex: 1;
-min-width: 0;
+.admin-movie-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .admin-movie-info h3 {
@@ -1101,18 +1102,22 @@ min-width: 0;
   width: 100%;
   margin-bottom: 18px;
 }
+
 .room-movie-select label {
   display: block;
-  margin-bottom: 10px; /* space between text and dropdown */
+  margin-bottom: 10px;
+  /* space between text and dropdown */
   font-size: 15px;
   font-weight: 600;
 }
+
 @media (max-width: 768px) {
   .room-movie-select label {
     margin-bottom: 12px;
     font-size: 14px;
   }
 }
+
 .empty-room-box {
   text-align: center;
   padding: 40px 20px;
@@ -1137,14 +1142,17 @@ min-width: 0;
 .back-btn:hover {
   transform: scale(1.05);
 }
+
 @media (max-width:768px) {
-  .login-buttons{
+  .login-buttons {
     display: flex !important;
     justify-content: center !important;
     gap: 14px !important;
-    margin-top: 18px !important ;
+    margin-top: 18px !important;
   }
-  .login-buttons .btn-primary, .login-buttons .btn-secondary{
+
+  .login-buttons .btn-primary,
+  .login-buttons .btn-secondary {
     width: 110px;
     height: 110px;
     font-size: 14px;
@@ -1153,6 +1161,7 @@ min-width: 0;
     line-height: 1.3;
   }
 }
+
 @media (max-width: 480px) {
   .login-buttons {
     display: flex;
@@ -1169,12 +1178,14 @@ min-width: 0;
     border-radius: 24px;
   }
 }
+
 @media (max-width: 480px) {
   .admin-list-card .section-title {
     font-size: 24px;
     line-height: 1.2;
   }
 }
+
 /* ROOM PAGE MOBILE RESPONSIVE */
 @media (max-width: 768px) {
   .room-topbar {
@@ -1282,6 +1293,7 @@ min-width: 0;
 
 /* EXTRA SMALL MOBILE */
 @media (max-width: 480px) {
+
   .room-video-card video,
   .room-video-card iframe {
     height: 200px;
@@ -1300,6 +1312,7 @@ min-width: 0;
     padding: 7px 14px;
   }
 }
+
 /* CHAT BOX */
 .chat-box {
   display: flex;
@@ -1391,6 +1404,7 @@ min-width: 0;
     font-size: 20px;
   }
 }
+
 .movie-poster {
   width: 170px;
   height: 240px;
@@ -1399,6 +1413,7 @@ min-width: 0;
   display: block;
   background: #111;
 }
+
 .admin-movie-poster {
   width: 110px;
   height: 160px;
@@ -1407,10 +1422,11 @@ min-width: 0;
   display: block;
   background: #111;
 }
+
 /* MOBILE RESPONSIVE POSTERS */
 @media (max-width: 768px) {
-  .movie-grid{
-    grid-template-columns: repeat(2,1fr);
+  .movie-grid {
+    grid-template-columns: repeat(2, 1fr);
     gap: 20px;
     margin-top: 20px;
   }
@@ -1425,7 +1441,7 @@ min-width: 0;
     margin: 0 auto;
   }
 
-  .admin-movie-item{
+  .admin-movie-item {
     flex-direction: column;
     align-items: center;
     text-align: center;
@@ -1456,7 +1472,8 @@ min-width: 0;
     font-size: 13px;
     text-align: center;
   }
-  .movie-card-actions{
+
+  .movie-card-actions {
     justify-content: center;
     width: 100%;
   }
@@ -1488,6 +1505,7 @@ min-width: 0;
     min-width: 100px;
   }
 }
+
 .room-video-card:fullscreen {
   width: 100vw;
   height: 100vh;
@@ -1503,6 +1521,7 @@ min-width: 0;
   width: 100%;
   height: 85vh;
 }
+
 .header-actions {
   display: flex;
   align-items: center;
@@ -1513,7 +1532,7 @@ min-width: 0;
   padding: 10px 18px;
   border: none;
   border-radius: 14px;
-  background: rgba(255,255,255,0.08);
+  background: rgba(255, 255, 255, 0.08);
   color: white;
   font-weight: 600;
   cursor: pointer;
@@ -1521,7 +1540,7 @@ min-width: 0;
 }
 
 .header-user-btn:hover {
-  background: rgba(255,255,255,0.18);
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .users-popup {
@@ -1532,11 +1551,11 @@ min-width: 0;
   max-height: 500px;
   overflow-y: auto;
   background: rgba(10, 15, 35, 0.96);
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 22px;
   padding: 18px;
   z-index: 999;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.45);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
 }
 
 .users-popup h3 {
@@ -1548,7 +1567,7 @@ min-width: 0;
   padding: 12px;
   margin-bottom: 12px;
   border-radius: 14px;
-  background: rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.05);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -1568,9 +1587,11 @@ min-width: 0;
   background: linear-gradient(135deg, #7b2ff7, #f107a3);
   color: white;
 }
+
 .users-popup .small-btn {
   margin-bottom: 12px;
 }
+
 /* FINAL MOBILE RESPONSIVE OVERRIDE */
 @media (max-width: 768px) {
   .users-popup {
@@ -1604,7 +1625,7 @@ min-width: 0;
     align-items: flex-start;
   }
 
-  .header > div:last-child {
+  .header>div:last-child {
     width: 100%;
     justify-content: flex-start;
     flex-wrap: wrap;
@@ -1630,5 +1651,82 @@ min-width: 0;
     max-width: 110px !important;
     font-size: 13px !important;
     padding: 10px !important;
+  }
+}
+
+/* ADMIN MOVIE CARD BUTTON FIX */
+.admin-movie-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 22px;
+  overflow: visible;
+}
+
+.admin-movie-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-movie-info .movie-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+  justify-content: flex-start;
+}
+
+.admin-movie-info .movie-card-actions button {
+  min-width: 120px;
+  max-width: 140px;
+  padding: 12px 16px;
+}
+
+/* MOBILE ADMIN CARD FIX */
+@media (max-width: 768px) {
+  .admin-movie-item {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    overflow: visible;
+  }
+
+  .admin-movie-info .movie-card-actions {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .admin-movie-info .movie-card-actions button {
+    width: 100%;
+    max-width: 180px;
+  }
+}
+
+.admin-preview-link {
+  text-decoration: none;
+  display: inline-block;
+}
+
+.admin-action-btn {
+  min-width: 120px;
+  max-width: 140px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+.admin-action-btn:hover {
+  background: rgba(168, 85, 247, 0.8);
+  transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+  .admin-action-btn {
+    width: 100%;
+    max-width: 180px;
   }
 }

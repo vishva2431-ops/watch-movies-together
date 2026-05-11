@@ -298,8 +298,9 @@ export default function AdminPage() {
                       href={getMoviePreview(movie)}
                       target="_blank"
                       rel="noreferrer"
+                      className="admin-preview-link"
                     >
-                      <button className="btn-primary">
+                      <button className="admin-action-btn">
                         Preview
                       </button>
                     </a>

@@ -52,9 +52,39 @@ export default function RoomPage() {
     client.debug = () => { };
 
     client.connect({}, () => {
-      client.subscribe(`/topic/room/${roomCode}`, (message) => {
+      client.subscribe(`/topic/room/${roomCode}`, async (message) => {
         const data = JSON.parse(message.body);
 
+        // Movie selection must work even before video exists
+        if (data.action === "SELECT") {
+          if (!data.movieId) {
+            setSelectedMovie(null);
+            return;
+          }
+
+          let movie = moviesRef.current.find(
+            (m) => m.id === data.movieId
+          );
+
+          if (!movie) {
+            const res = await API.get("/movies");
+            setMovies(res.data);
+            moviesRef.current = res.data;
+
+            movie = res.data.find(
+              (m) => m.id === data.movieId
+            );
+          }
+
+          if (movie) {
+            setSelectedMovie(movie);
+            setUsePreview(false);
+          }
+
+          return;
+        }
+
+        // Play, pause, seek need videoRef
         if (!videoRef.current || usePreview) return;
 
         if (typeof data.currentTime === "number") {
@@ -78,14 +108,13 @@ export default function RoomPage() {
         if (data.action === "SEEK") {
           videoRef.current.currentTime = data.currentTime;
         }
-
         if (data.action === "SELECT") {
           if (!data.movieId) {
             setSelectedMovie(null);
             return;
           }
 
-          const movie = movies.find(
+          const movie = moviesRef.current.find(
             (m) => m.id === data.movieId
           );
 
@@ -131,8 +160,10 @@ export default function RoomPage() {
     }
 
     const movie = moviesRef.current.find(
-  (m) => m.id === data.movieId
-);
+      (m) => m.id === movieId
+    );
+
+    if (!movie) return;
 
     setSelectedMovie(movie);
     setUsePreview(false);
