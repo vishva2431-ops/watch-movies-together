@@ -108,21 +108,6 @@ export default function RoomPage() {
         if (data.action === "SEEK") {
           videoRef.current.currentTime = data.currentTime;
         }
-        if (data.action === "SELECT") {
-          if (!data.movieId) {
-            setSelectedMovie(null);
-            return;
-          }
-
-          const movie = moviesRef.current.find(
-            (m) => m.id === data.movieId
-          );
-
-          if (movie) {
-            setSelectedMovie(movie);
-            setUsePreview(false);
-          }
-        }
       });
 
       client.subscribe(`/topic/chat/${roomCode}`, (message) => {
@@ -280,10 +265,11 @@ export default function RoomPage() {
                     ref={videoRef}
                     src={getMovieVideo(selectedMovie)}
                     controls
+                    width="100%"
                     onClick={handleDoubleTap}
                     onPlay={() => sendSync("PLAY")}
                     onPause={() => sendSync("PAUSE")}
-                    onError={() => setUsePreview(true)}
+                    style={{ borderRadius: "20px" }}
                   />
                 ) : (
                   <iframe
@@ -298,12 +284,12 @@ export default function RoomPage() {
                 <button className="btn-secondary" onClick={handleMaximize}>
                   ⛶ Maximize
                 </button>
-                <button
+                {/* <button
                   className="btn-secondary"
                   onClick={() => setUsePreview(!usePreview)}
                 >
                   {usePreview ? "Use Sync Player" : "Use Google Drive Preview"}
-                </button>
+                </button> */}
               </>
             ) : (
               <div className="empty-room-box">

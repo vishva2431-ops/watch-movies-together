@@ -18,8 +18,8 @@ export default function AdminPage() {
   const [partTitle, setPartTitle] = useState("");
   const [partNumber, setPartNumber] = useState("");
   const [description, setDescription] = useState("");
-  const [driveVideoFileId, setDriveVideoFileId] = useState("");
-  const [drivePosterFileId, setDrivePosterFileId] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
+  const [posterUrl, setPosterUrl] = useState("");
   const [movies, setMovies] = useState([]);
   const [message, setMessage] = useState("");
   const [editingId, setEditingId] = useState(null);
@@ -52,8 +52,8 @@ export default function AdminPage() {
     setPartTitle("");
     setPartNumber("");
     setDescription("");
-    setDriveVideoFileId("");
-    setDrivePosterFileId("");
+    setVideoUrl("");
+    setPosterUrl("");
     setEditingId(null);
   };
 
@@ -65,8 +65,8 @@ export default function AdminPage() {
       partTitle,
       partNumber: Number(partNumber),
       description,
-      driveVideoFileId,
-      drivePosterFileId,
+      videoUrl,
+      posterUrl,
     };
 
     if (editingId) {
@@ -87,8 +87,8 @@ export default function AdminPage() {
     setPartTitle(movie.partTitle || "");
     setPartNumber(movie.partNumber || "");
     setDescription(movie.description || "");
-    setDriveVideoFileId(movie.driveVideoFileId || "");
-    setDrivePosterFileId(movie.drivePosterFileId || "");
+    setVideoUrl(movie.videoUrl || "");
+    setPosterUrl(movie.posterUrl || "");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -185,7 +185,7 @@ export default function AdminPage() {
           <div className="section-badge">Admin Panel</div>
 
           <h2 className="section-title">
-            {editingId ? "Edit Movie" : "Add Google Drive Movie"}
+            {editingId ? "Edit Movie" : "Add Movie URL"}
           </h2>
 
           {message && <div className="login-message">{message}</div>}
@@ -232,24 +232,24 @@ export default function AdminPage() {
             </div>
 
             <div className="admin-field">
-              <label>Google Drive Video File ID</label>
+              <label>Cloudinary Video URL</label>
               <input
                 className="input-modern"
-                value={driveVideoFileId}
+                value={videoUrl}
                 onChange={(e) =>
-                  setDriveVideoFileId(e.target.value.trim())
+                  setVideoUrl(e.target.value.trim())
                 }
+                placeholder="https://res.cloudinary.com/.../video/upload/movie.mp4"
               />
-            </div>
 
-            <div className="admin-field">
-              <label>Google Drive Poster File ID</label>
+              <label>Cloudinary Poster URL</label>
               <input
                 className="input-modern"
-                value={drivePosterFileId}
+                value={posterUrl}
                 onChange={(e) =>
-                  setDrivePosterFileId(e.target.value.trim())
+                  setPosterUrl(e.target.value.trim())
                 }
+                placeholder="https://res.cloudinary.com/.../image/upload/poster.jpg"
               />
             </div>
 

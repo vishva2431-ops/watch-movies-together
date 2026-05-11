@@ -8,20 +8,14 @@ export const API = axios.create({
   withCredentials: true,
 });
 
-export const getDrivePreviewUrl = (fileId) =>
-  fileId ? `https://drive.google.com/file/d/${fileId}/preview` : "";
+export const getMoviePoster = (movie) => {
+  return movie?.posterUrl || "";
+};
 
-export const getDriveDownloadUrl = (fileId) =>
-  fileId ? `https://drive.google.com/uc?export=download&id=${fileId}` : "";
+export const getMovieVideo = (movie) => {
+  return movie?.videoUrl || "";
+};
 
-export const getDrivePosterUrl = (fileId) =>
-  fileId ? `https://drive.google.com/thumbnail?id=${fileId}&sz=w800` : "";
-
-export const getMoviePoster = (movie) =>
-  movie?.posterUrl || getDrivePosterUrl(movie?.drivePosterFileId);
-
-export const getMovieVideo = (movie) =>
-  getDriveDownloadUrl(movie?.driveVideoFileId);
-
-export const getMoviePreview = (movie) =>
-  movie?.videoUrl || getDrivePreviewUrl(movie?.driveVideoFileId);
+export const getMoviePreview = (movie) => {
+  return movie?.videoUrl || "";
+};
