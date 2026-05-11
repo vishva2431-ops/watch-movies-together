@@ -14,7 +14,7 @@ export default function RoomPage() {
   const stompClientRef = useRef(null);
   const videoBoxRef = useRef(null);
   const lastTapRef = useRef(0);
-
+  const moviesRef = useRef([]);
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [movies, setMovies] = useState([]);
   const [messages, setMessages] = useState([]);
@@ -42,11 +42,13 @@ export default function RoomPage() {
   const loadMovies = async () => {
     const res = await API.get("/movies");
     setMovies(res.data);
+    moviesRef.current = res.data;
   };
 
   const connectSocket = () => {
     const socket = new SockJS(`${API_BASE_URL}/ws`);
     const client = Stomp.over(socket);
+
     client.debug = () => { };
 
     client.connect({}, () => {
@@ -56,12 +58,42 @@ export default function RoomPage() {
         if (!videoRef.current || usePreview) return;
 
         if (typeof data.currentTime === "number") {
-          const diff = Math.abs(videoRef.current.currentTime - data.currentTime);
-          if (diff > 2) videoRef.current.currentTime = data.currentTime;
+          const diff = Math.abs(
+            videoRef.current.currentTime - data.currentTime
+          );
+
+          if (diff > 2) {
+            videoRef.current.currentTime = data.currentTime;
+          }
         }
 
-        if (data.action === "PLAY") videoRef.current.play().catch(() => { });
-        if (data.action === "PAUSE") videoRef.current.pause();
+        if (data.action === "PLAY") {
+          videoRef.current.play().catch(() => { });
+        }
+
+        if (data.action === "PAUSE") {
+          videoRef.current.pause();
+        }
+
+        if (data.action === "SEEK") {
+          videoRef.current.currentTime = data.currentTime;
+        }
+
+        if (data.action === "SELECT") {
+          if (!data.movieId) {
+            setSelectedMovie(null);
+            return;
+          }
+
+          const movie = movies.find(
+            (m) => m.id === data.movieId
+          );
+
+          if (movie) {
+            setSelectedMovie(movie);
+            setUsePreview(false);
+          }
+        }
       });
 
       client.subscribe(`/topic/chat/${roomCode}`, (message) => {
@@ -72,23 +104,56 @@ export default function RoomPage() {
 
     stompClientRef.current = client;
   };
-
   const handleMovieChange = async (e) => {
     const movieId = e.target.value;
 
     if (!movieId) {
       setSelectedMovie(null);
-      await API.put(`/rooms/${roomCode}/movie`, { movieId: "" });
+
+      await API.put(`/rooms/${roomCode}/movie`, {
+        movieId: "",
+      });
+
+      if (stompClientRef.current) {
+        stompClientRef.current.send(
+          "/app/room.sync",
+          {},
+          JSON.stringify({
+            roomCode,
+            action: "SELECT",
+            movieId: "",
+            currentTime: 0,
+          })
+        );
+      }
+
       return;
     }
 
-    const movie = movies.find((m) => m.id === movieId);
+    const movie = moviesRef.current.find(
+  (m) => m.id === data.movieId
+);
+
     setSelectedMovie(movie);
     setUsePreview(false);
 
-    await API.put(`/rooms/${roomCode}/movie`, { movieId });
-  };
+    await API.put(`/rooms/${roomCode}/movie`, {
+      movieId,
+    });
 
+    if (stompClientRef.current) {
+      stompClientRef.current.send(
+        "/app/room.sync",
+        {},
+        JSON.stringify({
+          roomCode,
+          action: "SELECT",
+          movieId,
+          currentTime: 0,
+        })
+      );
+    }
+  };
   const sendSync = (action) => {
     if (!stompClientRef.current || !videoRef.current || usePreview) return;
 
@@ -126,15 +191,21 @@ export default function RoomPage() {
     const now = Date.now();
     const timeDiff = now - lastTapRef.current;
 
-    if (timeDiff < 300 && videoRef.current) {
+    if (timeDiff < 300 && videoRef.current && !usePreview) {
       const box = e.currentTarget.getBoundingClientRect();
       const tapX = e.clientX - box.left;
 
       if (tapX < box.width / 2) {
-        videoRef.current.currentTime = Math.max(videoRef.current.currentTime - 10, 0);
+        videoRef.current.currentTime = Math.max(
+          videoRef.current.currentTime - 10,
+          0
+        );
       } else {
-        videoRef.current.currentTime = videoRef.current.currentTime + 10;
+        videoRef.current.currentTime =
+          videoRef.current.currentTime + 10;
       }
+
+      sendSync("SEEK");
     }
 
     lastTapRef.current = now;

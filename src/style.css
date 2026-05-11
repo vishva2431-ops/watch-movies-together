@@ -212,12 +212,19 @@ button:hover {
 }
 
 .movie-content {
-  padding-top: 12px;
-  position: static;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 14px;
+  width: 100%;
 }
 
 .movie-content h3 {
-  margin: 0 0 8px;
+  width: 100%;
+  text-align: center;
+  margin-bottom: 14px;
 }
 
 .movie-content p {
@@ -228,9 +235,8 @@ button:hover {
 
 .movie-card-actions {
   display: flex;
-  gap: 10px;
-  margin-top: 14px;
-  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
 }
 
 .movie-card-actions .btn-primary,
@@ -238,6 +244,52 @@ button:hover {
   width: auto;
   margin: 0;
   min-width: 120px;
+}
+/* MOVIE CARD CENTER ALIGN */
+.movie-content {
+  text-align: center;
+  padding: 12px;
+}
+
+.movie-content h3 {
+  text-align: center;
+  margin: 8px 0 12px;
+}
+
+.movie-card-actions {
+  justify-content: center;
+}
+
+.movie-card-actions .btn-primary {
+  display: block;
+  margin: 0 auto;
+}
+
+/* MOBILE MOVIE CARD */
+@media (max-width: 768px) {
+  .movie-content {
+    text-align: center;
+    padding: 10px;
+  }
+
+  .movie-content h3 {
+    font-size: 15px;
+    text-align: center;
+    margin: 8px 0 10px;
+  }
+
+  .movie-card-actions {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .movie-card-actions .btn-primary {
+    width: 100%;
+    max-width: 130px;
+    font-size: 13px;
+    padding: 9px 10px;
+    margin: 0 auto;
+  }
 }
 
 .home-page-bg {

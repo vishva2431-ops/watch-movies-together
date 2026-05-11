@@ -12,8 +12,8 @@ export default function MovieCard({ movie, onCreateRoom }) {
 
       <div className="movie-content">
         <h3>{movie.groupTitle}</h3>
-        <p>{movie.partTitle}</p>
-        <p>{movie.description}</p>
+        {/* <p>{movie.partTitle}</p> */}
+        {/* <p>{movie.description}</p> */}
 
         <div className="movie-card-actions">
           <button
