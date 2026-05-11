@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import SockJS from "sockjs-client/dist/sockjs";
 import Stomp from "stompjs";
-import { API, API_BASE_URL, getMoviePreview, getMovieVideo } from "../api";
+import { API, API_BASE_URL } from "../api";
 import Header from "../components/Header";
 import ChatBox from "../components/ChatBox";
 
@@ -13,12 +13,11 @@ export default function RoomPage() {
   const videoRef = useRef(null);
   const stompClientRef = useRef(null);
   const videoBoxRef = useRef(null);
-  const lastTapRef = useRef(0);
   const moviesRef = useRef([]);
+
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [movies, setMovies] = useState([]);
   const [messages, setMessages] = useState([]);
-  const [usePreview, setUsePreview] = useState(false);
 
   const userName = localStorage.getItem("userName") || "Guest";
 
@@ -29,7 +28,7 @@ export default function RoomPage() {
 
     return () => {
       if (stompClientRef.current) {
-        stompClientRef.current.disconnect(() => { });
+        stompClientRef.current.disconnect(() => {});
       }
     };
   }, [roomCode]);
@@ -49,13 +48,13 @@ export default function RoomPage() {
     const socket = new SockJS(`${API_BASE_URL}/ws`);
     const client = Stomp.over(socket);
 
-    client.debug = () => { };
+    client.debug = () => {};
 
     client.connect({}, () => {
       client.subscribe(`/topic/room/${roomCode}`, async (message) => {
         const data = JSON.parse(message.body);
 
-        // Movie selection must work even before video exists
+        // Movie selection sync
         if (data.action === "SELECT") {
           if (!data.movieId) {
             setSelectedMovie(null);
@@ -78,35 +77,24 @@ export default function RoomPage() {
 
           if (movie) {
             setSelectedMovie(movie);
-            setUsePreview(false);
           }
 
           return;
         }
 
-        // Play, pause, seek need videoRef
-        if (!videoRef.current || usePreview) return;
+        if (!videoRef.current) return;
 
+        // Exact time sync
         if (typeof data.currentTime === "number") {
-          const diff = Math.abs(
-            videoRef.current.currentTime - data.currentTime
-          );
-
-          if (diff > 2) {
-            videoRef.current.currentTime = data.currentTime;
-          }
+          videoRef.current.currentTime = data.currentTime;
         }
 
         if (data.action === "PLAY") {
-          videoRef.current.play().catch(() => { });
+          videoRef.current.play().catch(() => {});
         }
 
         if (data.action === "PAUSE") {
           videoRef.current.pause();
-        }
-
-        if (data.action === "SEEK") {
-          videoRef.current.currentTime = data.currentTime;
         }
       });
 
@@ -118,6 +106,7 @@ export default function RoomPage() {
 
     stompClientRef.current = client;
   };
+
   const handleMovieChange = async (e) => {
     const movieId = e.target.value;
 
@@ -128,18 +117,16 @@ export default function RoomPage() {
         movieId: "",
       });
 
-      if (stompClientRef.current) {
-        stompClientRef.current.send(
-          "/app/room.sync",
-          {},
-          JSON.stringify({
-            roomCode,
-            action: "SELECT",
-            movieId: "",
-            currentTime: 0,
-          })
-        );
-      }
+      stompClientRef.current?.send(
+        "/app/room.sync",
+        {},
+        JSON.stringify({
+          roomCode,
+          action: "SELECT",
+          movieId: "",
+          currentTime: 0,
+        })
+      );
 
       return;
     }
@@ -151,27 +138,25 @@ export default function RoomPage() {
     if (!movie) return;
 
     setSelectedMovie(movie);
-    setUsePreview(false);
 
     await API.put(`/rooms/${roomCode}/movie`, {
       movieId,
     });
 
-    if (stompClientRef.current) {
-      stompClientRef.current.send(
-        "/app/room.sync",
-        {},
-        JSON.stringify({
-          roomCode,
-          action: "SELECT",
-          movieId,
-          currentTime: 0,
-        })
-      );
-    }
+    stompClientRef.current?.send(
+      "/app/room.sync",
+      {},
+      JSON.stringify({
+        roomCode,
+        action: "SELECT",
+        movieId,
+        currentTime: 0,
+      })
+    );
   };
+
   const sendSync = (action) => {
-    if (!stompClientRef.current || !videoRef.current || usePreview) return;
+    if (!stompClientRef.current || !videoRef.current) return;
 
     stompClientRef.current.send(
       "/app/room.sync",
@@ -197,34 +182,11 @@ export default function RoomPage() {
       })
     );
   };
+
   const handleMaximize = () => {
     if (videoBoxRef.current) {
       videoBoxRef.current.requestFullscreen();
     }
-  };
-
-  const handleDoubleTap = (e) => {
-    const now = Date.now();
-    const timeDiff = now - lastTapRef.current;
-
-    if (timeDiff < 300 && videoRef.current && !usePreview) {
-      const box = e.currentTarget.getBoundingClientRect();
-      const tapX = e.clientX - box.left;
-
-      if (tapX < box.width / 2) {
-        videoRef.current.currentTime = Math.max(
-          videoRef.current.currentTime - 10,
-          0
-        );
-      } else {
-        videoRef.current.currentTime =
-          videoRef.current.currentTime + 10;
-      }
-
-      sendSync("SEEK");
-    }
-
-    lastTapRef.current = now;
   };
 
   return (
@@ -233,7 +195,12 @@ export default function RoomPage() {
 
       <div className="room-topbar">
         <div className="room-code-pill">Room: {roomCode}</div>
-        <button className="back-btn" onClick={() => navigate("/home")}>Back</button>
+        <button
+          className="back-btn"
+          onClick={() => navigate("/home")}
+        >
+          Back
+        </button>
       </div>
 
       <div className="room-page">
@@ -260,36 +227,22 @@ export default function RoomPage() {
                 <h2>{selectedMovie.groupTitle}</h2>
                 <p>{selectedMovie.partTitle}</p>
 
-                {!usePreview ? (
-                  <video
-                    ref={videoRef}
-                    src={getMovieVideo(selectedMovie)}
-                    controls
-                    width="100%"
-                    onClick={handleDoubleTap}
-                    onPlay={() => sendSync("PLAY")}
-                    onPause={() => sendSync("PAUSE")}
-                    style={{ borderRadius: "20px" }}
-                  />
-                ) : (
-                  <iframe
-                    title={selectedMovie.groupTitle}
-                    src={getMoviePreview(selectedMovie)}
-                    width="100%"
-                    height="500"
-                    allow="autoplay; fullscreen"
-                    allowFullScreen
-                  />
-                )}
-                <button className="btn-secondary" onClick={handleMaximize}>
+                <video
+                  ref={videoRef}
+                  src={`${API_BASE_URL}/media/drive/${selectedMovie.videoUrl}`}
+                  controls
+                  width="100%"
+                  onPlay={() => sendSync("PLAY")}
+                  onPause={() => sendSync("PAUSE")}
+                  style={{ borderRadius: "20px" }}
+                />
+
+                <button
+                  className="btn-secondary"
+                  onClick={handleMaximize}
+                >
                   ⛶ Maximize
                 </button>
-                {/* <button
-                  className="btn-secondary"
-                  onClick={() => setUsePreview(!usePreview)}
-                >
-                  {usePreview ? "Use Sync Player" : "Use Google Drive Preview"}
-                </button> */}
               </>
             ) : (
               <div className="empty-room-box">

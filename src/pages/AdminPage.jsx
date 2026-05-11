@@ -232,24 +232,24 @@ export default function AdminPage() {
             </div>
 
             <div className="admin-field">
-              <label>Cloudinary Video URL</label>
+              <label>Google Drive Video File ID</label>
               <input
                 className="input-modern"
                 value={videoUrl}
                 onChange={(e) =>
                   setVideoUrl(e.target.value.trim())
                 }
-                placeholder="https://res.cloudinary.com/.../video/upload/movie.mp4"
+                placeholder="Paste only Google Drive video file ID"
               />
 
-              <label>Cloudinary Poster URL</label>
+              <label>Poster URL</label>
               <input
                 className="input-modern"
                 value={posterUrl}
                 onChange={(e) =>
                   setPosterUrl(e.target.value.trim())
                 }
-                placeholder="https://res.cloudinary.com/.../image/upload/poster.jpg"
+                placeholder="https://drive.google.com/thumbnail?id=FILE_ID&sz=w800"
               />
             </div>
 

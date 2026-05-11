@@ -13,7 +13,9 @@ export const getMoviePoster = (movie) => {
 };
 
 export const getMovieVideo = (movie) => {
-  return movie?.videoUrl || "";
+  return movie?.videoUrl
+    ? `${API_BASE_URL}/media/drive/${movie.videoUrl}`
+    : "";
 };
 
 export const getMoviePreview = (movie) => {
