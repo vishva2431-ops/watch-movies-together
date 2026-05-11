@@ -38,22 +38,28 @@ export default function LoginPage() {
 };
 
   const guestLogin = async () => {
-    try {
-      const guestName = name.trim() || "Guest";
-      const res = await API.post("/auth/guest", { name: guestName });
+  try {
+    const guestName = name.trim();
 
-      localStorage.setItem("userName", res.data.name || guestName);
-      localStorage.removeItem("mobile");
-      localStorage.setItem("loginMethod", "GUEST");
-      localStorage.setItem("isAdmin", "false");
-
-      setMessage("Guest login successful ✅");
-      setTimeout(() => navigate("/home"), 900);
-    } catch (err) {
-      console.error(err);
-      setMessage("Guest login failed ❌");
+    if (!guestName) {
+      setMessage("Please enter your name ❌");
+      return;
     }
-  };
+
+    const res = await API.post("/auth/guest", { name: guestName });
+
+    localStorage.setItem("userName", res.data.name || guestName);
+    localStorage.removeItem("mobile");
+    localStorage.setItem("loginMethod", "GUEST");
+    localStorage.setItem("isAdmin", "false");
+
+    setMessage("Guest login successful ✅");
+    setTimeout(() => navigate("/home"), 900);
+  } catch (err) {
+    console.error(err);
+    setMessage("Guest login failed ❌");
+  }
+};
 
   return (
     <div className="page center-page">

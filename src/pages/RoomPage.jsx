@@ -12,6 +12,8 @@ export default function RoomPage() {
 
   const videoRef = useRef(null);
   const stompClientRef = useRef(null);
+  const videoBoxRef = useRef(null);
+  const lastTapRef = useRef(0);
 
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [movies, setMovies] = useState([]);
@@ -27,7 +29,7 @@ export default function RoomPage() {
 
     return () => {
       if (stompClientRef.current) {
-        stompClientRef.current.disconnect(() => {});
+        stompClientRef.current.disconnect(() => { });
       }
     };
   }, [roomCode]);
@@ -45,7 +47,7 @@ export default function RoomPage() {
   const connectSocket = () => {
     const socket = new SockJS(`${API_BASE_URL}/ws`);
     const client = Stomp.over(socket);
-    client.debug = () => {};
+    client.debug = () => { };
 
     client.connect({}, () => {
       client.subscribe(`/topic/room/${roomCode}`, (message) => {
@@ -58,7 +60,7 @@ export default function RoomPage() {
           if (diff > 2) videoRef.current.currentTime = data.currentTime;
         }
 
-        if (data.action === "PLAY") videoRef.current.play().catch(() => {});
+        if (data.action === "PLAY") videoRef.current.play().catch(() => { });
         if (data.action === "PAUSE") videoRef.current.pause();
       });
 
@@ -114,6 +116,29 @@ export default function RoomPage() {
       })
     );
   };
+  const handleMaximize = () => {
+    if (videoBoxRef.current) {
+      videoBoxRef.current.requestFullscreen();
+    }
+  };
+
+  const handleDoubleTap = (e) => {
+    const now = Date.now();
+    const timeDiff = now - lastTapRef.current;
+
+    if (timeDiff < 300 && videoRef.current) {
+      const box = e.currentTarget.getBoundingClientRect();
+      const tapX = e.clientX - box.left;
+
+      if (tapX < box.width / 2) {
+        videoRef.current.currentTime = Math.max(videoRef.current.currentTime - 10, 0);
+      } else {
+        videoRef.current.currentTime = videoRef.current.currentTime + 10;
+      }
+    }
+
+    lastTapRef.current = now;
+  };
 
   return (
     <div className="page room-shell">
@@ -126,7 +151,7 @@ export default function RoomPage() {
 
       <div className="room-page">
         <div className="room-main-area">
-          <div className="room-video-card">
+          <div className="room-video-card" ref={videoBoxRef}>
             <div className="room-movie-select">
               <label>Select Movie</label>
               <select
@@ -153,6 +178,7 @@ export default function RoomPage() {
                     ref={videoRef}
                     src={getMovieVideo(selectedMovie)}
                     controls
+                    onClick={handleDoubleTap}
                     onPlay={() => sendSync("PLAY")}
                     onPause={() => sendSync("PAUSE")}
                     onError={() => setUsePreview(true)}
@@ -167,7 +193,9 @@ export default function RoomPage() {
                     allowFullScreen
                   />
                 )}
-
+                <button className="btn-secondary" onClick={handleMaximize}>
+                  ⛶ Maximize
+                </button>
                 <button
                   className="btn-secondary"
                   onClick={() => setUsePreview(!usePreview)}

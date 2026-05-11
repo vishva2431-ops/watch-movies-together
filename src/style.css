@@ -1436,3 +1436,147 @@ min-width: 0;
     min-width: 100px;
   }
 }
+.room-video-card:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 20px;
+}
+
+.room-video-card:fullscreen video,
+.room-video-card:fullscreen iframe {
+  width: 100%;
+  height: 85vh;
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-user-btn {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.08);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+.header-user-btn:hover {
+  background: rgba(255,255,255,0.18);
+}
+
+.users-popup {
+  position: absolute;
+  top: 95px;
+  right: 40px;
+  width: 340px;
+  max-height: 500px;
+  overflow-y: auto;
+  background: rgba(10, 15, 35, 0.96);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 22px;
+  padding: 18px;
+  z-index: 999;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.45);
+}
+
+.users-popup h3 {
+  margin-bottom: 14px;
+  color: white;
+}
+
+.user-popup-item {
+  padding: 12px;
+  margin-bottom: 12px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.popup-user-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.popup-user-actions button {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  background: linear-gradient(135deg, #7b2ff7, #f107a3);
+  color: white;
+}
+.users-popup .small-btn {
+  margin-bottom: 12px;
+}
+/* FINAL MOBILE RESPONSIVE OVERRIDE */
+@media (max-width: 768px) {
+  .users-popup {
+    position: fixed;
+    top: 80px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-height: 75vh;
+    padding: 14px;
+  }
+
+  .popup-user-actions {
+    flex-direction: column;
+  }
+
+  .admin-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-form-card,
+  .admin-list-card {
+    padding: 16px;
+  }
+
+  .section-title {
+    font-size: 24px;
+  }
+
+  .header {
+    align-items: flex-start;
+  }
+
+  .header > div:last-child {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .user-pill,
+  .header-user-btn,
+  .small-btn {
+    font-size: 13px;
+    padding: 8px 12px;
+  }
+
+  .login-buttons {
+    gap: 14px !important;
+  }
+
+  .login-buttons .btn-primary,
+  .login-buttons .btn-secondary,
+  .login-buttons button {
+    width: 110px !important;
+    height: 110px !important;
+    min-width: 110px !important;
+    max-width: 110px !important;
+    font-size: 13px !important;
+    padding: 10px !important;
+  }
+}

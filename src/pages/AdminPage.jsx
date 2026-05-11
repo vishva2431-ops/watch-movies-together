@@ -24,6 +24,12 @@ export default function AdminPage() {
   const [message, setMessage] = useState("");
   const [editingId, setEditingId] = useState(null);
 
+  const [users, setUsers] = useState([]);
+  const [editingUserId, setEditingUserId] = useState(null);
+  const [editUserName, setEditUserName] = useState("");
+  const [editUserMobile, setEditUserMobile] = useState("");
+  const [showUsers, setShowUsers] = useState(false);
+
   const userName = localStorage.getItem("userName") || "Guest";
 
   const loadMovies = async () => {
@@ -31,8 +37,14 @@ export default function AdminPage() {
     setMovies(res.data);
   };
 
+  const loadUsers = async () => {
+    const res = await API.get("/auth/users");
+    setUsers(res.data);
+  };
+
   useEffect(() => {
     loadMovies();
+    loadUsers();
   }, []);
 
   const resetForm = () => {
@@ -86,13 +98,92 @@ export default function AdminPage() {
     loadMovies();
   };
 
+  const editUser = (user) => {
+    setEditingUserId(user.id);
+    setEditUserName(user.name || "");
+    setEditUserMobile(user.mobile || "");
+  };
+
+  const updateUser = async () => {
+    await API.put(`/auth/users/${editingUserId}`, {
+      name: editUserName,
+      mobile: editUserMobile,
+      loginMethod: "MOBILE",
+      admin: false,
+    });
+
+    setEditingUserId(null);
+    setEditUserName("");
+    setEditUserMobile("");
+    loadUsers();
+  };
+
+  const deleteUser = async (id) => {
+    if (!confirm("Delete this user?")) return;
+    await API.delete(`/auth/users/${id}`);
+    loadUsers();
+  };
+
   return (
     <div className="page admin-page-bg">
-      <Header userName={userName} />
+      <Header
+        userName={userName}
+        onUsersClick={() => setShowUsers(!showUsers)}
+      />
+
+      {showUsers && (
+        <div className="users-popup">
+          <h3>Logged In Users</h3>
+          {/* <h3>Logged In Users</h3> */}
+
+          <button
+            className="btn-secondary small-btn"
+            onClick={() => setShowUsers(false)}
+          >
+            Back
+          </button>
+
+          {users.map((user) => (
+            <div key={user.id} className="user-popup-item">
+              {editingUserId === user.id ? (
+                <>
+                  <input
+                    className="input-modern"
+                    value={editUserName}
+                    onChange={(e) => setEditUserName(e.target.value)}
+                  />
+
+                  <input
+                    className="input-modern"
+                    value={editUserMobile}
+                    onChange={(e) => setEditUserMobile(e.target.value)}
+                  />
+
+                  <button className="btn-primary" onClick={updateUser}>
+                    Save
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span>
+                    {user.name} ({user.mobile || "Guest"})
+                  </span>
+
+                  <div className="popup-user-actions">
+                    <button onClick={() => editUser(user)}>Edit</button>
+                    <button onClick={() => deleteUser(user.id)}>Delete</button>
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="admin-layout">
         <div className="admin-form-card">
           <div className="section-badge">Admin Panel</div>
+
           <h2 className="section-title">
             {editingId ? "Edit Movie" : "Add Google Drive Movie"}
           </h2>
@@ -102,35 +193,70 @@ export default function AdminPage() {
           <form className="admin-form" onSubmit={handleSubmit}>
             <div className="admin-field">
               <label>Group Title</label>
-              <input className="input-modern" value={groupTitle} onChange={(e) => setGroupTitle(e.target.value)} placeholder="Movie Name" />
+              <input
+                className="input-modern"
+                value={groupTitle}
+                onChange={(e) => setGroupTitle(e.target.value)}
+                placeholder="Movie Name"
+              />
             </div>
 
             <div className="admin-field">
               <label>Part Title</label>
-              <input className="input-modern" value={partTitle} onChange={(e) => setPartTitle(e.target.value)} placeholder="Full Movie" />
+              <input
+                className="input-modern"
+                value={partTitle}
+                onChange={(e) => setPartTitle(e.target.value)}
+                placeholder="Full Movie"
+              />
             </div>
 
             <div className="admin-field">
               <label>Part Number</label>
-              <input className="input-modern" type="number" value={partNumber} onChange={(e) => setPartNumber(e.target.value)} placeholder="1" />
+              <input
+                className="input-modern"
+                type="number"
+                value={partNumber}
+                onChange={(e) => setPartNumber(e.target.value)}
+                placeholder="1"
+              />
             </div>
 
             <div className="admin-field">
               <label>Description</label>
-              <textarea className="input-modern admin-textarea" value={description} onChange={(e) => setDescription(e.target.value)} />
+              <textarea
+                className="input-modern admin-textarea"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
             </div>
 
             <div className="admin-field">
               <label>Google Drive Video File ID</label>
-              <input className="input-modern" value={driveVideoFileId} onChange={(e) => setDriveVideoFileId(e.target.value.trim())} />
+              <input
+                className="input-modern"
+                value={driveVideoFileId}
+                onChange={(e) =>
+                  setDriveVideoFileId(e.target.value.trim())
+                }
+              />
             </div>
 
             <div className="admin-field">
               <label>Google Drive Poster File ID</label>
-              <input className="input-modern" value={drivePosterFileId} onChange={(e) => setDrivePosterFileId(e.target.value.trim())} />
+              <input
+                className="input-modern"
+                value={drivePosterFileId}
+                onChange={(e) =>
+                  setDrivePosterFileId(e.target.value.trim())
+                }
+              />
             </div>
 
-            <button className="btn-primary admin-submit-btn" type="submit">
+            <button
+              className="btn-primary admin-submit-btn"
+              type="submit"
+            >
               {editingId ? "Update Movie" : "Save Movie"}
             </button>
           </form>
@@ -142,7 +268,11 @@ export default function AdminPage() {
           <div className="admin-movie-list">
             {movies.map((movie) => (
               <div className="admin-movie-item" key={movie.id}>
-                <img src={getMoviePoster(movie)} alt={movie.groupTitle} className="admin-movie-poster" />
+                <img
+                  src={getMoviePoster(movie)}
+                  alt={movie.groupTitle}
+                  className="admin-movie-poster"
+                />
 
                 <div className="admin-movie-info">
                   <h3>{movie.groupTitle}</h3>
@@ -150,10 +280,28 @@ export default function AdminPage() {
                   <p>{movie.description}</p>
 
                   <div className="movie-card-actions">
-                    <button className="btn-secondary" onClick={() => editMovie(movie)}>Edit</button>
-                    <button className="btn-secondary" onClick={() => deleteMovie(movie.id)}>Delete</button>
-                    <a href={getMoviePreview(movie)} target="_blank" rel="noreferrer">
-                      <button className="btn-primary">Preview</button>
+                    <button
+                      className="btn-secondary"
+                      onClick={() => editMovie(movie)}
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      className="btn-secondary"
+                      onClick={() => deleteMovie(movie.id)}
+                    >
+                      Delete
+                    </button>
+
+                    <a
+                      href={getMoviePreview(movie)}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <button className="btn-primary">
+                        Preview
+                      </button>
                     </a>
                   </div>
                 </div>
