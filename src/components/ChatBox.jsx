@@ -1,11 +1,15 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function ChatBox({ messages, onSend }) {
   const [text, setText] = useState("");
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const handleSend = () => {
     if (!text.trim()) return;
-
     onSend(text);
     setText("");
   };
@@ -32,6 +36,8 @@ export default function ChatBox({ messages, onSend }) {
             </div>
           ))
         )}
+
+        <div ref={messagesEndRef} />
       </div>
 
       <div className="chat-input-row">

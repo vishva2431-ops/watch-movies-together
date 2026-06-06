@@ -8,6 +8,7 @@ export default function HomePage() {
   const [movies, setMovies] = useState([]);
   const [joinCode, setJoinCode] = useState("");
   const [search, setSearch] = useState("");
+  const [alertMessage, setAlertMessage] = useState("");
 
   const navigate = useNavigate();
   const currentUser = localStorage.getItem("userName") || "Guest";
@@ -48,7 +49,7 @@ export default function HomePage() {
 
   const joinRoom = () => {
     if (!joinCode.trim()) {
-      alert("Enter room code");
+      setAlertMessage("Please enter the room code");
       return;
     }
 
@@ -58,6 +59,21 @@ export default function HomePage() {
   return (
     <div className="page home-page-bg">
       <Header userName={currentUser} />
+      {alertMessage && (
+        <div className="custom-alert-overlay">
+          <div className="custom-alert-box">
+            <h3>Room Code Required</h3>
+            <p>{alertMessage}</p>
+
+            <button
+              className="btn-primary"
+              onClick={() => setAlertMessage("")}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="home-controls-container">
         <div className="home-controls-row">
@@ -92,7 +108,7 @@ export default function HomePage() {
             className="input-modern home-search-input"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search uploaded movies..."
+            placeholder="Search for movies..."
           />
         </div>
       </div>

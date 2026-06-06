@@ -8,23 +8,31 @@ export default function MovieDetailsPage() {
   const [parts, setParts] = useState([]);
   const [selectedPart, setSelectedPart] = useState(null);
   const navigate = useNavigate();
-
   const userName = localStorage.getItem("userName") || "Guest";
 
   useEffect(() => {
-    API.get(`/movies/${groupTitle}/parts`).then((res) => {
-      setParts(res.data);
-      setSelectedPart(res.data[0]);
-    });
+    API.get(`/movies/${groupTitle}/parts`)
+      .then((res) => {
+        setParts(res.data);
+        if (res.data.length > 0) setSelectedPart(res.data[0]);
+      })
+      .catch(console.error);
   }, [groupTitle]);
 
   const createRoom = async () => {
-    const res = await API.post("/rooms/create", {
-      movieId: selectedPart.id,
-      userName,
-    });
+    if (!selectedPart) return;
 
-    navigate(`/room/${res.data.roomCode}`);
+    try {
+      const res = await API.post("/rooms/create", {
+        movieId: selectedPart.id,
+        userName,
+      });
+
+      navigate(`/room/${res.data.roomCode}`);
+    } catch (err) {
+      console.error(err);
+      alert("Room creation failed");
+    }
   };
 
   return (
@@ -32,30 +40,38 @@ export default function MovieDetailsPage() {
       <Header userName={userName} />
 
       {selectedPart && (
-        <div className="movie-details-card">
-          <img src={getMoviePoster(selectedPart)} alt={selectedPart.groupTitle} />
+        <div className="movie-detail-layout">
+          <div className="movie-detail-left">
+            <img
+              className="movie-detail-poster"
+              src={getMoviePoster(selectedPart)}
+              alt={selectedPart.groupTitle}
+            />
+          </div>
 
-          <div>
+          <div className="movie-detail-right">
             <h1>{selectedPart.groupTitle}</h1>
             <p>{selectedPart.description}</p>
 
-            <select
-              className="input-modern"
-              value={selectedPart.id}
-              onChange={(e) =>
-                setSelectedPart(parts.find((p) => p.id === e.target.value))
-              }
-            >
+            <div className="part-list">
               {parts.map((part) => (
-                <option key={part.id} value={part.id}>
+                <button
+                  key={part.id}
+                  className={`part-btn ${
+                    selectedPart?.id === part.id ? "active-part" : ""
+                  }`}
+                  onClick={() => setSelectedPart(part)}
+                >
                   {part.partTitle}
-                </option>
+                </button>
               ))}
-            </select>
+            </div>
 
-            <button className="btn-primary" onClick={createRoom}>
-              Create Watch Room
-            </button>
+            <div className="detail-actions">
+              <button className="btn-primary" onClick={createRoom}>
+                Create Room
+              </button>
+            </div>
           </div>
         </div>
       )}
