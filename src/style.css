@@ -1978,8 +1978,11 @@ button:hover {
   display: flex;
 }
 
-.room-action-row {
-  display: none !important;
+.login-card .room-action-row {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-bottom: 18px;
 }
 
 .movie-search-wrap {
