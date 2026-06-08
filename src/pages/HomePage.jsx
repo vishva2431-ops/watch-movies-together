@@ -12,6 +12,7 @@ export default function HomePage() {
 
   const navigate = useNavigate();
   const currentUser = localStorage.getItem("userName") || "Guest";
+  const isAdmin = localStorage.getItem("isAdmin") === "true";
 
   useEffect(() => {
     API.get("/movies")
@@ -95,12 +96,14 @@ export default function HomePage() {
             Create Room
           </button>
 
-          <button
-            className="btn-secondary home-control-btn"
-            onClick={() => navigate("/admin")}
-          >
-            Admin
-          </button>
+          {isAdmin && (
+            <button
+              className="btn-secondary home-control-btn"
+              onClick={() => navigate("/admin")}
+            >
+              Admin
+            </button>
+          )}
         </div>
 
         <div className="home-search-row">
