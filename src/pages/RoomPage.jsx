@@ -12,7 +12,6 @@ export default function RoomPage() {
 
   const stompClientRef = useRef(null);
   const playerRef = useRef(null);
-  const playerBoxRef = useRef(null);
   const videoContainerRef = useRef(null);
   const moviesRef = useRef([]);
   const ignoreEventRef = useRef(false);
@@ -20,6 +19,7 @@ export default function RoomPage() {
   const holdTimerRef = useRef(null);
   const singleTapTimerRef = useRef(null);
   const isHoldingRef = useRef(false);
+  const durationTimerRef = useRef(null);
 
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [movies, setMovies] = useState([]);
@@ -39,7 +39,6 @@ export default function RoomPage() {
 
   const filteredMovies = movies.filter((movie) => {
     const value = movieSearch.toLowerCase();
-
     return (
       movie.groupTitle?.toLowerCase().includes(value) ||
       movie.partTitle?.toLowerCase().includes(value)
@@ -53,14 +52,16 @@ export default function RoomPage() {
     loadYouTubeScript();
 
     return () => {
+      sendUserLeave();
       clearTimeout(singleTapTimerRef.current);
       clearTimeout(holdTimerRef.current);
+      clearTimeout(durationTimerRef.current);
 
       if (stompClientRef.current) {
         stompClientRef.current.disconnect(() => { });
       }
 
-      if (playerRef.current && playerRef.current.destroy) {
+      if (playerRef.current?.destroy) {
         playerRef.current.destroy();
       }
     };
@@ -73,24 +74,18 @@ export default function RoomPage() {
   }, [selectedMovie, playerReady]);
 
   useEffect(() => {
-    const handler = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
     document.addEventListener("fullscreenchange", handler);
-
-    return () => {
-      document.removeEventListener("fullscreenchange", handler);
-    };
+    return () => document.removeEventListener("fullscreenchange", handler);
   }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      if (playerRef.current && playerRef.current.getCurrentTime) {
+      if (playerRef.current?.getCurrentTime) {
         setCurrentTime(playerRef.current.getCurrentTime());
         setDuration(playerRef.current.getDuration());
       }
-    }, 1000);
+    }, 500);
 
     return () => clearInterval(interval);
   }, []);
@@ -99,9 +94,7 @@ export default function RoomPage() {
     try {
       const res = await API.get(`/rooms/${roomCode}`);
       const movie = res.data.movie || null;
-
       setSelectedMovie(movie);
-      setRoomUsers(res.data.members || []);
 
       if (movie) {
         setMovieSearch(`${movie.groupTitle} - ${movie.partTitle}`);
@@ -134,21 +127,16 @@ export default function RoomPage() {
       document.body.appendChild(tag);
     }
 
-    window.onYouTubeIframeAPIReady = () => {
-      setPlayerReady(true);
-    };
+    window.onYouTubeIframeAPIReady = () => setPlayerReady(true);
   };
 
   const createOrUpdatePlayer = (movie) => {
     const videoId = extractYouTubeId(movie.videoUrl);
-
     if (!videoId) return;
 
-    if (playerRef.current && playerRef.current.loadVideoById) {
+    if (playerRef.current?.loadVideoById) {
       playerRef.current.loadVideoById(videoId);
-      setTimeout(() => {
-        playerRef.current?.pauseVideo?.();
-      }, 500);
+      setTimeout(() => playerRef.current?.pauseVideo?.(), 500);
       return;
     }
 
@@ -164,9 +152,7 @@ export default function RoomPage() {
         fs: 0,
       },
       events: {
-        onReady: () => {
-          setPlayerReady(true);
-        },
+        onReady: () => setPlayerReady(true),
         onStateChange: (event) => {
           if (ignoreEventRef.current) return;
 
@@ -182,6 +168,54 @@ export default function RoomPage() {
     });
   };
 
+  const addRoomUser = (name) => {
+    if (!name) return;
+    setRoomUsers((prev) => {
+      if (prev.includes(name)) return prev;
+      return [...prev, name];
+    });
+  };
+
+  const removeRoomUser = (name) => {
+    setRoomUsers((prev) => prev.filter((u) => u !== name));
+  };
+
+  const sendUserJoin = () => {
+    stompClientRef.current?.send(
+      "/app/room.sync",
+      {},
+      JSON.stringify({
+        roomCode,
+        action: "USER_JOIN",
+        userName,
+      })
+    );
+  };
+
+  const sendUserLeave = () => {
+    stompClientRef.current?.send(
+      "/app/room.sync",
+      {},
+      JSON.stringify({
+        roomCode,
+        action: "USER_LEAVE",
+        userName,
+      })
+    );
+  };
+
+  const requestUsers = () => {
+    stompClientRef.current?.send(
+      "/app/room.sync",
+      {},
+      JSON.stringify({
+        roomCode,
+        action: "USER_REQUEST",
+        userName,
+      })
+    );
+  };
+
   const connectSocket = () => {
     const socket = new SockJS(`${API_BASE_URL}/ws`);
     const client = Stomp.over(socket);
@@ -189,8 +223,25 @@ export default function RoomPage() {
     client.debug = () => { };
 
     client.connect({}, () => {
+      stompClientRef.current = client;
+
       client.subscribe(`/topic/room/${roomCode}`, async (message) => {
         const data = JSON.parse(message.body);
+
+        if (data.action === "USER_JOIN") {
+          addRoomUser(data.userName);
+          return;
+        }
+
+        if (data.action === "USER_LEAVE") {
+          removeRoomUser(data.userName);
+          return;
+        }
+
+        if (data.action === "USER_REQUEST") {
+          sendUserJoin();
+          return;
+        }
 
         if (data.action === "SELECT") {
           if (!data.movieId) {
@@ -228,21 +279,10 @@ export default function RoomPage() {
           playerRef.current.setPlaybackRate(data.playbackRate);
         }
 
-        if (data.action === "PLAY") {
-          playerRef.current.playVideo();
-        }
-
-        if (data.action === "PAUSE") {
-          playerRef.current.pauseVideo();
-        }
-
-        if (data.action === "SEEK") {
-          playerRef.current.seekTo(data.currentTime, true);
-        }
-
-        if (data.action === "SPEED") {
-          playerRef.current.setPlaybackRate(data.playbackRate || 1);
-        }
+        if (data.action === "PLAY") playerRef.current.playVideo();
+        if (data.action === "PAUSE") playerRef.current.pauseVideo();
+        if (data.action === "SEEK") playerRef.current.seekTo(data.currentTime, true);
+        if (data.action === "SPEED") playerRef.current.setPlaybackRate(data.playbackRate || 1);
 
         setTimeout(() => {
           ignoreEventRef.current = false;
@@ -253,9 +293,11 @@ export default function RoomPage() {
         const data = JSON.parse(message.body);
         setMessages((prev) => [...prev, data]);
       });
-    });
 
-    stompClientRef.current = client;
+      addRoomUser(userName);
+      sendUserJoin();
+      requestUsers();
+    });
   };
 
   const selectMovie = async (movie) => {
@@ -280,7 +322,7 @@ export default function RoomPage() {
   };
 
   const getCurrentTime = () => {
-    if (!playerRef.current || !playerRef.current.getCurrentTime) return 0;
+    if (!playerRef.current?.getCurrentTime) return 0;
     return playerRef.current.getCurrentTime();
   };
 
@@ -310,15 +352,29 @@ export default function RoomPage() {
   };
 
   const forward10 = () => {
+    const wasPlaying =
+      playerRef.current?.getPlayerState?.() === window.YT.PlayerState.PLAYING;
+
     const time = getCurrentTime() + 10;
     playerRef.current?.seekTo?.(time, true);
     sendSync("SEEK", { currentTime: time });
+
+    if (wasPlaying) {
+      setTimeout(() => playerRef.current?.playVideo?.(), 150);
+    }
   };
 
   const backward10 = () => {
+    const wasPlaying =
+      playerRef.current?.getPlayerState?.() === window.YT.PlayerState.PLAYING;
+
     const time = Math.max(getCurrentTime() - 10, 0);
     playerRef.current?.seekTo?.(time, true);
     sendSync("SEEK", { currentTime: time });
+
+    if (wasPlaying) {
+      setTimeout(() => playerRef.current?.playVideo?.(), 150);
+    }
   };
 
   const speed2x = () => {
@@ -336,8 +392,18 @@ export default function RoomPage() {
     setTimeout(() => setCenterIcon(""), 700);
   };
 
+  const showDurationTemporarily = () => {
+    setShowDuration(true);
+    clearTimeout(durationTimerRef.current);
+    durationTimerRef.current = setTimeout(() => {
+      setShowDuration(false);
+    }, 3500);
+  };
+
   const handleVideoTap = (e) => {
     if (isHoldingRef.current) return;
+
+    showDurationTemporarily();
 
     const now = Date.now();
     const rect = e.currentTarget.getBoundingClientRect();
@@ -349,12 +415,15 @@ export default function RoomPage() {
     if (isDoubleTap) {
       clearTimeout(singleTapTimerRef.current);
 
-      if (x < rect.width / 2) {
+      if (x < rect.width * 0.35) {
         backward10();
         showIcon("⏪");
-      } else {
+      } else if (x > rect.width * 0.65) {
         forward10();
         showIcon("⏩");
+      } else {
+        pauseVideo();
+        showIcon("⏸");
       }
 
       lastTapRef.current = 0;
@@ -362,26 +431,17 @@ export default function RoomPage() {
     }
 
     lastTapRef.current = now;
-
     clearTimeout(singleTapTimerRef.current);
 
     singleTapTimerRef.current = setTimeout(() => {
       if (lastTapRef.current === 0) return;
 
-      const state = playerRef.current?.getPlayerState?.();
-
-      if (state === window.YT.PlayerState.PLAYING) {
-        pauseVideo();
-        showIcon("⏸");
-      } else {
-        playVideo();
-        showIcon("▶");
-      }
+      playVideo();
+      showIcon("▶");
 
       lastTapRef.current = 0;
     }, 320);
   };
-
   const handleHoldStart = () => {
     isHoldingRef.current = false;
 
@@ -401,6 +461,32 @@ export default function RoomPage() {
         isHoldingRef.current = false;
       }, 100);
     }
+  };
+
+  const seekByProgress = (e) => {
+    e.stopPropagation();
+    if (!duration) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clientX = e.clientX || e.changedTouches?.[0]?.clientX || 0;
+    const percent = Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1);
+    const seekTime = duration * percent;
+
+    const wasPlaying =
+      playerRef.current?.getPlayerState?.() === window.YT.PlayerState.PLAYING;
+
+    playerRef.current?.seekTo?.(seekTime, true);
+    setCurrentTime(seekTime);
+    sendSync("SEEK", { currentTime: seekTime });
+
+    if (wasPlaying) {
+      setTimeout(() => {
+        playerRef.current?.playVideo?.();
+        sendSync("PLAY", { currentTime: seekTime });
+      }, 200);
+    }
+
+    showDurationTemporarily();
   };
 
   const sendChat = (text) => {
@@ -430,25 +516,19 @@ export default function RoomPage() {
   const formatTime = (seconds) => {
     if (!seconds || Number.isNaN(seconds)) return "0:00";
 
-    const mins = Math.floor(seconds / 60);
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);
+
+    if (hrs > 0) {
+      return `${hrs}:${mins.toString().padStart(2, "0")}:${secs
+        .toString()
+        .padStart(2, "0")}`;
+    }
 
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const copyRoomCode = async () => {
-    await navigator.clipboard.writeText(
-      roomCode
-    );
-  };
-  const shareRoomLink = async () => {
-    const link =
-      `${window.location.origin}/room/${roomCode}`;
-
-    await navigator.clipboard.writeText(
-      link
-    );
-  };
   return (
     <div className="page room-shell">
       <Header userName={userName} />
@@ -456,33 +536,18 @@ export default function RoomPage() {
       <div className="room-topbar">
         <div className="room-code-pill">Room: {roomCode}</div>
 
-        <button
-          className="room-users-btn"
-          onClick={() => setShowUsers(true)}
-        >
+        <button className="room-users-btn" onClick={() => setShowUsers(true)}>
           👥 {roomUsers.length}
         </button>
 
         <button className="back-btn" onClick={() => navigate("/home")}>
           Back
         </button>
-        {/* <button
-          className="btn-secondary"
-          onClick={copyRoomCode}
-        >
-          Copy Code
-        </button> */}
-        {/* <button
-          className="btn-secondary"
-          onClick={shareRoomLink}
-        >
-          Share Link
-        </button> */}
       </div>
 
       <div className="room-page">
         <div className="room-main-area">
-          <div className="room-video-card" ref={playerBoxRef}>
+          <div className="room-video-card">
             <div className="room-movie-select movie-search-wrap">
               <label>Search YouTube Video</label>
 
@@ -521,58 +586,71 @@ export default function RoomPage() {
                 <h2>{selectedMovie.groupTitle}</h2>
                 <p>{selectedMovie.partTitle}</p>
 
-                <div ref={videoContainerRef} className="youtube-touch-frame">
+                <div
+                  ref={videoContainerRef}
+                  className="youtube-touch-frame"
+                  onMouseMove={showDurationTemporarily}
+                  onTouchStart={showDurationTemporarily}
+                >
                   <div id="youtube-player"></div>
+
                   <div
                     className="video-touch-layer"
                     onClick={handleVideoTap}
+                    onMouseMove={showDurationTemporarily}
+                    onTouchStart={(e) => {
+                      showDurationTemporarily();
+                      handleHoldStart(e);
+                    }}
+                    onTouchEnd={handleHoldEnd}
                     onMouseDown={handleHoldStart}
                     onMouseUp={handleHoldEnd}
                     onMouseLeave={handleHoldEnd}
-                    onTouchStart={handleHoldStart}
-                    onTouchEnd={handleHoldEnd}
                   />
 
-                  <div
-                    className="video-bottom-touch"
-                    onMouseMove={() => setShowDuration(true)}
-                    onTouchStart={() => setShowDuration(true)}
-                  />
+                  <div className={`video-center-icon ${centerIcon ? "show" : ""}`}>
+                    {centerIcon}
+                  </div>
 
-                  <div className={`video - center - icon ${centerIcon ? "show" : ""}`}>
-                  {centerIcon}
+                  {showDuration && (
+                    <div className="video-controls-bottom">
+                      <div
+                        className="video-progress"
+                        onClick={seekByProgress}
+                        onTouchStart={seekByProgress}
+                      >
+                        <div
+                          className="video-progress-fill"
+                          style={{
+                            width:
+                              duration > 0
+                                ? `${(currentTime / duration) * 100}%`
+                                : "0%",
+                          }}
+                        />
+                      </div>
+
+                      <div className="video-time">
+                        {formatTime(currentTime)} / {formatTime(duration)}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {showDuration && (
-                  <>
-                    <div className="video-progress">
-                      <div
-                        className="video-progress-fill"
-                        style={{
-                          width:
-                            duration > 0 ? `${(currentTime / duration) * 100}%` : "0%",
-          }}
-        />
-                    </div>
-
-                    <div className="video-time">
-                      {formatTime(currentTime)} / {formatTime(duration)}
-                    </div>
-                  </>
-                )}
+                <button className="btn-secondary fullscreen-btn" onClick={toggleFullscreen}>
+                  {isFullscreen ? "Minimize" : "Maximize"}
+                </button>
+              </>
+            ) : (
+              <div className="empty-room-box">
+                <h2>Room created successfully</h2>
+                <p>Search and select a YouTube video to start watching.</p>
               </div>
-
-            <button className="btn-secondary" onClick={toggleFullscreen}>
-              {isFullscreen ? "Minimize" : "Maximize"}
-            </button>
-          </>
-          ) : (
-          <div className="empty-room-box">
-            <h2>Room created successfully</h2>
-            <p>Search and select a YouTube video to start watching.</p>
-          </div>
             )}
+          </div>
         </div>
+
+        <ChatBox messages={messages} onSend={sendChat} />
       </div>
 
       {showUsers && (
@@ -596,9 +674,6 @@ export default function RoomPage() {
           </div>
         </div>
       )}
-
-      <ChatBox messages={messages} onSend={sendChat} />
     </div>
-    </div >
   );
 }

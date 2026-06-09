@@ -2207,3 +2207,211 @@ button:hover {
 .room-users-btn:hover {
   background: rgba(255,255,255,0.15);
 }
+.youtube-touch-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+#youtube-player,
+.youtube-touch-frame iframe {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.video-touch-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  background: transparent;
+  cursor: pointer;
+}
+
+.video-center-icon {
+  position: absolute;
+  z-index: 20;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.65);
+  color: white;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 800;
+  pointer-events: none;
+}
+
+.video-center-icon.show {
+  display: flex;
+}
+
+.video-controls-bottom {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 12px;
+  z-index: 25;
+  pointer-events: auto;
+}
+
+.video-progress {
+  width: 100%;
+  height: 7px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.video-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7c3aed, #ec4899);
+  border-radius: 999px;
+}
+
+.video-time {
+  margin-top: 8px;
+  display: inline-block;
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 5px 9px;
+  border-radius: 10px;
+}
+
+.fullscreen-btn {
+  margin-top: 14px;
+  width: auto;
+  min-width: 140px;
+}
+
+.youtube-touch-frame:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  aspect-ratio: unset;
+  border-radius: 0;
+  background: #000;
+}
+
+.youtube-touch-frame:fullscreen #youtube-player,
+.youtube-touch-frame:fullscreen iframe {
+  width: 100vw !important;
+  height: 100vh !important;
+}
+
+.youtube-touch-frame:fullscreen .video-controls-bottom {
+  left: 24px;
+  right: 24px;
+  bottom: 24px;
+}
+
+.room-users-btn {
+  width: auto;
+  min-width: 80px;
+  height: 42px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  font-weight: 700;
+}
+
+.users-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.68);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.users-box {
+  width: 360px;
+  max-width: 95%;
+  background: rgba(16, 18, 30, 0.98);
+  border: 1px solid rgba(168, 85, 247, 0.45);
+  border-radius: 22px;
+  padding: 22px;
+  color: white;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+}
+
+.users-box h3 {
+  margin: 0 0 14px;
+}
+
+.user-row {
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.07);
+  margin-bottom: 10px;
+  word-break: break-word;
+}
+
+@media (max-width: 768px) {
+  .room-page {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .youtube-touch-frame {
+    border-radius: 16px;
+  }
+
+  .video-center-icon {
+    width: 62px;
+    height: 62px;
+    font-size: 26px;
+  }
+
+  .video-controls-bottom {
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+  }
+
+  .video-progress {
+    height: 6px;
+  }
+
+  .video-time {
+    font-size: 12px;
+  }
+
+  .fullscreen-btn {
+    width: 100%;
+  }
+
+  .room-users-btn {
+    min-width: 70px;
+    height: 38px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .youtube-touch-frame {
+    aspect-ratio: 16 / 10;
+  }
+
+  .users-box {
+    padding: 18px;
+  }
+}
+.fullscreen-btn{
+  margin-top:12px;
+  width:100%;
+}
