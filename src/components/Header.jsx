@@ -12,7 +12,7 @@ export default function Header({ userName, onUsersClick }) {
 
   return (
     <div className="header">
-      <div>
+      {/* <div>
         <h2>Watch Party</h2>
         <p className="header-sub">Watch movies together in sync</p>
       </div>
@@ -27,12 +27,18 @@ export default function Header({ userName, onUsersClick }) {
         )}
 
         <button
-          className="btn-secondary small-btn"
-          onClick={handleLogout}
-        >
-          Logout
-        </button>
+  className="btn-secondary small-btn"
+  onClick={handleLogout}
+>
+  Logout
+</button>
       </div>
+      {/* <button
+  className="btn-secondary small-btn"
+  onClick={() => navigate(-1)}
+>
+  Back
+</button> */} 
     </div>
   );
 }

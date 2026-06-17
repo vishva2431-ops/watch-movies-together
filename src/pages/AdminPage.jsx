@@ -11,6 +11,7 @@ export default function AdminPage() {
   const [description, setDescription] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
   const [posterUrl, setPosterUrl] = useState("");
+  const [category, setCategory] = useState("MOVIE");
   const [movies, setMovies] = useState([]);
   const [message, setMessage] = useState("");
   const [editingId, setEditingId] = useState(null);
@@ -25,15 +26,15 @@ export default function AdminPage() {
     setMovies(res.data);
   };
 
- const loadUsers = async () => {
-  const res = await API.get("/auth/users");
+  const loadUsers = async () => {
+    const res = await API.get("/auth/users");
 
-  const latestFirst = [...res.data].sort((a, b) => {
-    return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
-  });
+    const latestFirst = [...res.data].sort((a, b) => {
+      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+    });
 
-  setUsers(latestFirst);
-};
+    setUsers(latestFirst);
+  };
 
   useEffect(() => {
     if (isAdmin) {
@@ -60,6 +61,7 @@ export default function AdminPage() {
     setDescription("");
     setVideoUrl("");
     setPosterUrl("");
+    setCategory("MOVIE");
     setEditingId(null);
   };
 
@@ -75,6 +77,7 @@ export default function AdminPage() {
       description,
       videoUrl: youtubeId,
       posterUrl,
+      category,
     };
 
     if (editingId) {
@@ -97,6 +100,7 @@ export default function AdminPage() {
     setDescription(movie.description || "");
     setVideoUrl(movie.videoUrl || "");
     setPosterUrl(movie.posterUrl || "");
+    setCategory(movie.category || "MOVIE");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -110,6 +114,12 @@ export default function AdminPage() {
     if (!confirm("Delete this user?")) return;
     await API.delete(`/auth/users/${id}`);
     loadUsers();
+  };
+
+  const getCategoryLabel = (value) => {
+    if (value === "MUSIC") return "🎵 Music";
+    if (value === "SHORT") return "⚡ Shorts";
+    return "🎬 Movie";
   };
 
   return (
@@ -151,12 +161,26 @@ export default function AdminPage() {
 
           <form className="admin-form" onSubmit={handleSubmit}>
             <div className="admin-field">
-              <label>Movie / Music Group Title</label>
+              <label>Category</label>
+              <select
+                className="input-modern"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                required
+              >
+                <option value="MOVIE">🎬 Movies</option>
+                <option value="MUSIC">🎵 Music</option>
+                <option value="SHORT">⚡ Shorts</option>
+              </select>
+            </div>
+
+            <div className="admin-field">
+              <label>Movie / Music / Short Group Title</label>
               <input
                 className="input-modern"
                 value={groupTitle}
                 onChange={(e) => setGroupTitle(e.target.value)}
-                placeholder="Example: Vikram Movie"
+                placeholder="Example: Vikram Movie / Anirudh Songs / Funny Shorts"
                 required
               />
             </div>
@@ -167,7 +191,7 @@ export default function AdminPage() {
                 className="input-modern"
                 value={partTitle}
                 onChange={(e) => setPartTitle(e.target.value)}
-                placeholder="Example: Part 1 / Full Video"
+                placeholder="Example: Part 1 / Full Video / Episode 1"
                 required
               />
             </div>
@@ -232,6 +256,10 @@ export default function AdminPage() {
                 />
 
                 <div className="admin-movie-info">
+                  <div className="admin-category-pill">
+                    {getCategoryLabel(movie.category)}
+                  </div>
+
                   <h3>{movie.groupTitle}</h3>
                   <p>{movie.partTitle}</p>
                   <p>{movie.description}</p>
