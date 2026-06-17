@@ -51,6 +51,7 @@ export default function RoomPage() {
   const [roomYoutubeResults, setRoomYoutubeResults] = useState([]);
   const [roomYoutubeLoading, setRoomYoutubeLoading] = useState(false);
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
+  const [replyTo, setReplyTo] = useState(null);
 
   const chatStorageKey = `chat_${roomCode}`;
 
@@ -808,19 +809,26 @@ export default function RoomPage() {
   };
 
   const sendChat = (text) => {
-    if (!stompClientRef.current || !text.trim()) return;
+  if (!stompClientRef.current || !text.trim()) return;
 
-    stompClientRef.current.send(
-      "/app/room.chat",
-      {},
-      JSON.stringify({
-        roomCode,
-        sender: userName,
-        text,
-      })
-    );
-  };
+  stompClientRef.current.send(
+    "/app/room.chat",
+    {},
+    JSON.stringify({
+      roomCode,
+      sender: userName,
+      text,
+      replyTo: replyTo
+        ? {
+            sender: replyTo.sender,
+            text: replyTo.text,
+          }
+        : null,
+    })
+  );
 
+  setReplyTo(null);
+};
   const toggleFullscreen = async () => {
     const frame = videoContainerRef.current;
     if (!frame) return;
@@ -1614,10 +1622,14 @@ export default function RoomPage() {
         {selectedMovie &&
           (activeCategory === "MOVIE" || activeCategory === "MUSIC") && (
             <div className="room-chat-right">
-              <ChatBox
-                messages={messages}
-                onSend={sendChat}
-              />
+             <ChatBox
+  messages={messages}
+  onSend={sendChat}
+  currentUser={userName}
+  replyTo={replyTo}
+  onReply={setReplyTo}
+  onCancelReply={() => setReplyTo(null)}
+/>
             </div>
           )}
 
