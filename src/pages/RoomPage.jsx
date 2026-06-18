@@ -13,6 +13,12 @@ import {
   FaExpand,
   FaBolt
 } from "react-icons/fa";
+import { FiCopy } from "react-icons/fi";
+import { FiShare2 } from "react-icons/fi";
+// import {
+//   HiOutlineClipboardDocument,
+//   HiOutlineShare
+// } from "react-icons/hi2";
 
 export default function RoomPage() {
   const { roomCode } = useParams();
@@ -52,6 +58,7 @@ export default function RoomPage() {
   const [roomYoutubeLoading, setRoomYoutubeLoading] = useState(false);
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const [replyTo, setReplyTo] = useState(null);
+  const [copyMessage, setCopyMessage] = useState("");
 
   const chatStorageKey = `chat_${roomCode}`;
 
@@ -809,26 +816,26 @@ export default function RoomPage() {
   };
 
   const sendChat = (text) => {
-  if (!stompClientRef.current || !text.trim()) return;
+    if (!stompClientRef.current || !text.trim()) return;
 
-  stompClientRef.current.send(
-    "/app/room.chat",
-    {},
-    JSON.stringify({
-      roomCode,
-      sender: userName,
-      text,
-      replyTo: replyTo
-        ? {
+    stompClientRef.current.send(
+      "/app/room.chat",
+      {},
+      JSON.stringify({
+        roomCode,
+        sender: userName,
+        text,
+        replyTo: replyTo
+          ? {
             sender: replyTo.sender,
             text: replyTo.text,
           }
-        : null,
-    })
-  );
+          : null,
+      })
+    );
 
-  setReplyTo(null);
-};
+    setReplyTo(null);
+  };
   const toggleFullscreen = async () => {
     const frame = videoContainerRef.current;
     if (!frame) return;
@@ -1087,16 +1094,23 @@ export default function RoomPage() {
         },
       });
 
+      playerRef.current?.destroy?.();
+      playerRef.current = null;
+
+      if (youtubeBoxRef.current) {
+        youtubeBoxRef.current.innerHTML = "";
+      }
+
+      setSelectedMovie(null);
+      sessionStorage.removeItem(`selected_${roomCode}`);
+
       setRoomYoutubeResults(res.data);
       setMovieSearch("");
+
       if (activeCategory === "SHORT") {
         setShortsFeed(res.data);
         setShortIndex(0);
       }
-      setShowMovieDropdown(false);
-    } catch (err) {
-      console.error(err);
-      alert("YouTube search failed");
     } finally {
       setRoomYoutubeLoading(false);
     }
@@ -1230,16 +1244,15 @@ export default function RoomPage() {
       setRoomYoutubeLoading(true);
 
       const queries = [
-        "latest tamil full movie 2026",
+        "latest released tamil full movie",
         "new tamil full movie hd",
-        "tamil action full movie 2026",
-        "tamil comedy full movie",
-        "tamil romantic full movie",
-        "latest tamil thriller full movie",
-        "tamil family drama full movie",
-        "new tamil movie full length"
+        "latest tamil dubbed full movie",
+        "new tamil dubbed full movie hd",
+        "tamil web series full episodes",
+        "tamil dubbed web series full episodes",
+        "latest tamil webseries full episode",
+        "latest tamil dubbed webseries full episode"
       ];
-
       const randomQuery =
         queries[Math.floor(Math.random() * queries.length)];
 
@@ -1324,6 +1337,37 @@ export default function RoomPage() {
 
     navigate(-1);
   };
+
+  const copyRoomCode = async () => {
+    try {
+      await navigator.clipboard.writeText(roomCode);
+
+      setCopyMessage("Room ID copied ✨");
+
+      setTimeout(() => {
+        setCopyMessage("");
+      }, 1800);
+    } catch (err) {
+      setCopyMessage("Unable to copy room ID");
+      setTimeout(() => setCopyMessage(""), 1800);
+    }
+  };
+
+  const shareRoomLink = async () => {
+    const roomLink = `${window.location.origin}/room/${roomCode}`;
+
+    if (navigator.share) {
+      await navigator.share({
+        title: "Join my Watch Party",
+        text: `Join my Watch Party room: ${roomCode}`,
+        url: roomLink,
+      });
+    } else {
+      await navigator.clipboard.writeText(roomLink);
+      alert("Share is not supported. Room link copied instead.");
+    }
+  };
+
   return (
     <div className="page room-shell-clean">
       <div className="room-clean-header">
@@ -1331,7 +1375,25 @@ export default function RoomPage() {
         {!selectedMovie && (
           <div className="room-header-row1">
             <div className="room-left-group">
-              <div className="room-code-pill">Room: {roomCode}</div>
+              <div className="room-id-pill room-id-with-actions">
+                <span>{roomCode}</span>
+
+                <button
+                  className="room-code-icon-btn"
+                  onClick={copyRoomCode}
+                  title="Copy Room ID"
+                >
+                  <FiCopy />
+                </button>
+
+                <button
+                  className="room-code-icon-btn"
+                  onClick={shareRoomLink}
+                  title="Share Room"
+                >
+                  <FiShare2 />
+                </button>
+              </div>
 
               <button className="room-users-btn" onClick={() => setShowUsers(true)}>
                 👥 {roomUsers.length}
@@ -1397,6 +1459,29 @@ export default function RoomPage() {
         )}
 
         <div className="room-header-row2">
+          {selectedMovie && (
+            <div className="room-id-pill room-id-with-actions">
+              <span>{roomCode}</span>
+
+              <div className="room-id-actions">
+                <button
+                  className="room-code-icon-btn"
+                  onClick={copyRoomCode}
+                  title="Copy Room ID"
+                >
+                  <FiCopy />
+                </button>
+
+                <button
+                  className="room-code-icon-btn"
+                  onClick={shareRoomLink}
+                  title="Share Room"
+                >
+                  <FiShare2 />
+                </button>
+              </div>
+            </div>
+          )}
           <div className="room-search-wrapper">
             <button
               className="room-search-btn"
@@ -1446,6 +1531,12 @@ export default function RoomPage() {
         </div>
 
       </div>
+      {copyMessage && (
+        <div className="room-copy-toast">
+          <span>✅</span>
+          <p>{copyMessage}</p>
+        </div>
+      )}
 
       <div className="room-body-clean">
         <div className="room-player-right">
@@ -1590,7 +1681,7 @@ export default function RoomPage() {
                     : "movie-player-frame"
                 }
               >
-                 <div className="youtube-player-box" ref={youtubeBoxRef}></div>
+                <div className="youtube-player-box" ref={youtubeBoxRef}></div>
                 <div
                   className="video-touch-layer"
                   onClick={handleVideoTap}
@@ -1622,14 +1713,14 @@ export default function RoomPage() {
         {selectedMovie &&
           (activeCategory === "MOVIE" || activeCategory === "MUSIC") && (
             <div className="room-chat-right">
-             <ChatBox
-  messages={messages}
-  onSend={sendChat}
-  currentUser={userName}
-  replyTo={replyTo}
-  onReply={setReplyTo}
-  onCancelReply={() => setReplyTo(null)}
-/>
+              <ChatBox
+                messages={messages}
+                onSend={sendChat}
+                currentUser={userName}
+                replyTo={replyTo}
+                onReply={setReplyTo}
+                onCancelReply={() => setReplyTo(null)}
+              />
             </div>
           )}
 

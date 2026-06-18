@@ -4320,7 +4320,7 @@ body,
 
 .room-shell-clean {
   height: 100vh;
-  overflow: hidden;
+  /* overflow: hidden; */
   padding: 16px;
 }
 
@@ -4359,7 +4359,7 @@ body,
 }
 
 .room-body-clean {
-  height: calc(100vh - 94px);
+  /* height: calc(100vh - 94px); */
   display: grid;
   grid-template-columns: 1fr 320px;
   gap: 16px;
@@ -4694,7 +4694,7 @@ body,
 @media (max-width: 768px) {
   .room-shell-clean {
     padding: 10px;
-    overflow-x: hidden;
+    /* overflow-x: hidden; */
   }
 
   .room-top-control {
@@ -8830,7 +8830,7 @@ body,
   .room-shell-clean {
     padding: 0 !important;
     min-height: 100vh !important;
-    overflow: hidden !important;
+    /* overflow: hidden !important; */
   }
 
   .room-clean-header {
@@ -9047,4 +9047,310 @@ body,
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
+}
+.room-id-pill {
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+}
+@media (max-width: 768px) {
+  html,
+  body,
+  #root {
+    height: auto !important;
+    min-height: 100% !important;
+    overflow-y: auto !important;
+  }
+
+  .room-shell-clean {
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow-y: auto !important;
+    padding-bottom: 80px !important;
+  }
+
+  .room-body-clean {
+    height: auto !important;
+    min-height: auto !important;
+    overflow-y: visible !important;
+    display: block !important;
+  }
+
+  .room-player-right,
+  .room-grid-area,
+  .room-content-grid {
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+
+  .room-content-grid {
+    padding-bottom: 80px !important;
+  }
+}
+.room-code-with-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.room-code-icon-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 9px;
+  background: rgba(255,255,255,0.08);
+  color: white;
+  font-size: 14px;
+  box-shadow: none;
+}
+
+.room-code-icon-btn:hover {
+  background: rgba(255,255,255,0.16);
+  transform: none;
+}
+
+@media (max-width: 768px) {
+  .room-code-with-actions {
+    gap: 5px;
+    padding: 7px 8px !important;
+  }
+
+  .room-code-with-actions span {
+    font-size: 12px;
+  }
+
+  .room-code-icon-btn {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+  }
+}
+.room-code-with-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 10px 14px;
+
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 16px;
+
+  backdrop-filter: blur(12px);
+}
+
+.room-code-with-actions span {
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.room-code-icon-btn {
+  width: 32px;
+  height: 32px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 10px;
+
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.08);
+
+  color: #fff;
+  font-size: 16px;
+
+  transition: all 0.2s ease;
+}
+
+.room-code-icon-btn:hover {
+  background: rgba(138,92,246,0.25);
+  border-color: rgba(138,92,246,0.4);
+  transform: translateY(-1px);
+}
+.room-copy-toast {
+  position: fixed;
+  top: 82px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 99999;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 11px 18px;
+  border-radius: 999px;
+
+  background: rgba(18, 18, 30, 0.92);
+  color: white;
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  box-shadow: 0 12px 35px rgba(168, 85, 247, 0.35);
+  backdrop-filter: blur(14px);
+
+  font-size: 14px;
+  font-weight: 700;
+  animation: toastPop 0.25s ease;
+}
+
+.room-copy-toast p {
+  margin: 0;
+}
+
+@keyframes toastPop {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-12px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+.room-id-with-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.room-id-icon-btn {
+  width: 30px;
+  height: 30px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: none;
+  border-radius: 10px;
+
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.room-id-icon-btn:hover {
+  transform: translateY(-2px);
+  background: rgba(168,85,247,0.25);
+  color: #c084fc;
+}
+.room-code-icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: none;
+  background: rgba(255,255,255,0.08);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.room-code-icon-btn svg {
+  font-size: 18px;
+}
+.room-id-with-actions{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.room-id-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.room-code-icon-btn{
+  width:40px;
+  height:40px;
+  border:none;
+  border-radius:12px;
+  background:rgba(255,255,255,0.08);
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  padding:0;
+  transition:.25s;
+}
+
+.room-code-icon-btn:hover{
+  background:#7c3aed;
+  transform:
+  translateY(-2px);
+}
+/* .movie-card {
+  overflow: hidden;
+  border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.movie-card img,
+.movie-poster {
+  width: 100%;
+  height: 320px;
+  display: block;
+  object-fit: cover;
+  object-position: center;
+  margin: 0;
+  padding: 0;
+} */
+.youtube-result-card {
+  overflow: hidden !important;
+  border-radius: 24px !important;
+}
+
+.youtube-result-card img {
+  width: 100% !important;
+  height: 210px !important;
+  object-fit: cover !important;
+  object-position: center !important;
+  display: block !important;
+  border-radius: 24px 24px 0 0 !important;
+  margin: 0 !important;
+}
+
+.youtube-result-info {
+  padding: 18px !important;
+}
+
+.youtube-result-info .btn-primary {
+  background: rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  box-shadow: none !important;
+  color: #fff !important;
+}
+
+.youtube-result-info .btn-primary:hover {
+  background: rgba(124, 58, 237, 0.28) !important;
+}
+@media (max-width:768px) {
+
+  .category-page-bg {
+    background:
+      linear-gradient(
+        135deg,
+        #1f1042 0%,
+        #060b2d 45%,
+        #102d5c 100%
+      ) !important;
+
+    min-height: 100vh;
+  }
+
 }

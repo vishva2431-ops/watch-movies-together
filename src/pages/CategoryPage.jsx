@@ -95,14 +95,14 @@ export default function CategoryPage({ category }) {
     const discoverContent = async () => {
         const queries = {
             MOVIE: [
-                "latest tamil movies 2026",
-                "tamil movie trailers 2026",
-                "kollywood latest releases",
-                "tamil action movies 2026",
-                "tamil romantic movies 2026",
-                "tamil comedy movies 2026",
-                "tamil thriller movies 2026",
-                "trending tamil movies"
+                "latest released tamil full movie",
+                "new tamil full movie hd",
+                "latest tamil dubbed full movie",
+                "new tamil dubbed full movie hd",
+                "tamil web series full episodes",
+                "tamil dubbed web series full episodes",
+                "latest tamil webseries full episode",
+                "latest tamil dubbed webseries full episode"
             ],
             MUSIC: [
                 "tamil latest songs",
@@ -144,7 +144,7 @@ export default function CategoryPage({ category }) {
 
             const categoryKeyword =
                 category === "MOVIE"
-                    ? "tamil movie trailer"
+                    ? "tamil full movie OR tamil dubbed full movie OR tamil webseries full episode OR tamil dubbed webseries"
                     : category === "MUSIC"
                         ? "tamil song"
                         : "tamil shorts";
@@ -181,7 +181,7 @@ export default function CategoryPage({ category }) {
                 </div>
             )}
 
-           {/* <div className="category-top-actions">
+            {/* <div className="category-top-actions">
     <button className="category-small-back" onClick={() => navigate(-1)}>
          Back
     </button>
@@ -200,44 +200,44 @@ export default function CategoryPage({ category }) {
                 </div>
             )}
 
-        <div className="category-page-header-clean">
+            <div className="category-page-header-clean">
 
-  <div className="category-row1">
-    <button
-      className="category-small-back"
-      onClick={() => navigate(-1)}
-    >
-      Back
-    </button>
-  </div>
+                <div className="category-row1">
+                    <button
+                        className="category-small-back"
+                        onClick={() => navigate(-1)}
+                    >
+                        Back
+                    </button>
+                </div>
 
-  <div className="category-search-clean">
-    <button
-      className="category-search-icon-btn"
-      onClick={searchYoutube}
-      disabled={loading}
-    >
-      🔍
-    </button>
+                <div className="category-search-clean">
+                    <button
+                        className="category-search-icon-btn"
+                        onClick={searchYoutube}
+                        disabled={loading}
+                    >
+                        🔍
+                    </button>
 
-    <input
-      value={search}
-      onChange={(e) => setSearch(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") searchYoutube();
-      }}
-      placeholder={config.placeholder}
-    />
+                    <input
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") searchYoutube();
+                        }}
+                        placeholder={config.placeholder}
+                    />
 
-    <button
-      className="category-refresh-icon-btn"
-      onClick={discoverContent}
-    >
-      🔄
-    </button>
-  </div>
+                    <button
+                        className="category-refresh-icon-btn"
+                        onClick={discoverContent}
+                    >
+                        🔄
+                    </button>
+                </div>
 
-</div>
+            </div>
 
             {youtubeResults.length > 0 && (
                 <>
