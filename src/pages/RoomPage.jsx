@@ -70,6 +70,11 @@ export default function RoomPage() {
   const [replyTo, setReplyTo] = useState(null);
   const [copyMessage, setCopyMessage] = useState("");
   const [roomNotification, setRoomNotification] = useState("");
+  const [showHeart, setShowHeart] = useState(false);
+  const [floatingComments, setFloatingComments] = useState([]);
+  const [showReelCommentBox, setShowReelCommentBox] = useState(false);
+  const [reelComment, setReelComment] = useState("");
+  const [reelLiked, setReelLiked] = useState(false);
 
   const chatStorageKey = `chat_${roomCode}`;
 
@@ -198,58 +203,17 @@ export default function RoomPage() {
     }
   }, [activeCategory, selectedMovie]);
 
-  // useEffect(() => {
-  //   const handleWheel = (e) => {
-  //     if (activeCategory !== "SHORT") return;
-  //     if (!selectedMovie) return;
+  useEffect(() => {
+    if (activeCategory === "SHORT") {
+      document.body.classList.add("short-mode");
+    } else {
+      document.body.classList.remove("short-mode");
+    }
 
-  //     const now = Date.now();
-
-  //     // lock scroll for 1.5 seconds
-  //     if (now - lastShortScrollRef.current < 1500) return;
-  //     lastShortScrollRef.current = now;
-
-  //     if (e.deltaY > 0) {
-  //       nextShort();
-  //     } else {
-  //       previousShort();
-  //     }
-  //   };
-
-  //   window.addEventListener("wheel", handleWheel, { passive: true });
-
-  //   return () => {
-  //     window.removeEventListener("wheel", handleWheel);
-  //   };
-  // }, [activeCategory, selectedMovie, shortIndex, shortsFeed, roomYoutubeResults]);
-
-  // useEffect(() => {
-  //   const handleWheel = (e) => {
-  //     if (activeCategory !== "SHORT") return;
-  //     if (!selectedMovie) return;
-
-  //     e.preventDefault();
-
-  //     if (Math.abs(e.deltaY) < 20) return;
-
-  //     const now = Date.now();
-  //     if (now - lastShortScrollRef.current < 700) return;
-
-  //     lastShortScrollRef.current = now;
-
-  //     if (e.deltaY > 0) {
-  //       nextShort();
-  //     } else {
-  //       previousShort();
-  //     }
-  //   };
-
-  //   window.addEventListener("wheel", handleWheel, { passive: false });
-
-  //   return () => {
-  //     window.removeEventListener("wheel", handleWheel);
-  //   };
-  // }, [activeCategory, selectedMovie, shortIndex, shortsFeed, roomYoutubeResults]);
+    return () => {
+      document.body.classList.remove("short-mode");
+    };
+  }, [activeCategory]);
 
   const handleReelWheel = (e) => {
     if (activeCategory !== "SHORT") return;
@@ -1034,35 +998,53 @@ export default function RoomPage() {
 
     setReplyTo(null);
   };
+
   const toggleFullscreen = async () => {
-    const frame = videoContainerRef.current;
-    if (!frame) return;
+    const container = videoContainerRef.current;
 
-    if (!document.fullscreenElement) {
-      await frame.requestFullscreen();
-      frame.classList.add("force-fullscreen-fit");
-      setIsFullscreen(true);
-    } else {
-      frame.classList.remove("force-fullscreen-fit");
-      await document.exitFullscreen();
-      setIsFullscreen(false);
+    if (!container) return;
+
+    try {
+      if (!document.fullscreenElement) {
+
+        await container.requestFullscreen();
+
+        // Only Movie & Music => Landscape
+        if (
+          activeCategory === "MOVIE" ||
+          activeCategory === "MUSIC"
+        ) {
+          if (screen.orientation?.lock) {
+            try {
+              await screen.orientation.lock("landscape");
+            } catch (err) {
+              console.log("Landscape lock not supported");
+            }
+          }
+        }
+
+        setIsFullscreen(true);
+
+      } else {
+
+        if (screen.orientation?.unlock) {
+          try {
+            screen.orientation.unlock();
+          } catch (err) {
+            console.log("Orientation unlock not supported");
+          }
+        }
+
+        await document.exitFullscreen();
+
+        setIsFullscreen(false);
+      }
+
+    } catch (err) {
+      console.error("Fullscreen error:", err);
     }
   };
-  const formatTime = (seconds) => {
-    if (!seconds || Number.isNaN(seconds)) return "0:00";
 
-    const hrs = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-
-    if (hrs > 0) {
-      return `${hrs}:${mins.toString().padStart(2, "0")}:${secs
-        .toString()
-        .padStart(2, "0")}`;
-    }
-
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
   const togglePlay = () => {
     if (!isPlayerReady()) return;
 
@@ -1076,17 +1058,6 @@ export default function RoomPage() {
       setPlaying(true);
     }
   };
-  // const playShortAtIndex = async (index) => {
-  //   if (shortsFeed.length === 0) return;
-
-  //   const safeIndex =
-  //     index < 0 ? shortsFeed.length - 1 : index >= shortsFeed.length ? 0 : index;
-
-  //   const shortMovie = shortsFeed[safeIndex];
-
-  //   setShortIndex(safeIndex);
-  //   await selectMovie(shortMovie);
-  // };
 
   const getShortFeed = () => {
     return shortsFeed.length > 0 ? shortsFeed : roomYoutubeResults;
@@ -1109,41 +1080,28 @@ export default function RoomPage() {
   };
 
   const nextShort = () => {
-  const feed = shortsFeed.length > 0 ? shortsFeed : roomYoutubeResults;
-  if (feed.length === 0) return;
+    const feed = shortsFeed.length > 0 ? shortsFeed : roomYoutubeResults;
+    if (feed.length === 0) return;
 
-  reelHistoryRef.current.push(shortIndex);
+    reelHistoryRef.current.push(shortIndex);
 
-  const randomIndex = getRandomShortIndex(feed);
+    const randomIndex = getRandomShortIndex(feed);
 
-  setShortIndex(randomIndex);
-  selectYoutubeVideo(feed[randomIndex], true, "SHORT");
-};
-  // syncSelectedShort(feed[nextIndex]);
-
-  // playerRef.current?.loadVideoById?.(
-  //   feed[nextIndex].videoId
-  // );
-
-  // setTimeout(() => {
-  //   playerRef.current?.playVideo?.();
-  // }, 500);
-
-  // setTimeout(() => {
-  //   playerRef.current?.playVideo?.();
-  // }, 800);
+    setShortIndex(randomIndex);
+    selectYoutubeVideo(feed[randomIndex], true, "SHORT");
+  };
 
   const previousShort = () => {
-  const feed = shortsFeed.length > 0 ? shortsFeed : roomYoutubeResults;
-  if (feed.length === 0) return;
+    const feed = shortsFeed.length > 0 ? shortsFeed : roomYoutubeResults;
+    if (feed.length === 0) return;
 
-  const previousIndex = reelHistoryRef.current.pop();
+    const previousIndex = reelHistoryRef.current.pop();
 
-  if (previousIndex === undefined) return;
+    if (previousIndex === undefined) return;
 
-  setShortIndex(previousIndex);
-  selectYoutubeVideo(feed[previousIndex], true, "SHORT");
-};
+    setShortIndex(previousIndex);
+    selectYoutubeVideo(feed[previousIndex], true, "SHORT");
+  };
 
   const handleShortTouchStart = (e) => {
     touchStartYRef.current = e.touches[0].clientY;
@@ -1173,99 +1131,25 @@ export default function RoomPage() {
     );
   };
 
-  // const loadTamilReels = async () => {
-  //   try {
-  //     setRoomYoutubeLoading(true);
-
-  //     const res = await API.get("/youtube/search", {
-  //       params: {
-  //         q: "tamil funny reels tamil love shorts tamil comedy shorts",
-  //         category: "SHORT",
-  //       },
-  //     });
-
-  //     // console.log("REELS", res.data);
-
-  //     setRoomYoutubeResults(res.data);
-  //     setShortsFeed(res.data);
-  //     setShortIndex(0);
-  //     setSelectedMovie(null);
-  //   } catch (err) {
-  //     console.error(err);
-  //   } finally {
-  //     setRoomYoutubeLoading(false);
-  //   }
-  // };
-
-  // const selectYoutubeVideo = async (video) => {
-  //   const youtubeMovie = {
-  //     id: video.videoId,
-  //     videoUrl: video.videoId,
-  //     groupTitle: video.title,
-  //     partTitle: "SHORT",
-  //     youtube: true,
-  //   };
-
-  //   setSelectedMovie(youtubeMovie);
-  //   setActiveCategory("SHORT");
-
-  //   await API.put(`/rooms/${roomCode}/movie`, {
-  //     youtubeVideoId: video.videoId,
-  //     youtubeTitle: video.title,
-  //     youtubeThumbnail: video.thumbnail,
-  //     category: "SHORT",
-  //   });
-
-  //   stompClientRef.current?.send(
-  //     "/app/room.sync",
-  //     {},
-  //     JSON.stringify({
-  //       roomCode,
-  //       action: "SELECT",
-  //       youtubeVideoId: video.videoId,
-  //       youtubeTitle: video.title,
-  //       youtubeThumbnail: video.thumbnail,
-  //       category: "SHORT",
-  //       currentTime: 0,
-  //     })
-  //   );
-  // };
-
-  // const nextTamilReel = () => {
-  //   if (roomYoutubeResults.length === 0) return;
-
-  //   const nextIndex = shortIndex + 1 >= roomYoutubeResults.length ? 0 : shortIndex + 1;
-  //   setShortIndex(nextIndex);
-  //   selectYoutubeVideo(roomYoutubeResults[nextIndex]);
-  // };
-
-  // const previousTamilReel = () => {
-  //   if (roomYoutubeResults.length === 0) return;
-
-  //   const prevIndex = shortIndex - 1 < 0 ? roomYoutubeResults.length - 1 : shortIndex - 1;
-  //   setShortIndex(prevIndex);
-  //   selectYoutubeVideo(roomYoutubeResults[prevIndex]);
-  // };
-
   const getRandomShortIndex = (feed) => {
-  if (feed.length === 0) return 0;
+    if (feed.length === 0) return 0;
 
-  const available = feed
-    .map((_, i) => i)
-    .filter((i) => !playedReelsRef.current.includes(i));
+    const available = feed
+      .map((_, i) => i)
+      .filter((i) => !playedReelsRef.current.includes(i));
 
-  if (available.length === 0) {
-    playedReelsRef.current = [];
-    return Math.floor(Math.random() * feed.length);
-  }
+    if (available.length === 0) {
+      playedReelsRef.current = [];
+      return Math.floor(Math.random() * feed.length);
+    }
 
-  const randomIndex =
-    available[Math.floor(Math.random() * available.length)];
+    const randomIndex =
+      available[Math.floor(Math.random() * available.length)];
 
-  playedReelsRef.current.push(randomIndex);
+    playedReelsRef.current.push(randomIndex);
 
-  return randomIndex;
-};
+    return randomIndex;
+  };
 
   const searchYoutubeInsideRoom = async () => {
     if (!movieSearch.trim()) return;
@@ -1356,81 +1240,7 @@ export default function RoomPage() {
       })
     );
   };
-  // const nextShort = () => {
-  //   if (shortsFeed.length === 0) return;
 
-  //   const nextIndex =
-  //     currentShortIndex === shortsFeed.length - 1
-  //       ? 0
-  //       : currentShortIndex + 1;
-
-  //   setCurrentShortIndex(nextIndex);
-
-  //   selectYoutubeVideo(shortsFeed[nextIndex]);
-  // };
-  // const previousShort = () => {
-  //   if (shortsFeed.length === 0) return;
-
-  //   const prevIndex =
-  //     currentShortIndex === 0
-  //       ? shortsFeed.length - 1
-  //       : currentShortIndex - 1;
-
-  //   setCurrentShortIndex(prevIndex);
-
-  //   selectYoutubeVideo(shortsFeed[prevIndex]);
-  // };
-  //   const handleShortWheel = (e) => {
-  //   console.log("Wheel detected");
-
-  //   if (e.deltaY > 0) {
-  //     nextShort();
-  //   } else {
-  //     previousShort();
-  //   }
-  // };
-
-  // const loadTamilMusic = async () => {
-  //   try {
-  //     setRoomYoutubeLoading(true);
-
-  //     const queries = [
-  //       // "tamil old hit songs",
-  //       "tamil new songs",
-  //       // "tamil melody songs",
-  //       "tamil latest love songs",
-  //       // "ilaiyaraaja tamil songs",
-  //       // "ar rahman tamil songs",
-  //     ];
-
-  //     const randomQuery = queries[Math.floor(Math.random() * queries.length)];
-
-  //     const res = await API.get("/youtube/search", {
-  //       params: {
-  //         q: randomQuery,
-  //         category: "MUSIC",
-  //       },
-  //     });
-
-  //     // console.log("MUSIC", res.data);
-
-  //     setRoomYoutubeResults(res.data);
-  //     setMovieSearch("");
-  //   } catch (err) {
-  //     console.error(err);
-  //   } finally {
-  //     setRoomYoutubeLoading(false);
-  //   }
-  // };;
-
-  // const [currentShortIndex, setCurrentShortIndex] =
-  // useState(
-  //   Number(
-  //     sessionStorage.getItem(
-  //       `shortIndex_${roomCode}`
-  //     )
-  //   ) || 0
-  // );
   const loadTamilMovies = async () => {
     try {
       setRoomYoutubeLoading(true);
@@ -1467,7 +1277,7 @@ export default function RoomPage() {
       const res = await API.get("/youtube/search", {
         params: {
           q: "latest tamil official music video new tamil songs",
-          category: "MUSIC", category: "MUSIC",
+          category: "MUSIC",
         },
       });
       setRoomYoutubeResults(res.data);
@@ -1620,6 +1430,125 @@ export default function RoomPage() {
       })
     );
   };
+
+  const sendReelLike = () => {
+    setReelLiked((prev) => !prev);
+
+    setShowHeart(true);
+
+    setTimeout(() => {
+      setShowHeart(false);
+    }, 1200);
+  };
+
+  const sendReelComment = () => {
+    if (!reelComment.trim()) return;
+
+    const comment = {
+      id: Date.now(),
+      user: userName,
+      text: reelComment,
+    };
+
+    setFloatingComments((prev) => [...prev, comment]);
+
+    setTimeout(() => {
+      setFloatingComments((prev) =>
+        prev.filter((c) => c.id !== comment.id)
+      );
+    }, 3000);
+
+    setReelComment("");
+    setShowReelCommentBox(false);
+  };
+
+  const formatTime = (seconds) => {
+    if (!seconds || Number.isNaN(seconds)) return "0:00";
+
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+
+    if (hrs > 0) {
+      return `${hrs}:${mins.toString().padStart(2, "0")}:${secs
+        .toString()
+        .padStart(2, "0")}`;
+    }
+
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  if (selectedMovie && activeCategory === "SHORT") {
+    return (
+      <div
+        className="shorts-only-page"
+        onWheel={handleReelWheel}
+        onTouchStart={handleShortTouchStart}
+        onTouchEnd={handleShortTouchEnd}
+      >
+        <div ref={videoContainerRef} className="shorts-only-frame">
+          <div ref={youtubeBoxRef} className="youtube-player-box" />
+
+          <div
+            className="video-touch-layer"
+            onClick={handleVideoTap}
+            onTouchStart={handleHoldStart}
+            onTouchEnd={handleHoldEnd}
+            onMouseDown={handleHoldStart}
+            onMouseUp={handleHoldEnd}
+          />
+
+          <button className="shorts-only-back" onClick={goBack}>
+            ←
+          </button>
+
+          <div className="shorts-only-room">{roomCode}</div>
+          <div className="reel-actions">
+            <button
+              className={`reel-like-btn ${reelLiked ? "liked" : ""}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                sendReelLike();
+              }}
+            >
+              <span>{reelLiked ? "💜" : "♡"}</span>
+            </button>
+
+            <button
+              className="reel-comment-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowReelCommentBox(true);
+              }}
+            >
+              <span>💬</span>
+            </button>
+          </div>
+
+          {showHeart && <div className="big-like-heart">💜</div>}
+
+          <div className="floating-comments">
+            {floatingComments.map((c) => (
+              <div key={c.id} className="floating-comment">
+                <strong>{c.user}</strong>: {c.text}
+              </div>
+            ))}
+          </div>
+
+          {showReelCommentBox && (
+            <div className="reel-comment-box">
+              <input
+                value={reelComment}
+                onChange={(e) => setReelComment(e.target.value)}
+                placeholder="Comment..."
+              />
+              <button onClick={sendReelComment}>Send</button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page room-shell-clean">
@@ -2042,6 +1971,70 @@ export default function RoomPage() {
                       ⛶
                     </button>
                   </div>
+                )}
+                {activeCategory === "SHORT" && (
+                  <>
+                    <div className="shorts-header">
+                      <button
+                        className="shorts-back-btn"
+                        onClick={goBack}
+                      >
+                        ←
+                      </button>
+
+                      <div className="shorts-room-pill">
+                        {roomCode}
+                      </div>
+                    </div>
+
+                    <div className="reel-actions">
+                      <button
+                        className="reel-like-btn"
+                        onClick={sendReelLike}
+                      >
+                        ❤️
+                      </button>
+
+                      <button
+                        className="reel-comment-btn"
+                        onClick={() =>
+                          setShowReelCommentBox((v) => !v)
+                        }
+                      >
+                        💬
+                      </button>
+                    </div>
+
+                    {showHeart && (
+                      <div className="big-like-heart">
+                        💜
+                      </div>
+                    )}
+
+                    <div className="floating-comments">
+                      {floatingComments.map((c) => (
+                        <div key={c.id} className="floating-comment">
+                          <strong>{c.user}</strong>: {c.text}
+                        </div>
+                      ))}
+                    </div>
+
+                    {showReelCommentBox && (
+                      <div className="reel-comment-box">
+                        <input
+                          value={reelComment}
+                          onChange={(e) =>
+                            setReelComment(e.target.value)
+                          }
+                          placeholder="Comment..."
+                        />
+
+                        <button onClick={sendReelComment}>
+                          Send
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
