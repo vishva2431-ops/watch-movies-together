@@ -16,41 +16,43 @@ export default function ShortsFeedPage() {
     loadTamilShorts();
   }, []);
 
-  const loadTamilShorts = async () => {
-    try {
-      setLoading(true);
+ const loadTamilShorts = async () => {
+  try {
+    setLoading(true);
 
-      const mixedQueries = [
-        "tamil reels comedy love friendship trending shorts",
-        "tamil viral shorts comedy couples food dance reels",
-        "tamil funny reels love proposal college friends shorts",
-        "tamil trending reels comedy love sad motivation shorts",
-        "tamil cinema shorts comedy love songs friendship reels",
-        "tamil reels funny couple friendship dance college",
-        "tamil viral reels comedy romance friends food shorts",
-        "tamil shorts mix comedy love music dance reels"
-      ];
+    const mixedQueries = [
+      "tamil reels comedy love friendship trending shorts",
+      "tamil viral shorts comedy couples food dance reels",
+      "tamil funny reels love proposal college friends shorts",
+      "tamil trending reels comedy love sad motivation shorts",
+      "tamil cinema shorts comedy love songs friendship reels",
+      "tamil reels funny couple friendship dance college",
+      "tamil viral reels comedy romance friends food shorts",
+      "tamil shorts mix comedy love music dance reels"
+    ];
 
-      const randomQuery =
-        mixedQueries[Math.floor(Math.random() * mixedQueries.length)];
+    const randomQuery =
+      mixedQueries[Math.floor(Math.random() * mixedQueries.length)];
 
-      const res = await API.get("/youtube/search", {
-        params: {
-          q: search.trim() || randomQuery,
-          category: "SHORT",
-        },
-      });
+    const res = await API.get("/youtube/search", {
+      params: {
+        q: search.trim() || randomQuery,
+        category: "SHORT",
+      },
+    });
 
-      const shuffled = [...res.data].sort(() => Math.random() - 0.5);
+    const shuffled = [...res.data].sort(() => Math.random() - 0.5);
+    setShorts(shuffled);
 
-      setShorts(shuffled);
-    } catch (err) {
-      console.error(err);
-      alert("Unable to load shorts");
-    } finally {
-      setLoading(false);
-    }
-  };
+  } catch (err) {
+    console.error("SHORTS ERROR:", err);
+    console.error("BACKEND RESPONSE:", err.response?.data);
+
+    alert(err.response?.data?.message || "Unable to load shorts");
+  } finally {
+    setLoading(false);
+  }
+};
   const openShortRoom = async (shortVideo) => {
     const res = await API.post("/rooms/create", {
       userName: currentUser,
@@ -123,6 +125,14 @@ export default function ShortsFeedPage() {
         <h1>⚡ Tamil Reels</h1>
         <p>Click any reel, then scroll/swipe inside the room.</p>
       </div> */}
+
+      {loading && <p className="empty-state">Loading latest reels...</p>}
+
+{!loading && shorts.length === 0 && (
+  <p className="empty-state">
+    No reels found. Click refresh or search another word.
+  </p>
+)}
 
       <div className="reels-grid">
         {shorts.map((item, index) => (

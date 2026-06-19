@@ -36,6 +36,16 @@ export default function RoomPage() {
   const durationTimerRef = useRef(null);
   const lastShortScrollRef = useRef(0);
   const youtubeBoxRef = useRef(null);
+  const lastRoomStateRef = useRef({
+    action: "PAUSE",
+    currentTime: 0,
+    playbackRate: 1,
+  });
+  const selectedMovieRef = useRef(null);
+  const activeCategoryRef = useRef("MOVIE");
+  const playedReelsRef = useRef([]);
+  const reelHistoryRef = useRef([]);
+
 
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [movies, setMovies] = useState([]);
@@ -59,10 +69,22 @@ export default function RoomPage() {
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const [replyTo, setReplyTo] = useState(null);
   const [copyMessage, setCopyMessage] = useState("");
+  const [roomNotification, setRoomNotification] = useState("");
 
   const chatStorageKey = `chat_${roomCode}`;
 
-  const userName = localStorage.getItem("userName") || "Guest";
+  const savedName = localStorage.getItem("userName");
+
+  const userName =
+    savedName && savedName !== "undefined" && savedName !== "null"
+      ? savedName
+      : "Guest";
+
+  const userNameRef = useRef(userName);
+
+  useEffect(() => {
+    userNameRef.current = localStorage.getItem("userName") || userName;
+  }, [userName]);
 
   const [activeCategory, setActiveCategory] = useState(
     sessionStorage.getItem(`tab_${roomCode}`) || "MOVIE"
@@ -155,6 +177,26 @@ export default function RoomPage() {
       setShortIndex(startIndex);
     }
   }, []);
+
+  useEffect(() => {
+    selectedMovieRef.current = selectedMovie;
+  }, [selectedMovie]);
+
+  useEffect(() => {
+    activeCategoryRef.current = activeCategory;
+  }, [activeCategory]);
+
+  useEffect(() => {
+    if (!selectedMovie && roomYoutubeResults.length === 0 && !roomYoutubeLoading) {
+      if (activeCategory === "MOVIE") {
+        loadTamilMovies();
+      } else if (activeCategory === "MUSIC") {
+        loadTamilMusic();
+      } else if (activeCategory === "SHORT") {
+        loadTamilReels();
+      }
+    }
+  }, [activeCategory, selectedMovie]);
 
   // useEffect(() => {
   //   const handleWheel = (e) => {
@@ -398,6 +440,18 @@ export default function RoomPage() {
           onReady: (event) => {
             playerRef.current = event.target;
             setPlayerReady(true);
+            const savedState = lastRoomStateRef.current;
+
+            setTimeout(() => {
+              if (!playerRef.current) return;
+
+              playerRef.current.seekTo(savedState.currentTime || 0, true);
+              playerRef.current.setPlaybackRate?.(savedState.playbackRate || 1);
+
+              if (savedState.action === "PLAY") {
+                playerRef.current.playVideo();
+              }
+            }, 700);
 
             setTimeout(() => {
               const dur = playerRef.current?.getDuration?.();
@@ -438,38 +492,58 @@ export default function RoomPage() {
     setRoomUsers((prev) => prev.filter((u) => u !== name));
   };
 
+  const getSafeUserName = () => {
+    return localStorage.getItem("userName") || userNameRef.current;
+  };
+
   const sendUserJoin = () => {
+    const name = getSafeUserName();
+
     stompClientRef.current?.send(
       "/app/room.sync",
       {},
       JSON.stringify({
         roomCode,
         action: "USER_JOIN",
-        userName,
+        userName: name,
+      })
+    );
+
+    stompClientRef.current?.send(
+      "/app/room.sync",
+      {},
+      JSON.stringify({
+        roomCode,
+        action: "SYNC_REQUEST",
+        userName: name,
       })
     );
   };
 
   const sendUserLeave = () => {
+    const name = getSafeUserName();
+
     stompClientRef.current?.send(
       "/app/room.sync",
       {},
       JSON.stringify({
         roomCode,
         action: "USER_LEAVE",
-        userName,
+        userName: name,
       })
     );
   };
 
   const requestUsers = () => {
+    const name = getSafeUserName();
+
     stompClientRef.current?.send(
       "/app/room.sync",
       {},
       JSON.stringify({
         roomCode,
         action: "USER_REQUEST",
-        userName,
+        userName: name,
       })
     );
   };
@@ -487,21 +561,116 @@ export default function RoomPage() {
         const data = JSON.parse(message.body);
 
         if (data.action === "USER_JOIN") {
+
           addRoomUser(data.userName);
+
+          if (data.userName !== getSafeUserName()) {
+
+            const joinName =
+              data.userName &&
+                data.userName !== "undefined" &&
+                data.userName !== "null"
+                ? data.userName
+                : getSafeUserName();
+
+            showRoomNotification(`${joinName} joined the room`);
+          }
+
           return;
+          // console.log("JOIN MESSAGE =", data);
         }
 
         if (data.action === "USER_LEAVE") {
+
           removeRoomUser(data.userName);
+
+          if (data.userName !== getSafeUserName()) {
+
+            const leaveName =
+              data.userName &&
+                data.userName !== "undefined" &&
+                data.userName !== "null"
+                ? data.userName
+                : getSafeUserName();
+
+            showRoomNotification(`${leaveName} left the room`);
+          }
+
           return;
         }
-
-        if (data.action === "USER_REQUEST") {
+        if (
+          data.action === "USER_REQUEST" &&
+          data.userName !== userName
+        ) {
           sendUserJoin();
           return;
         }
 
+        // ✅ ADD THIS BEFORE SELECT
+        if (data.action === "SYNC_REQUEST") {
+          const currentMovie = selectedMovieRef.current;
+          const currentCategory = activeCategoryRef.current;
+
+          if (!currentMovie || !playerRef.current) return;
+          stompClientRef.current?.send(
+            "/app/room.sync",
+            {},
+            JSON.stringify({
+              roomCode,
+              action: "SYNC_RESPONSE",
+              targetUser: data.userName,
+              userName,
+              youtubeVideoId: currentMovie.youtube ? currentMovie.videoUrl : null,
+              youtubeTitle: currentMovie.groupTitle,
+              movieId: currentMovie.youtube ? null : currentMovie.id,
+              category: currentCategory,
+              currentTime: playerRef.current.getCurrentTime?.() || 0,
+              playbackRate: playerRef.current.getPlaybackRate?.() || 1,
+              playing:
+                playerRef.current.getPlayerState?.() === window.YT.PlayerState.PLAYING,
+            })
+          );
+
+          return;
+        }
+
+        if (data.action === "SYNC_RESPONSE") {
+          if (data.targetUser !== userName) return;
+
+          lastRoomStateRef.current = {
+            action: data.playing ? "PLAY" : "PAUSE",
+            currentTime: data.currentTime || 0,
+            playbackRate: data.playbackRate || 1,
+          };
+
+          if (data.youtubeVideoId) {
+            const youtubeMovie = {
+              id: data.youtubeVideoId,
+              videoUrl: data.youtubeVideoId,
+              groupTitle: data.youtubeTitle,
+              partTitle: data.category,
+              youtube: true,
+            };
+
+            setSelectedMovie(youtubeMovie);
+            setActiveCategory(data.category || "MOVIE");
+
+            sessionStorage.setItem(
+              `selected_${roomCode}`,
+              JSON.stringify(youtubeMovie)
+            );
+          }
+
+          return;
+        }
+
         if (data.action === "SELECT") {
+          lastRoomStateRef.current = {
+            action: "PLAY",
+            currentTime: 0,
+            playbackRate: 1,
+          };
+
           if (!data.movieId && !data.youtubeVideoId) {
             setSelectedMovie(null);
             setMovieSearch("");
@@ -526,10 +695,16 @@ export default function RoomPage() {
             );
 
             setMovieSearch("");
+
+            setTimeout(() => {
+              playerRef.current?.playVideo?.();
+            }, 800);
+
             return;
           }
 
           let movie = moviesRef.current.find((m) => m.id === data.movieId);
+
           if (!movie) {
             const res = await API.get("/movies");
             setMovies(res.data);
@@ -557,12 +732,40 @@ export default function RoomPage() {
           playerRef.current.setPlaybackRate(data.playbackRate);
         }
 
-        if (data.action === "PLAY") playerRef.current.playVideo();
-        if (data.action === "PAUSE") playerRef.current.pauseVideo();
+        if (data.action === "PLAY") {
+          playerRef.current.playVideo();
+
+          lastRoomStateRef.current = {
+            action: "PLAY",
+            currentTime: data.currentTime || 0,
+            playbackRate: data.playbackRate || 1,
+          };
+        }
+
+        if (data.action === "PAUSE") {
+          playerRef.current.pauseVideo();
+
+          lastRoomStateRef.current = {
+            action: "PAUSE",
+            currentTime: data.currentTime || 0,
+            playbackRate: data.playbackRate || 1,
+          };
+        }
+
         if (data.action === "SEEK") {
           playerRef.current.seekTo(data.currentTime, true);
           setCurrentTime(data.currentTime);
-        } if (data.action === "SPEED") playerRef.current.setPlaybackRate(data.playbackRate || 1);
+
+          lastRoomStateRef.current = {
+            action: "SEEK",
+            currentTime: data.currentTime || 0,
+            playbackRate: data.playbackRate || 1,
+          };
+        }
+
+        if (data.action === "SPEED") {
+          playerRef.current.setPlaybackRate(data.playbackRate || 1);
+        }
 
         setTimeout(() => {
           ignoreEventRef.current = false;
@@ -609,6 +812,11 @@ export default function RoomPage() {
 
   const sendSync = (action, extra = {}) => {
     if (!stompClientRef.current || !playerRef.current) return;
+    lastRoomStateRef.current = {
+      action,
+      currentTime: getCurrentTime(),
+      playbackRate: extra.playbackRate || playerRef.current.getPlaybackRate?.() || 1,
+    };
 
     stompClientRef.current.send(
       "/app/room.sync",
@@ -722,7 +930,7 @@ export default function RoomPage() {
     clearTimeout(durationTimerRef.current);
     durationTimerRef.current = setTimeout(() => {
       setShowDuration(false);
-    }, 3500);
+    }, 4000);
   };
 
   const handleVideoTap = (e) => {
@@ -734,39 +942,29 @@ export default function RoomPage() {
     const rect = e.currentTarget.getBoundingClientRect();
     const clientX = e.clientX || e.changedTouches?.[0]?.clientX || 0;
     const x = clientX - rect.left;
-    clearTimeout(singleTapTimerRef.current);
 
     const isDoubleTap = now - lastTapRef.current < 300;
 
+    clearTimeout(singleTapTimerRef.current);
+
     if (isDoubleTap) {
-      clearTimeout(singleTapTimerRef.current);
+      lastTapRef.current = 0;
 
       if (x < rect.width * 0.35) {
         backward10();
-        // showIcon("⏪");
       } else if (x > rect.width * 0.65) {
         forward10();
-        // showIcon("⏩");
-      } else {
-        pauseVideo();
-        // showIcon("⏸");
       }
 
-      lastTapRef.current = 0;
       return;
     }
 
     lastTapRef.current = now;
-    clearTimeout(singleTapTimerRef.current);
 
     singleTapTimerRef.current = setTimeout(() => {
-      if (lastTapRef.current === 0) return;
-
-      playVideo();
-      // showIcon("▶");
-
+      showDurationTemporarily();
       lastTapRef.current = 0;
-    }, 320);
+    }, 300);
   };
   const handleHoldStart = () => {
     isHoldingRef.current = false;
@@ -911,73 +1109,41 @@ export default function RoomPage() {
   };
 
   const nextShort = () => {
-    const feed = shortsFeed.length > 0
-      ? shortsFeed
-      : roomYoutubeResults;
+  const feed = shortsFeed.length > 0 ? shortsFeed : roomYoutubeResults;
+  if (feed.length === 0) return;
 
-    if (feed.length === 0) return;
+  reelHistoryRef.current.push(shortIndex);
 
-    const nextIndex =
-      shortIndex + 1 >= feed.length
-        ? 0
-        : shortIndex + 1;
+  const randomIndex = getRandomShortIndex(feed);
 
-    setShortIndex(nextIndex);
+  setShortIndex(randomIndex);
+  selectYoutubeVideo(feed[randomIndex], true, "SHORT");
+};
+  // syncSelectedShort(feed[nextIndex]);
 
-    selectYoutubeVideo(
-      feed[nextIndex],
-      true,
-      "SHORT"
-    );
+  // playerRef.current?.loadVideoById?.(
+  //   feed[nextIndex].videoId
+  // );
 
-    // syncSelectedShort(feed[nextIndex]);
+  // setTimeout(() => {
+  //   playerRef.current?.playVideo?.();
+  // }, 500);
 
-    // playerRef.current?.loadVideoById?.(
-    //   feed[nextIndex].videoId
-    // );
-
-    // setTimeout(() => {
-    //   playerRef.current?.playVideo?.();
-    // }, 500);
-
-    // setTimeout(() => {
-    //   playerRef.current?.playVideo?.();
-    // }, 800);
-  };
+  // setTimeout(() => {
+  //   playerRef.current?.playVideo?.();
+  // }, 800);
 
   const previousShort = () => {
-    const feed = shortsFeed.length > 0
-      ? shortsFeed
-      : roomYoutubeResults;
+  const feed = shortsFeed.length > 0 ? shortsFeed : roomYoutubeResults;
+  if (feed.length === 0) return;
 
-    if (feed.length === 0) return;
+  const previousIndex = reelHistoryRef.current.pop();
 
-    const prevIndex =
-      shortIndex - 1 < 0
-        ? feed.length - 1
-        : shortIndex - 1;
+  if (previousIndex === undefined) return;
 
-    setShortIndex(prevIndex);
-
-    selectYoutubeVideo(
-      feed[prevIndex],
-      true,
-      "SHORT"
-    );
-    // syncSelectedShort(feed[prevIndex]);
-
-    // playerRef.current?.loadVideoById?.(
-    //   feed[prevIndex].videoId
-    // );
-
-    // setTimeout(() => {
-    //   playerRef.current?.playVideo?.();
-    // }, 500);
-
-    // setTimeout(() => {
-    //   playerRef.current?.playVideo?.();
-    // }, 800);
-  };
+  setShortIndex(previousIndex);
+  selectYoutubeVideo(feed[previousIndex], true, "SHORT");
+};
 
   const handleShortTouchStart = (e) => {
     touchStartYRef.current = e.touches[0].clientY;
@@ -1081,6 +1247,26 @@ export default function RoomPage() {
   //   selectYoutubeVideo(roomYoutubeResults[prevIndex]);
   // };
 
+  const getRandomShortIndex = (feed) => {
+  if (feed.length === 0) return 0;
+
+  const available = feed
+    .map((_, i) => i)
+    .filter((i) => !playedReelsRef.current.includes(i));
+
+  if (available.length === 0) {
+    playedReelsRef.current = [];
+    return Math.floor(Math.random() * feed.length);
+  }
+
+  const randomIndex =
+    available[Math.floor(Math.random() * available.length)];
+
+  playedReelsRef.current.push(randomIndex);
+
+  return randomIndex;
+};
+
   const searchYoutubeInsideRoom = async () => {
     if (!movieSearch.trim()) return;
 
@@ -1149,6 +1335,12 @@ export default function RoomPage() {
       youtubeThumbnail: video.thumbnail,
       category: forcedCategory,
     });
+
+    lastRoomStateRef.current = {
+      action: "PLAY",
+      currentTime: 0,
+      playbackRate: 1,
+    };
 
     stompClientRef.current?.send(
       "/app/room.sync",
@@ -1274,8 +1466,8 @@ export default function RoomPage() {
       setRoomYoutubeLoading(true);
       const res = await API.get("/youtube/search", {
         params: {
-          q: "latest tamil songs new tamil music 2025 melody kuthu love songs",
-          category: "MUSIC",
+          q: "latest tamil official music video new tamil songs",
+          category: "MUSIC", category: "MUSIC",
         },
       });
       setRoomYoutubeResults(res.data);
@@ -1289,12 +1481,14 @@ export default function RoomPage() {
       setRoomYoutubeLoading(true);
 
       const queries = [
-        "tamil love reels comedy friendship shorts",
-        "tamil funny reels trending shorts",
-        "tamil friendship reels college comedy shorts",
-        // "tamil gym motivation reels shorts",
-        "tamil cooking reels food shorts",
-        "tamil couple love reels funny shorts"
+        "tamil only love reels shorts",
+        "tamil only comedy reels shorts",
+        // "tamil only friendship reels shorts",
+        // "tamil college comedy reels tamil shorts",
+        "tamil couple love reels tamil shorts",
+        // "tamil funny reels tamil language shorts",
+        "tamil movie love scene shorts",
+        "tamil webseries comedy scene shorts"
       ];
 
       const randomQuery = queries[Math.floor(Math.random() * queries.length)];
@@ -1306,7 +1500,27 @@ export default function RoomPage() {
         },
       });
 
-      const shuffled = [...res.data].sort(() => Math.random() - 0.5);
+      const blockedWords = [
+        "hindi",
+        "bollywood",
+        "bhojpuri",
+        "punjabi",
+        "urdu",
+        "kannada",
+        "telugu",
+        "malayalam",
+        "marathi"
+      ];
+
+      const filtered = res.data.filter((video) => {
+        const title = (video.title || "").toLowerCase();
+        const description = (video.description || "").toLowerCase();
+        const text = title + " " + description;
+
+        return !blockedWords.some((word) => text.includes(word));
+      });
+
+      const shuffled = [...filtered].sort(() => Math.random() - 0.5);
 
       setRoomYoutubeResults(shuffled);
       setShortsFeed(shuffled);
@@ -1332,6 +1546,17 @@ export default function RoomPage() {
 
       setSelectedMovie(null);
       setMovieSearch("");
+
+      setTimeout(() => {
+        if (activeCategory === "SHORT") {
+          loadTamilReels();
+        } else if (activeCategory === "MUSIC") {
+          loadTamilMusic();
+        } else {
+          loadTamilMovies();
+        }
+      }, 100);
+
       return;
     }
 
@@ -1366,6 +1591,34 @@ export default function RoomPage() {
       await navigator.clipboard.writeText(roomLink);
       alert("Share is not supported. Room link copied instead.");
     }
+  };
+
+  const showRoomNotification = (msg) => {
+    setRoomNotification(msg);
+
+    setTimeout(() => {
+      setRoomNotification("");
+    }, 2000);
+  };
+
+  const sendMessage = (text) => {
+    if (!stompClientRef.current) return;
+
+    stompClientRef.current.send(
+      "/app/chat.send",
+      {},
+      JSON.stringify({
+        roomCode,
+        sender: userName,
+        text,
+        replyTo: replyTo
+          ? {
+            sender: replyTo.sender,
+            text: replyTo.text,
+          }
+          : null,
+      })
+    );
   };
 
   return (
@@ -1480,54 +1733,57 @@ export default function RoomPage() {
                   <FiShare2 />
                 </button>
               </div>
+
             </div>
           )}
-          <div className="room-search-wrapper">
-            <button
-              className="room-search-btn"
-              onClick={searchYoutubeInsideRoom}
-            >
-              🔍
-            </button>
-
-            <input
-              className="room-mobile-search"
-              value={movieSearch}
-              onChange={(e) => setMovieSearch(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") searchYoutubeInsideRoom();
-              }}
-              placeholder={
-                activeCategory === "SHORT"
-                  ? "Search reels..."
-                  : activeCategory === "MUSIC"
-                    ? "Search music..."
-                    : "Search movies..."
-              }
-            />
-
-            <button
-              className="room-refresh-btn"
-              onClick={
-                activeCategory === "SHORT"
-                  ? loadTamilReels
-                  : activeCategory === "MUSIC"
-                    ? loadTamilMusic
-                    : loadTamilMovies
-              }
-            >
-              🔄
-            </button>
-
-          </div>
           <button className="room-back-btn" onClick={goBack}>
             Back
           </button>
+
+
           {/* {selectedMovie && (
             <button className="room-back-btn" onClick={goBack}>
               Back
             </button>
           )} */}
+        </div>
+        <div className="room-search-wrapper">
+          <button
+            className="room-search-btn"
+            onClick={searchYoutubeInsideRoom}
+          >
+            🔍
+          </button>
+
+          <input
+            className="room-mobile-search"
+            value={movieSearch}
+            onChange={(e) => setMovieSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") searchYoutubeInsideRoom();
+            }}
+            placeholder={
+              activeCategory === "SHORT"
+                ? "Search reels..."
+                : activeCategory === "MUSIC"
+                  ? "Search music..."
+                  : "Search movies..."
+            }
+          />
+
+          <button
+            className="room-refresh-btn"
+            onClick={
+              activeCategory === "SHORT"
+                ? loadTamilReels
+                : activeCategory === "MUSIC"
+                  ? loadTamilMusic
+                  : loadTamilMovies
+            }
+          >
+            🔄
+          </button>
+
         </div>
 
       </div>
@@ -1535,6 +1791,12 @@ export default function RoomPage() {
         <div className="room-copy-toast">
           <span>✅</span>
           <p>{copyMessage}</p>
+        </div>
+      )}
+
+      {roomNotification && (
+        <div className="room-join-toast">
+          {roomNotification}
         </div>
       )}
 
@@ -1555,8 +1817,21 @@ export default function RoomPage() {
                           : "room-content-card"
                       }
                       onClick={() => {
-                        setShortIndex(index);
-                        selectYoutubeVideo(video, activeCategory === "SHORT", activeCategory);
+                        if (activeCategory === "SHORT") {
+                          const shuffledFeed = [...roomYoutubeResults].sort(() => Math.random() - 0.5);
+
+                          setShortsFeed(shuffledFeed);
+
+                          const selectedIndex = shuffledFeed.findIndex(
+                            (item) => item.videoId === video.videoId
+                          );
+
+                          setShortIndex(selectedIndex >= 0 ? selectedIndex : 0);
+                          selectYoutubeVideo(video, true, "SHORT");
+                          return;
+                        }
+
+                        selectYoutubeVideo(video, false, activeCategory);
                       }}
                     >
                       <img src={video.thumbnail} alt={video.title} />
@@ -1591,6 +1866,7 @@ export default function RoomPage() {
               <div className="music-player-card">
                 <div className="music-video-frame">
                   <div ref={youtubeBoxRef} className="youtube-player-box" />
+
                   <div
                     className="video-touch-layer"
                     onClick={handleVideoTap}
@@ -1599,32 +1875,61 @@ export default function RoomPage() {
                     onMouseDown={handleHoldStart}
                     onMouseUp={handleHoldEnd}
                   />
-                </div>
-                {/* 
-  <div className="music-controls">
-    <button onClick={backward10}>⏪</button>
 
-    <button onClick={togglePlay}>
-      {playing ? "⏸" : "▶"}
-    </button>
+                  <div className={`music-overlay-progress ${showDuration ? "show-video-ui" : ""}`}>
+                    <div className="music-progress" onClick={seekByProgress}>
+                      <div
+                        className="music-progress-fill"
+                        style={{
+                          width: duration > 0 ? `${(currentTime / duration) * 100}%` : "0%",
+                        }}
+                      />
+                    </div>
 
-    <button onClick={forward10}>⏩</button>
-  </div> */}
+                    <div className="music-time">
+                      {formatTime(currentTime)} / {formatTime(duration)}
+                    </div>
+                  </div>
 
-                <div className="music-progress" onClick={seekByProgress}>
-                  <div
-                    className="music-progress-fill"
-                    style={{
-                      width:
-                        duration > 0
-                          ? `${(currentTime / duration) * 100}%`
-                          : "0%",
-                    }}
-                  />
-                </div>
+                  <div className={`music-overlay-controls ${showDuration ? "show-video-ui" : ""}`}>
 
-                <div className="music-time">
-                  {formatTime(currentTime)} / {formatTime(duration)}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        backward10();
+                      }}
+                    >
+                      ⏪
+                    </button>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        togglePlay();
+                      }}
+                    >
+                      {playing ? "⏸" : "▶"}
+                    </button>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        forward10();
+                      }}
+                    >
+                      ⏩
+                    </button>
+
+                    {/* <button
+    onClick={(e) => {
+      e.stopPropagation();
+      toggleFullscreen();
+    }}
+  >
+    ⛶
+  </button> */}
+
+                  </div>
                 </div>
               </div>
 
@@ -1683,16 +1988,48 @@ export default function RoomPage() {
               >
                 <div className="youtube-player-box" ref={youtubeBoxRef}></div>
                 <div
-                  className="video-touch-layer"
+                  className={`video-touch-layer ${showDuration ? "controls-open" : ""}`}
                   onClick={handleVideoTap}
                   onTouchStart={handleHoldStart}
                   onTouchEnd={handleHoldEnd}
                   onMouseDown={handleHoldStart}
                   onMouseUp={handleHoldEnd}
                 />
+                {/* <div className="video-full-progress" onClick={seekByProgress}>
+                  <div
+                    className="video-full-progress-fill"
+                    style={{
+                      width:
+                        duration > 0
+                          ? `${(currentTime / duration) * 100}%`
+                          : "0%",
+                    }}
+                  />
+                </div>
+
+                <div className="video-full-time">
+                  {formatTime(currentTime)} / {formatTime(duration)}
+                </div> */}
 
                 {activeCategory !== "SHORT" && (
-                  <div className="video-controls">
+                  <div className={`video-overlay-progress ${showDuration ? "show-video-ui" : ""}`}>
+                    <div className="video-full-progress" onClick={seekByProgress}>
+                      <div
+                        className="video-full-progress-fill"
+                        style={{
+                          width: duration > 0 ? `${(currentTime / duration) * 100}%` : "0%",
+                        }}
+                      />
+                    </div>
+
+                    <div className="video-full-time">
+                      {formatTime(currentTime)} / {formatTime(duration)}
+                    </div>
+                  </div>
+                )}
+
+                {activeCategory !== "SHORT" && (
+                  <div className={`video-controls video-overlay-controls ${showDuration ? "show-video-ui" : ""}`}>
                     <button onClick={backward10}>⏪</button>
 
                     <button onClick={togglePlay}>

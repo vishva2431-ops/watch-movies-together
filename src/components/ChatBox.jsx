@@ -62,7 +62,7 @@ export default function ChatBox({
                 </div>
               )}
 
-              <strong>{msg.sender}: </strong>
+              <strong>{msg.sender}:</strong>
               <span>{msg.text}</span>
             </div>
           ))
