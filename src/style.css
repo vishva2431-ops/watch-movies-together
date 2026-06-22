@@ -11682,3 +11682,105 @@ body {
     padding: 7px 9px;
   }
 }
+@media (max-width: 768px) {
+  .movie-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 480px) {
+  .login-buttons button {
+    width: 110px !important;
+    height: 110px !important;
+    font-size: 14px !important;
+  }
+}
+.youtube-touch-frame {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
+html, body {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+img, video, iframe {
+  max-width: 100%;
+}
+
+button, input, select, textarea {
+  max-width: 100%;
+}
+
+@media (max-width: 480px) {
+  .page {
+    padding: 12px;
+  }
+
+  .login-card,
+  .room-video-card,
+  .home-hero-card,
+  .home-category-section {
+    border-radius: 20px;
+  }
+
+  .category-page-title h1,
+  .home-hero-card h1 {
+    font-size: 24px;
+  }
+}
+/* FINAL RESPONSIVE SAFETY FIX */
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+img,
+video,
+iframe {
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  max-width: 100%;
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding: 12px;
+  }
+
+  .home-hero-card,
+  .home-category-section,
+  .room-video-card,
+  .login-card {
+    padding: 18px;
+    border-radius: 20px;
+  }
+
+  .room-page,
+  .admin-layout,
+  .category-choice-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .youtube-touch-frame {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+  }
+
+  .movie-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 14px;
+  }
+}
+
+@media (max-width: 400px) {
+  .movie-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
