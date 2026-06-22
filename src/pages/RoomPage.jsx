@@ -1578,11 +1578,11 @@ export default function RoomPage() {
         comment: reelComment,
       })
     );
-    setTimeout(() => {
-      setFloatingComments((prev) =>
-        prev.filter((c) => c.id !== comment.id)
-      );
-    }, 3000);
+    // setTimeout(() => {
+    //   setFloatingComments((prev) =>
+    //     prev.filter((c) => c.id !== comment.id)
+    //   );
+    // }, 3000);
 
     setReelComment("");
     setShowReelCommentBox(false);

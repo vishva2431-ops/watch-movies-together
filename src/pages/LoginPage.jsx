@@ -173,9 +173,14 @@ export default function LoginPage() {
     <div className="page center-page">
       <div className="login-shell">
         <div className="login-card">
+            <img
+    src="/logo.png"
+    alt="Vision Arc Logo"
+    className="login-logo"
+  />
           <div className="login-badge">Connect Together👻</div>
 
-          <h1 className="login-title">Vision Arc</h1>
+          {/* <h1 className="login-title">Vision Arc</h1> */}
 
           <p className="login-subtitle">
             Create Rooms, Sync Together, And Chat With Friends.
