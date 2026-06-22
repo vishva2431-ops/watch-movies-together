@@ -173,12 +173,12 @@ export default function LoginPage() {
     <div className="page center-page">
       <div className="login-shell">
         <div className="login-card">
-          <div className="login-badge">Watch together</div>
+          <div className="login-badge">Connect Together👻</div>
 
-          <h1 className="login-title">Watch Party</h1>
+          <h1 className="login-title">Vision Arc</h1>
 
           <p className="login-subtitle">
-            Create rooms, stream movies, and chat with friends.
+            Create Rooms, Sync Together, And Chat With Friends.
           </p>
 
           {alreadyLoggedIn && (

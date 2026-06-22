@@ -172,7 +172,7 @@ export default function CategoryPage({ category }) {
             {alertMessage && (
                 <div className="custom-alert-overlay">
                     <div className="custom-alert-box">
-                        <h3>Watch Party</h3>
+                        <h3>Vision Arc</h3>
                         <p>{alertMessage}</p>
                         <button className="btn-primary" onClick={() => setAlertMessage("")}>
                             OK

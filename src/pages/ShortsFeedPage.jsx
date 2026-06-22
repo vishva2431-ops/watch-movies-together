@@ -84,7 +84,7 @@ export default function ShortsFeedPage() {
 
         {/* Row 1 */}
         <div className="shorts-row1">
-          <h2 className="shorts-page-title">Watch Party</h2>
+          <h2 className="shorts-page-title">Vision Arc</h2>
 
           <button
             className="btn-secondary shorts-back-btn"
