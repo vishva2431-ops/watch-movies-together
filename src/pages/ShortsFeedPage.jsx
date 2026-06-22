@@ -16,43 +16,43 @@ export default function ShortsFeedPage() {
     loadTamilShorts();
   }, []);
 
- const loadTamilShorts = async () => {
-  try {
-    setLoading(true);
+  const loadTamilShorts = async () => {
+    try {
+      setLoading(true);
 
-    const mixedQueries = [
-      "tamil reels comedy love friendship trending shorts",
-      "tamil viral shorts comedy couples food dance reels",
-      "tamil funny reels love proposal college friends shorts",
-      "tamil trending reels comedy love sad motivation shorts",
-      "tamil cinema shorts comedy love songs friendship reels",
-      "tamil reels funny couple friendship dance college",
-      "tamil viral reels comedy romance friends food shorts",
-      "tamil shorts mix comedy love music dance reels"
-    ];
+      const mixedQueries = [
+        "tamil reels comedy love friendship trending shorts",
+        "tamil viral shorts comedy couples food dance reels",
+        "tamil funny reels love proposal college friends shorts",
+        "tamil trending reels comedy love sad motivation shorts",
+        "tamil cinema shorts comedy love songs friendship reels",
+        "tamil reels funny couple friendship dance college",
+        "tamil viral reels comedy romance friends food shorts",
+        "tamil shorts mix comedy love music dance reels"
+      ];
 
-    const randomQuery =
-      mixedQueries[Math.floor(Math.random() * mixedQueries.length)];
+      const randomQuery =
+        mixedQueries[Math.floor(Math.random() * mixedQueries.length)];
 
-    const res = await API.get("/youtube/search", {
-      params: {
-        q: search.trim() || randomQuery,
-        category: "SHORT",
-      },
-    });
+      const res = await API.get("/youtube/search", {
+        params: {
+          q: search.trim() || randomQuery,
+          category: "SHORT",
+        },
+      });
 
-    const shuffled = [...res.data].sort(() => Math.random() - 0.5);
-    setShorts(shuffled);
+      const shuffled = [...res.data].sort(() => Math.random() - 0.5);
+      setShorts(shuffled);
 
-  } catch (err) {
-    console.error("SHORTS ERROR:", err);
-    console.error("BACKEND RESPONSE:", err.response?.data);
+    } catch (err) {
+      console.error("SHORTS ERROR:", err);
+      console.error("BACKEND RESPONSE:", err.response?.data);
 
-    alert(err.response?.data?.message || "Unable to load shorts");
-  } finally {
-    setLoading(false);
-  }
-};
+      alert(err.response?.data?.message || "Unable to load shorts");
+    } finally {
+      setLoading(false);
+    }
+  };
   const openShortRoom = async (shortVideo) => {
     const res = await API.post("/rooms/create", {
       userName: currentUser,
@@ -82,44 +82,46 @@ export default function ShortsFeedPage() {
 
       <div className="shorts-feed-top">
 
-  {/* Row 1 */}
-  <div className="shorts-row1">
-    <h2 className="shorts-page-title">Watch Party</h2>
+        {/* Row 1 */}
+        <div className="shorts-row1">
+          <h2 className="shorts-page-title">Watch Party</h2>
 
-    <button
-      className="btn-secondary shorts-back-btn"
-      onClick={() => navigate("/home")}
-    >
-      Back
-    </button>
-  </div>
+          <button
+            className="btn-secondary shorts-back-btn"
+            onClick={() => navigate("/home")}
+          >
+            Back
+          </button>
+        </div>
 
-  {/* Row 2 */}
-  <div className="shorts-search-box">
+        {/* Row 2 */}
+        <div className="shorts-search-box">
+          <button
+            className="search-icon-btn"
+            onClick={loadTamilShorts}
+          >
+            🔍
+          </button>
 
-    <span className="search-icon">🔍</span>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") loadTamilShorts();
+            }}
+            placeholder="Search Tamil reels..."
+          />
 
-    <input
-      value={search}
-      onChange={(e) => setSearch(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          loadTamilShorts();
-        }
-      }}
-      placeholder="Search Tamil reels..."
-    />
+          <button
+            className="refresh-btn"
+            onClick={loadTamilShorts}
+          >
+            🔄
+          </button>
 
-    <button
-      className="refresh-btn"
-      onClick={loadTamilShorts}
-    >
-      🔄
-    </button>
+        </div>
 
-  </div>
-
-</div>
+      </div>
 
       {/* <div className="shorts-title-row">
         <h1>⚡ Tamil Reels</h1>
@@ -128,11 +130,11 @@ export default function ShortsFeedPage() {
 
       {loading && <p className="empty-state">Loading latest reels...</p>}
 
-{!loading && shorts.length === 0 && (
-  <p className="empty-state">
-    No reels found. Click refresh or search another word.
-  </p>
-)}
+      {!loading && shorts.length === 0 && (
+        <p className="empty-state">
+          No reels found. Click refresh or search another word.
+        </p>
+      )}
 
       <div className="reels-grid">
         {shorts.map((item, index) => (

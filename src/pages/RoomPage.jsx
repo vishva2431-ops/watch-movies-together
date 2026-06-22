@@ -45,6 +45,8 @@ export default function RoomPage() {
   const activeCategoryRef = useRef("MOVIE");
   const playedReelsRef = useRef([]);
   const reelHistoryRef = useRef([]);
+  const reelBackHistoryRef = useRef([]);
+  const reelForwardHistoryRef = useRef([]);
 
 
   const [selectedMovie, setSelectedMovie] = useState(null);
@@ -306,6 +308,13 @@ export default function RoomPage() {
 
         setActiveCategory(cat);
 
+        if (cat === "SHORT") {
+          setSelectedMovie(null);
+          sessionStorage.removeItem(`selected_${roomCode}`);
+          loadTamilReels();
+          return;
+        }
+
         setSelectedMovie({
           id: roomData.youtubeVideoId,
           videoUrl: roomData.youtubeVideoId,
@@ -383,7 +392,7 @@ export default function RoomPage() {
         setTimeout(() => {
           playerRef.current?.playVideo?.();
           setDuration(playerRef.current?.getDuration?.() || 0);
-        }, 500);
+        }, 100);
         return;
       }
 
@@ -415,7 +424,7 @@ export default function RoomPage() {
               if (savedState.action === "PLAY") {
                 playerRef.current.playVideo();
               }
-            }, 700);
+            }, 250);
 
             setTimeout(() => {
               const dur = playerRef.current?.getDuration?.();
@@ -524,6 +533,18 @@ export default function RoomPage() {
       client.subscribe(`/topic/room/${roomCode}`, async (message) => {
         const data = JSON.parse(message.body);
 
+        if (data.action === "REEL_LIKE") {
+          setShowHeart(true);
+
+          showRoomNotification(`💜 ${data.userName} liked this reel`);
+
+          setTimeout(() => {
+            setShowHeart(false);
+          }, 1100);
+
+          return;
+        }
+
         if (data.action === "USER_JOIN") {
 
           addRoomUser(data.userName);
@@ -619,10 +640,14 @@ export default function RoomPage() {
             setSelectedMovie(youtubeMovie);
             setActiveCategory(data.category || "MOVIE");
 
-            sessionStorage.setItem(
-              `selected_${roomCode}`,
-              JSON.stringify(youtubeMovie)
-            );
+            if ((data.category || "MOVIE") !== "SHORT") {
+              sessionStorage.setItem(
+                `selected_${roomCode}`,
+                JSON.stringify(youtubeMovie)
+              );
+            } else {
+              sessionStorage.removeItem(`selected_${roomCode}`);
+            }
           }
 
           return;
@@ -653,10 +678,14 @@ export default function RoomPage() {
             setActiveCategory(data.category || "MOVIE");
             setSelectedMovie(youtubeMovie);
 
-            sessionStorage.setItem(
-              `selected_${roomCode}`,
-              JSON.stringify(youtubeMovie)
-            );
+            if ((data.category || "MOVIE") !== "SHORT") {
+              sessionStorage.setItem(
+                `selected_${roomCode}`,
+                JSON.stringify(youtubeMovie)
+              );
+            } else {
+              sessionStorage.removeItem(`selected_${roomCode}`);
+            }
 
             setMovieSearch("");
 
@@ -745,6 +774,7 @@ export default function RoomPage() {
       sendUserJoin();
       requestUsers();
     });
+
   };
 
   const selectMovie = async (movie) => {
@@ -1083,24 +1113,59 @@ export default function RoomPage() {
     const feed = shortsFeed.length > 0 ? shortsFeed : roomYoutubeResults;
     if (feed.length === 0) return;
 
-    reelHistoryRef.current.push(shortIndex);
+    let nextIndex;
 
-    const randomIndex = getRandomShortIndex(feed);
+    if (reelForwardHistoryRef.current.length > 0) {
+      nextIndex = reelForwardHistoryRef.current.pop();
+    } else {
+      reelBackHistoryRef.current.push(shortIndex);
 
-    setShortIndex(randomIndex);
-    selectYoutubeVideo(feed[randomIndex], true, "SHORT");
+      do {
+        nextIndex = Math.floor(Math.random() * feed.length);
+      } while (feed.length > 1 && nextIndex === shortIndex);
+    }
+
+    setShortIndex(nextIndex);
+    setReelLiked(false);
+    const nextVideo = feed[nextIndex];
+
+    setSelectedMovie({
+      id: nextVideo.videoId,
+      videoUrl: nextVideo.videoId,
+      groupTitle: nextVideo.title,
+      partTitle: "SHORT",
+      youtube: true,
+    });
+
+    setTimeout(() => {
+      selectYoutubeVideo(nextVideo, true, "SHORT");
+    }, 50);
   };
 
   const previousShort = () => {
     const feed = shortsFeed.length > 0 ? shortsFeed : roomYoutubeResults;
     if (feed.length === 0) return;
 
-    const previousIndex = reelHistoryRef.current.pop();
+    const prevIndex = reelBackHistoryRef.current.pop();
+    if (prevIndex === undefined) return;
 
-    if (previousIndex === undefined) return;
+    reelForwardHistoryRef.current.push(shortIndex);
 
-    setShortIndex(previousIndex);
-    selectYoutubeVideo(feed[previousIndex], true, "SHORT");
+    setShortIndex(prevIndex);
+    setReelLiked(false);
+    const prevVideo = feed[prevIndex];
+
+    setSelectedMovie({
+      id: prevVideo.videoId,
+      videoUrl: prevVideo.videoId,
+      groupTitle: prevVideo.title,
+      partTitle: "SHORT",
+      youtube: true,
+    });
+
+    setTimeout(() => {
+      selectYoutubeVideo(prevVideo, true, "SHORT");
+    }, 50);
   };
 
   const handleShortTouchStart = (e) => {
@@ -1200,10 +1265,14 @@ export default function RoomPage() {
 
     setSelectedMovie(youtubeMovie);
 
-    sessionStorage.setItem(
-      `selected_${roomCode}`,
-      JSON.stringify(youtubeMovie)
-    );
+    if (forcedCategory !== "SHORT") {
+      sessionStorage.setItem(
+        `selected_${roomCode}`,
+        JSON.stringify(youtubeMovie)
+      );
+    } else {
+      sessionStorage.removeItem(`selected_${roomCode}`);
+    }
 
     setActiveCategory(forcedCategory);
     setMovieSearch("");
@@ -1291,17 +1360,17 @@ export default function RoomPage() {
       setRoomYoutubeLoading(true);
 
       const queries = [
-        "tamil only love reels shorts",
-        "tamil only comedy reels shorts",
-        // "tamil only friendship reels shorts",
-        // "tamil college comedy reels tamil shorts",
-        "tamil couple love reels tamil shorts",
-        // "tamil funny reels tamil language shorts",
-        "tamil movie love scene shorts",
-        "tamil webseries comedy scene shorts"
+        "tamil love reels",
+        "tamil couple reels",
+        "tamil friendship reels",
+        "tamil food vlog shorts",
+        "tamil travel vlog shorts",
+        "tamil comedy reels",
+        "tamil couple vlog shorts"
       ];
 
-      const randomQuery = queries[Math.floor(Math.random() * queries.length)];
+      const randomQuery =
+        queries[Math.floor(Math.random() * queries.length)];
 
       const res = await API.get("/youtube/search", {
         params: {
@@ -1311,35 +1380,65 @@ export default function RoomPage() {
       });
 
       const blockedWords = [
+        "news",
+        "politics",
+        "election",
+        "breaking",
+        "live news",
+        "muslim",
+        "islam",
+        "bjp",
+        "congress",
+        "bangla",
+        "bengali",
         "hindi",
-        "bollywood",
-        "bhojpuri",
-        "punjabi",
         "urdu",
-        "kannada",
+        "punjabi",
         "telugu",
         "malayalam",
-        "marathi"
+        "kannada",
+        "bhojpuri"
+      ];
+
+      const tamilKeywords = [
+        "tamil",
+        "tamizh",
+        "kollywood",
+        "love",
+        "couple",
+        "friend",
+        "friendship",
+        "comedy",
+        "vlog",
+        "food",
+        "travel"
       ];
 
       const filtered = res.data.filter((video) => {
-        const title = (video.title || "").toLowerCase();
-        const description = (video.description || "").toLowerCase();
-        const text = title + " " + description;
+        const text =
+          `${video.title || ""} ${video.description || ""}`.toLowerCase();
 
-        return !blockedWords.some((word) => text.includes(word));
+        const allowed =
+          tamilKeywords.some((word) => text.includes(word));
+
+        const blocked =
+          blockedWords.some((word) => text.includes(word));
+
+        return allowed && !blocked;
       });
 
-      const shuffled = [...filtered].sort(() => Math.random() - 0.5);
+      const shuffled = [...filtered].sort(
+        () => Math.random() - 0.5
+      );
 
       setRoomYoutubeResults(shuffled);
       setShortsFeed(shuffled);
       setShortIndex(0);
       setSelectedMovie(null);
       setMovieSearch("");
+
     } catch (err) {
       console.error(err);
-      alert("Unable to load reels");
     } finally {
       setRoomYoutubeLoading(false);
     }
@@ -1356,6 +1455,7 @@ export default function RoomPage() {
 
       setSelectedMovie(null);
       setMovieSearch("");
+      sessionStorage.removeItem(`selected_${roomCode}`);
 
       setTimeout(() => {
         if (activeCategory === "SHORT") {
@@ -1432,13 +1532,22 @@ export default function RoomPage() {
   };
 
   const sendReelLike = () => {
-    setReelLiked((prev) => !prev);
-
+    setReelLiked(true);
     setShowHeart(true);
+
+    stompClientRef.current?.send(
+      "/app/room.sync",
+      {},
+      JSON.stringify({
+        roomCode,
+        action: "REEL_LIKE",
+        userName
+      })
+    );
 
     setTimeout(() => {
       setShowHeart(false);
-    }, 1200);
+    }, 1100);
   };
 
   const sendReelComment = () => {
@@ -1521,7 +1630,18 @@ export default function RoomPage() {
                 setShowReelCommentBox(true);
               }}
             >
-              <span>💬</span>
+              <svg
+                viewBox="0 0 24 24"
+                width="38"
+                height="38"
+                fill="none"
+                stroke="white"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
+              </svg>
             </button>
           </div>
 
@@ -1549,6 +1669,7 @@ export default function RoomPage() {
       </div>
     );
   }
+
 
   return (
     <div className="page room-shell-clean">
@@ -1668,13 +1789,7 @@ export default function RoomPage() {
           <button className="room-back-btn" onClick={goBack}>
             Back
           </button>
-
-
-          {/* {selectedMovie && (
-            <button className="room-back-btn" onClick={goBack}>
-              Back
-            </button>
-          )} */}
+        
         </div>
         <div className="room-search-wrapper">
           <button
@@ -1747,6 +1862,15 @@ export default function RoomPage() {
                       }
                       onClick={() => {
                         if (activeCategory === "SHORT") {
+                          const watched =
+                            JSON.parse(localStorage.getItem("watchedReels")) || [];
+
+                          watched.push(video.videoId);
+
+                          localStorage.setItem(
+                            "watchedReels",
+                            JSON.stringify([...new Set(watched)])
+                          );
                           const shuffledFeed = [...roomYoutubeResults].sort(() => Math.random() - 0.5);
 
                           setShortsFeed(shuffledFeed);
