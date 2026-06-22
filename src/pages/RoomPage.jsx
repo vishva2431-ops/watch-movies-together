@@ -47,6 +47,7 @@ export default function RoomPage() {
   const reelHistoryRef = useRef([]);
   const reelBackHistoryRef = useRef([]);
   const reelForwardHistoryRef = useRef([]);
+  const roomUsersRef = useRef([]);
 
 
   const [selectedMovie, setSelectedMovie] = useState(null);
@@ -274,6 +275,10 @@ export default function RoomPage() {
       document.documentElement.style.overflow = "auto";
     };
   }, [activeCategory]);
+
+  useEffect(() => {
+    roomUsersRef.current = roomUsers;
+  }, [roomUsers]);
 
   // useEffect(() => {
   //   if (activeCategory !== "SHORT") return;
@@ -542,11 +547,11 @@ export default function RoomPage() {
 
           setFloatingComments((prev) => [...prev, comment]);
 
-          setTimeout(() => {
-            setFloatingComments((prev) =>
-              prev.filter((c) => c.id !== comment.id)
-            );
-          }, 3000);
+          // setTimeout(() => {
+          //   setFloatingComments((prev) =>
+          //     prev.filter((c) => c.id !== comment.id)
+          //   );
+          // }, 3000);
 
           return;
         }
@@ -565,22 +570,21 @@ export default function RoomPage() {
 
         if (data.action === "USER_JOIN") {
 
-          addRoomUser(data.userName);
-
-          if (data.userName !== getSafeUserName()) {
-
-            const joinName =
-              data.userName &&
-                data.userName !== "undefined" &&
-                data.userName !== "null"
-                ? data.userName
-                : getSafeUserName();
-
-            showRoomNotification(`${joinName} joined the room`);
+          if (
+            data.userName &&
+            !roomUsersRef.current.includes(data.userName)) {
+            addRoomUser(data.userName);
+          }
+          if (
+            data.userName &&
+            data.userName !== getSafeUserName()
+          ) {
+            showRoomNotification(
+              `${data.userName} joined the room`
+            );
           }
 
           return;
-          // console.log("JOIN MESSAGE =", data);
         }
 
         if (data.action === "USER_LEAVE") {
@@ -603,7 +607,7 @@ export default function RoomPage() {
         }
         if (
           data.action === "USER_REQUEST" &&
-          data.userName !== userName
+          data.userName !== getSafeUserName()
         ) {
           sendUserJoin();
           return;
@@ -789,8 +793,15 @@ export default function RoomPage() {
       });
 
       addRoomUser(userName);
-      sendUserJoin();
-      requestUsers();
+
+      setTimeout(() => {
+        sendUserJoin();
+
+        setTimeout(() => {
+          requestUsers();
+        }, 300);
+
+      }, 300);
     });
 
   };
@@ -1147,7 +1158,7 @@ export default function RoomPage() {
     // setReelLiked(false);
     const nextVideo = feed[nextIndex];
 
-  selectYoutubeVideo(nextVideo, true, "SHORT");
+    selectYoutubeVideo(nextVideo, true, "SHORT");
   };
 
   const previousShort = () => {
@@ -1163,7 +1174,7 @@ export default function RoomPage() {
     // setReelLiked(false);
     const prevVideo = feed[prevIndex];
 
-   selectYoutubeVideo(prevVideo, true, "SHORT");
+    selectYoutubeVideo(prevVideo, true, "SHORT");
   };
 
   const handleShortTouchStart = (e) => {
