@@ -72,11 +72,11 @@ export default function RoomPage() {
   const [replyTo, setReplyTo] = useState(null);
   const [copyMessage, setCopyMessage] = useState("");
   const [roomNotification, setRoomNotification] = useState("");
-  const [showHeart, setShowHeart] = useState(false);
+  // const [showHeart, setShowHeart] = useState(false);
   const [floatingComments, setFloatingComments] = useState([]);
   const [showReelCommentBox, setShowReelCommentBox] = useState(false);
   const [reelComment, setReelComment] = useState("");
-  const [reelLiked, setReelLiked] = useState(false);
+  // const [reelLiked, setReelLiked] = useState(false);
 
   const chatStorageKey = `chat_${roomCode}`;
 
@@ -533,17 +533,35 @@ export default function RoomPage() {
       client.subscribe(`/topic/room/${roomCode}`, async (message) => {
         const data = JSON.parse(message.body);
 
-        if (data.action === "REEL_LIKE") {
-          setShowHeart(true);
+        if (data.action === "REEL_COMMENT") {
+          const comment = {
+            id: Date.now(),
+            user: data.userName,
+            text: data.comment,
+          };
 
-          showRoomNotification(`💜 ${data.userName} liked this reel`);
+          setFloatingComments((prev) => [...prev, comment]);
 
           setTimeout(() => {
-            setShowHeart(false);
-          }, 1100);
+            setFloatingComments((prev) =>
+              prev.filter((c) => c.id !== comment.id)
+            );
+          }, 3000);
 
           return;
         }
+
+        // if (data.action === "REEL_LIKE") {
+        //   setShowHeart(true);
+
+        //   showRoomNotification(`💜 ${data.userName} liked this reel`);
+
+        //   setTimeout(() => {
+        //     setShowHeart(false);
+        //   }, 1100);
+
+        //   return;
+        // }
 
         if (data.action === "USER_JOIN") {
 
@@ -1126,20 +1144,10 @@ export default function RoomPage() {
     }
 
     setShortIndex(nextIndex);
-    setReelLiked(false);
+    // setReelLiked(false);
     const nextVideo = feed[nextIndex];
 
-    setSelectedMovie({
-      id: nextVideo.videoId,
-      videoUrl: nextVideo.videoId,
-      groupTitle: nextVideo.title,
-      partTitle: "SHORT",
-      youtube: true,
-    });
-
-    setTimeout(() => {
-      selectYoutubeVideo(nextVideo, true, "SHORT");
-    }, 50);
+  selectYoutubeVideo(nextVideo, true, "SHORT");
   };
 
   const previousShort = () => {
@@ -1152,20 +1160,10 @@ export default function RoomPage() {
     reelForwardHistoryRef.current.push(shortIndex);
 
     setShortIndex(prevIndex);
-    setReelLiked(false);
+    // setReelLiked(false);
     const prevVideo = feed[prevIndex];
 
-    setSelectedMovie({
-      id: prevVideo.videoId,
-      videoUrl: prevVideo.videoId,
-      groupTitle: prevVideo.title,
-      partTitle: "SHORT",
-      youtube: true,
-    });
-
-    setTimeout(() => {
-      selectYoutubeVideo(prevVideo, true, "SHORT");
-    }, 50);
+   selectYoutubeVideo(prevVideo, true, "SHORT");
   };
 
   const handleShortTouchStart = (e) => {
@@ -1493,8 +1491,8 @@ export default function RoomPage() {
 
     if (navigator.share) {
       await navigator.share({
-        title: "Join my Watch Party",
-        text: `Join my Watch Party room: ${roomCode}`,
+        title: "Join the Vision ARC",
+        text: `Join the Vision Arc room: ${roomCode}`,
         url: roomLink,
       });
     } else {
@@ -1531,36 +1529,44 @@ export default function RoomPage() {
     );
   };
 
-  const sendReelLike = () => {
-    setReelLiked(true);
-    setShowHeart(true);
+  // const sendReelLike = () => {
+  //   setReelLiked(true);
+  //   setShowHeart(true);
+
+  //   stompClientRef.current?.send(
+  //     "/app/room.sync",
+  //     {},
+  //     JSON.stringify({
+  //       roomCode,
+  //       action: "REEL_LIKE",
+  //       userName
+  //     })
+  //   );
+
+  //   setTimeout(() => {
+  //     setShowHeart(false);
+  //   }, 1100);
+  // };
+
+  const sendReelComment = () => {
+    if (!reelComment.trim()) return;
+
+    // const comment = {
+    //   id: Date.now(),
+    //   user: userName,
+    //   text: reelComment,
+    // };
 
     stompClientRef.current?.send(
       "/app/room.sync",
       {},
       JSON.stringify({
         roomCode,
-        action: "REEL_LIKE",
-        userName
+        action: "REEL_COMMENT",
+        userName,
+        comment: reelComment,
       })
     );
-
-    setTimeout(() => {
-      setShowHeart(false);
-    }, 1100);
-  };
-
-  const sendReelComment = () => {
-    if (!reelComment.trim()) return;
-
-    const comment = {
-      id: Date.now(),
-      user: userName,
-      text: reelComment,
-    };
-
-    setFloatingComments((prev) => [...prev, comment]);
-
     setTimeout(() => {
       setFloatingComments((prev) =>
         prev.filter((c) => c.id !== comment.id)
@@ -1613,7 +1619,7 @@ export default function RoomPage() {
 
           <div className="shorts-only-room">{roomCode}</div>
           <div className="reel-actions">
-            <button
+            {/* <button
               className={`reel-like-btn ${reelLiked ? "liked" : ""}`}
               onClick={(e) => {
                 e.stopPropagation();
@@ -1621,7 +1627,7 @@ export default function RoomPage() {
               }}
             >
               <span>{reelLiked ? "💜" : "♡"}</span>
-            </button>
+            </button> */}
 
             <button
               className="reel-comment-btn"
@@ -1645,7 +1651,7 @@ export default function RoomPage() {
             </button>
           </div>
 
-          {showHeart && <div className="big-like-heart">💜</div>}
+          {/* {showHeart && <div className="big-like-heart">💜</div>} */}
 
           <div className="floating-comments">
             {floatingComments.map((c) => (
@@ -1789,7 +1795,7 @@ export default function RoomPage() {
           <button className="room-back-btn" onClick={goBack}>
             Back
           </button>
-        
+
         </div>
         <div className="room-search-wrapper">
           <button
@@ -2112,12 +2118,12 @@ export default function RoomPage() {
                     </div>
 
                     <div className="reel-actions">
-                      <button
+                      {/* <button
                         className="reel-like-btn"
                         onClick={sendReelLike}
                       >
                         ❤️
-                      </button>
+                      </button> */}
 
                       <button
                         className="reel-comment-btn"
@@ -2129,11 +2135,11 @@ export default function RoomPage() {
                       </button>
                     </div>
 
-                    {showHeart && (
-                      <div className="big-like-heart">
-                        💜
-                      </div>
-                    )}
+                    {/* {showHeart && (
+                        <div className="big-like-heart">
+                          💜
+                        </div>
+                      )} */}
 
                     <div className="floating-comments">
                       {floatingComments.map((c) => (

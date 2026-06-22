@@ -61,9 +61,9 @@ export default function HomePage() {
         </div>
 
         <div className="home-controls-row">
-          <button className="btn-primary home-control-btn" onClick={createEmptyRoom}>
+          {/* <button className="btn-primary home-control-btn" onClick={createEmptyRoom}>
             Create Room
-          </button>
+          </button> */}
 
           <div className="join-room-wrapper">
             <input
