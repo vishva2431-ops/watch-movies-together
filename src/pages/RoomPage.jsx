@@ -78,6 +78,7 @@ export default function RoomPage() {
   const [showReelCommentBox, setShowReelCommentBox] = useState(false);
   const [reelComment, setReelComment] = useState("");
   // const [reelLiked, setReelLiked] = useState(false);
+  const [musicSearched, setMusicSearched] = useState(false);
 
   const chatStorageKey = `chat_${roomCode}`;
 
@@ -313,20 +314,24 @@ export default function RoomPage() {
 
         setActiveCategory(cat);
 
-        if (cat === "SHORT") {
-          setSelectedMovie(null);
-          sessionStorage.removeItem(`selected_${roomCode}`);
-          loadTamilReels();
-          return;
-        }
-
-        setSelectedMovie({
+        const youtubeMovie = {
           id: roomData.youtubeVideoId,
           videoUrl: roomData.youtubeVideoId,
           groupTitle: roomData.youtubeTitle,
           partTitle: cat,
           youtube: true,
-        });
+        };
+
+        setSelectedMovie(youtubeMovie);
+
+        if (cat !== "SHORT") {
+          sessionStorage.setItem(
+            `selected_${roomCode}`,
+            JSON.stringify(youtubeMovie)
+          );
+        } else {
+          sessionStorage.removeItem(`selected_${roomCode}`);
+        }
 
         setMovieSearch("");
       }
@@ -676,6 +681,12 @@ export default function RoomPage() {
         }
 
         if (data.action === "SELECT") {
+          if (
+            activeCategoryRef.current === "SHORT" &&
+            selectedMovieRef.current?.videoUrl === data.youtubeVideoId
+          ) {
+            return;
+          }
           lastRoomStateRef.current = {
             action: "PLAY",
             currentTime: 0,
@@ -1158,7 +1169,13 @@ export default function RoomPage() {
     // setReelLiked(false);
     const nextVideo = feed[nextIndex];
 
-    selectYoutubeVideo(nextVideo, true, "SHORT");
+    setSelectedMovie({
+      id: nextVideo.videoId,
+      videoUrl: nextVideo.videoId,
+      groupTitle: nextVideo.title,
+      partTitle: "SHORT",
+      youtube: true,
+    });
   };
 
   const previousShort = () => {
@@ -1174,7 +1191,13 @@ export default function RoomPage() {
     // setReelLiked(false);
     const prevVideo = feed[prevIndex];
 
-    selectYoutubeVideo(prevVideo, true, "SHORT");
+    setSelectedMovie({
+      id: prevVideo.videoId,
+      videoUrl: prevVideo.videoId,
+      groupTitle: prevVideo.title,
+      partTitle: "SHORT",
+      youtube: true,
+    });
   };
 
   const handleShortTouchStart = (e) => {
@@ -1249,6 +1272,9 @@ export default function RoomPage() {
       sessionStorage.removeItem(`selected_${roomCode}`);
 
       setRoomYoutubeResults(res.data);
+      if (activeCategory === "MUSIC") {
+        setMusicSearched(true);
+      }
       setMovieSearch("");
 
       if (activeCategory === "SHORT") {
@@ -1264,6 +1290,12 @@ export default function RoomPage() {
     keepFeed = false,
     forcedCategory = activeCategory
   ) => {
+    if (
+      forcedCategory === "SHORT" &&
+      selectedMovieRef.current?.videoUrl === video.videoId
+    ) {
+      return;
+    }
     const youtubeMovie = {
       id: video.videoId,
       videoUrl: video.videoId,
@@ -1358,6 +1390,7 @@ export default function RoomPage() {
           category: "MUSIC",
         },
       });
+      setMusicSearched(false);
       setRoomYoutubeResults(res.data);
     } finally {
       setRoomYoutubeLoading(false);
@@ -1779,74 +1812,80 @@ export default function RoomPage() {
         )}
 
         <div className="room-header-row2">
+
           {selectedMovie && (
-            <div className="room-id-pill room-id-with-actions">
-              <span>{roomCode}</span>
+            <div className="room-top-actions">
+              <div className="room-id-pill room-id-with-actions">
+                <span>{roomCode}</span>
 
-              <div className="room-id-actions">
-                <button
-                  className="room-code-icon-btn"
-                  onClick={copyRoomCode}
-                  title="Copy Room ID"
-                >
-                  <FiCopy />
-                </button>
+                <div className="room-id-actions">
+                  <button
+                    className="room-code-icon-btn"
+                    onClick={copyRoomCode}
+                    title="Copy Room ID"
+                  >
+                    <FiCopy />
+                  </button>
 
-                <button
-                  className="room-code-icon-btn"
-                  onClick={shareRoomLink}
-                  title="Share Room"
-                >
-                  <FiShare2 />
-                </button>
+                  <button
+                    className="room-code-icon-btn"
+                    onClick={shareRoomLink}
+                    title="Share Room"
+                  >
+                    <FiShare2 />
+                  </button>
+                </div>
               </div>
 
+              {/* <button className="room-back-btn" onClick={goBack}>
+                ← Back
+              </button> */}
             </div>
           )}
-          <button className="room-back-btn" onClick={goBack}>
-            Back
-          </button>
+          <div className="room-search-row">
 
+            <div className="room-search-wrapper">
+              <button className="room-search-btn" onClick={searchYoutubeInsideRoom}>
+                🔍
+              </button>
+
+              <input
+                className="room-mobile-search"
+                value={movieSearch}
+                onChange={(e) => setMovieSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") searchYoutubeInsideRoom();
+                }}
+                placeholder={
+                  activeCategory === "SHORT"
+                    ? "Search reels..."
+                    : activeCategory === "MUSIC"
+                      ? "Search music..."
+                      : "Search movies..."
+                }
+              />
+
+              <button
+                className="room-refresh-btn"
+                onClick={
+                  activeCategory === "SHORT"
+                    ? loadTamilReels
+                    : activeCategory === "MUSIC"
+                      ? loadTamilMusic
+                      : loadTamilMovies
+                }
+              >
+                🔄
+              </button>
+            </div>
+            <button
+              className="room-back-btn"
+              onClick={goBack}
+            >
+              ←
+            </button>
+          </div>
         </div>
-        <div className="room-search-wrapper">
-          <button
-            className="room-search-btn"
-            onClick={searchYoutubeInsideRoom}
-          >
-            🔍
-          </button>
-
-          <input
-            className="room-mobile-search"
-            value={movieSearch}
-            onChange={(e) => setMovieSearch(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") searchYoutubeInsideRoom();
-            }}
-            placeholder={
-              activeCategory === "SHORT"
-                ? "Search reels..."
-                : activeCategory === "MUSIC"
-                  ? "Search music..."
-                  : "Search movies..."
-            }
-          />
-
-          <button
-            className="room-refresh-btn"
-            onClick={
-              activeCategory === "SHORT"
-                ? loadTamilReels
-                : activeCategory === "MUSIC"
-                  ? loadTamilMusic
-                  : loadTamilMovies
-            }
-          >
-            🔄
-          </button>
-
-        </div>
-
       </div>
       {copyMessage && (
         <div className="room-copy-toast">
@@ -1888,7 +1927,20 @@ export default function RoomPage() {
                             "watchedReels",
                             JSON.stringify([...new Set(watched)])
                           );
-                          const shuffledFeed = [...roomYoutubeResults].sort(() => Math.random() - 0.5);
+
+                          const shuffledFeed = [...roomYoutubeResults].sort(
+                            () => Math.random() - 0.5
+                          );
+
+                          sessionStorage.setItem(
+                            "shortsFeed",
+                            JSON.stringify(shuffledFeed)
+                          );
+
+                          sessionStorage.setItem(
+                            "shortsStartVideoId",
+                            video.videoId
+                          );
 
                           setShortsFeed(shuffledFeed);
 
@@ -1897,7 +1949,17 @@ export default function RoomPage() {
                           );
 
                           setShortIndex(selectedIndex >= 0 ? selectedIndex : 0);
-                          selectYoutubeVideo(video, true, "SHORT");
+
+                          setSelectedMovie({
+                            id: video.videoId,
+                            videoUrl: video.videoId,
+                            groupTitle: video.title,
+                            partTitle: "SHORT",
+                            youtube: true,
+                          });
+
+                          setActiveCategory("SHORT");
+
                           return;
                         }
 
@@ -2005,28 +2067,20 @@ export default function RoomPage() {
 
               {/* <h3>Suggested Songs</h3> */}
 
-              <div className="suggested-music-grid">
-                {roomYoutubeResults.map((video) => (
-                  <div
-                    key={video.videoId}
-                    className="suggested-song-card"
-                    onClick={() =>
-                      selectYoutubeVideo(
-                        video,
-                        true,
-                        "MUSIC"
-                      )
-                    }
-                  >
-                    <img
-                      src={video.thumbnail}
-                      alt={video.title}
-                    />
-
-                    <p>{video.title}</p>
-                  </div>
-                ))}
-              </div>
+              {musicSearched && (
+                <div className="suggested-music-grid">
+                  {roomYoutubeResults.map((video) => (
+                    <div
+                      key={video.videoId}
+                      className="suggested-song-card"
+                      onClick={() => selectYoutubeVideo(video, true, "MUSIC")}
+                    >
+                      <img src={video.thumbnail} alt={video.title} />
+                      <p>{video.title}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
 
             </div>
           ) : (

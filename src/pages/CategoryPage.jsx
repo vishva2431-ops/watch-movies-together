@@ -8,19 +8,19 @@ const CATEGORY_CONFIG = {
     MOVIE: {
         emoji: "🎬",
         title: "Movies",
-        placeholder: "Search movies from admin uploads or YouTube...",
+        placeholder: "Search movies...",
         subtitle: "Search trailers, full movies, scenes and admin uploaded movie content.",
     },
     MUSIC: {
         emoji: "🎵",
         title: "Music",
-        placeholder: "Search music from admin uploads or YouTube...",
+        placeholder: "Search music...",
         subtitle: "Search songs, albums, live performances and music videos.",
     },
     SHORT: {
         emoji: "⚡",
         title: "Shorts",
-        placeholder: "Search shorts from admin uploads or YouTube...",
+        placeholder: "Search shorts...",
         subtitle: "Create one shorts room, then swipe up/down inside the room like reels.",
     },
 };
