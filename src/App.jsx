@@ -27,7 +27,7 @@ export default function App() {
       <Route path="/movies" element={<ProtectedRoute><CategoryPage category="MOVIE" /></ProtectedRoute>} />
       <Route path="/music" element={<ProtectedRoute><CategoryPage category="MUSIC" /></ProtectedRoute>} />
       <Route path="/shorts" element={<ProtectedRoute><ShortsFeedPage /></ProtectedRoute>} />
-      <Route path="/shorts-old" element={<ProtectedRoute><CategoryPage category="SHORT" /></ProtectedRoute>} />
+      {/* <Route path="/shorts-old" element={<ProtectedRoute><CategoryPage category="SHORT" /></ProtectedRoute>} /> */}
       <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
       <Route path="/admin/users" element={<ProtectedRoute><UsersPage /></ProtectedRoute>} />
       <Route path="/room/:roomCode" element={<ProtectedRoute><RoomPage /></ProtectedRoute>} />

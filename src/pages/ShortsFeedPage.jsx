@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { API } from "../api";
 import Header from "../components/Header";
@@ -11,6 +11,8 @@ export default function ShortsFeedPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [liked, setLiked] = useState({});
+  const [searchSuggestions, setSearchSuggestions] = useState([]);
+  const suggestionTimerRef = useRef(null);
 
   useEffect(() => {
     loadTamilShorts();
@@ -65,7 +67,7 @@ export default function ShortsFeedPage() {
     sessionStorage.setItem("shortsFeed", JSON.stringify(shorts));
     sessionStorage.setItem("shortsStartVideoId", shortVideo.videoId);
 
-    navigate(`/room/${res.data.roomCode}`);
+    navigate(`/room/${res.data.roomCode}?play=true`);
   };
 
   const toggleLike = (videoId, e) => {
@@ -74,6 +76,37 @@ export default function ShortsFeedPage() {
       ...prev,
       [videoId]: !prev[videoId],
     }));
+  };
+
+  const handleSearchTyping = (value) => {
+    setSearch(value);
+
+    clearTimeout(suggestionTimerRef.current);
+
+    if (!value.trim() || value.trim().length < 2) {
+      setSearchSuggestions([]);
+      return;
+    }
+
+    suggestionTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await API.get("/youtube/search", {
+          params: {
+            q: `${value} tamil reels shorts`,
+            category: "SHORT",
+          },
+        });
+
+        const suggestions = res.data
+          .slice(0, 6)
+          .map((item) => item.title)
+          .filter(Boolean);
+
+        setSearchSuggestions([...new Set(suggestions)]);
+      } catch {
+        setSearchSuggestions([]);
+      }
+    }, 350);
   };
 
   return (
@@ -96,16 +129,13 @@ export default function ShortsFeedPage() {
 
         {/* Row 2 */}
         <div className="shorts-search-box">
-          <button
-            className="search-icon-btn"
-            onClick={loadTamilShorts}
-          >
+          <button className="search-icon-btn" onClick={loadTamilShorts}>
             🔍
           </button>
 
           <input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearchTyping(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") loadTamilShorts();
             }}
@@ -121,6 +151,25 @@ export default function ShortsFeedPage() {
 
         </div>
 
+        {searchSuggestions.length > 0 && (
+          <div className="search-suggestions-box">
+            {searchSuggestions.map((item) => (
+              <button
+                key={item}
+                onClick={() => {
+                  setSearch(item);
+                  setSearchSuggestions([]);
+
+                  setTimeout(() => {
+                    loadTamilShorts();
+                  }, 100);
+                }}
+              >
+                🔍 {item}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* <div className="shorts-title-row">

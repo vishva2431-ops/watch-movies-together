@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { API } from "../api";
 import Header from "../components/Header";
@@ -33,6 +33,8 @@ export default function CategoryPage({ category }) {
     const [youtubeResults, setYoutubeResults] = useState([]);
     const [loading, setLoading] = useState(false);
     const [alertMessage, setAlertMessage] = useState("");
+    const [searchSuggestions, setSearchSuggestions] = useState([]);
+    const suggestionTimerRef = useRef(null);
 
     const navigate = useNavigate();
     const currentUser = localStorage.getItem("userName") || "Guest";
@@ -133,6 +135,43 @@ export default function CategoryPage({ category }) {
             [...res.data].sort(() => Math.random() - 0.5)
         );
     };
+
+    const handleSearchTyping = (value) => {
+        setSearch(value);
+
+        clearTimeout(suggestionTimerRef.current);
+
+        if (!value.trim() || value.trim().length < 2) {
+            setSearchSuggestions([]);
+            return;
+        }
+
+        suggestionTimerRef.current = setTimeout(async () => {
+            try {
+                const res = await API.get("/youtube/search", {
+                    params: {
+                        q:
+                            category === "SHORT"
+                                ? `${value} tamil reels shorts`
+                                : category === "MUSIC"
+                                    ? `${value} tamil song`
+                                    : `${value} tamil movie`,
+                        category,
+                    },
+                });
+
+                const suggestions = res.data
+                    .slice(0, 6)
+                    .map((item) => item.title)
+                    .filter(Boolean);
+
+                setSearchSuggestions([...new Set(suggestions)]);
+            } catch {
+                setSearchSuggestions([]);
+            }
+        }, 350);
+    };
+
     const searchYoutube = async () => {
         if (!search.trim()) {
             setAlertMessage("Please enter something to search");
@@ -222,7 +261,7 @@ export default function CategoryPage({ category }) {
 
                     <input
                         value={search}
-                        onChange={(e) => setSearch(e.target.value)}
+                        onChange={(e) => handleSearchTyping(e.target.value)}
                         onKeyDown={(e) => {
                             if (e.key === "Enter") searchYoutube();
                         }}
@@ -236,6 +275,25 @@ export default function CategoryPage({ category }) {
                         🔄
                     </button>
                 </div>
+                {searchSuggestions.length > 0 && (
+                    <div className="search-suggestions-box">
+                        {searchSuggestions.map((item) => (
+                            <button
+                                key={item}
+                                onClick={() => {
+                                    setSearch(item);
+                                    setSearchSuggestions([]);
+
+                                    setTimeout(() => {
+                                        searchYoutube();
+                                    }, 100);
+                                }}
+                            >
+                                🔍 {item}
+                            </button>
+                        ))}
+                    </div>
+                )}
 
             </div>
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import SockJS from "sockjs-client/dist/sockjs";
 import Stomp from "stompjs";
 import { API, API_BASE_URL, extractYouTubeId } from "../api";
@@ -23,6 +23,7 @@ import { FiShare2 } from "react-icons/fi";
 export default function RoomPage() {
   const { roomCode } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const stompClientRef = useRef(null);
   const playerRef = useRef(null);
@@ -79,6 +80,8 @@ export default function RoomPage() {
   const [reelComment, setReelComment] = useState("");
   // const [reelLiked, setReelLiked] = useState(false);
   const [musicSearched, setMusicSearched] = useState(false);
+  const [searchSuggestions, setSearchSuggestions] = useState([]);
+  const suggestionTimerRef = useRef(null);
 
   const chatStorageKey = `chat_${roomCode}`;
 
@@ -169,23 +172,10 @@ export default function RoomPage() {
     };
   }, [roomCode]);
 
-  useEffect(() => {
-    const savedFeed = sessionStorage.getItem("shortsFeed");
-    const startVideoId = sessionStorage.getItem("shortsStartVideoId");
-
-    if (!savedFeed) return;
-
-    const parsedFeed = JSON.parse(savedFeed);
-    setShortsFeed(parsedFeed);
-
-    const startIndex = parsedFeed.findIndex(
-      (item) => item.videoId === startVideoId
-    );
-
-    if (startIndex >= 0) {
-      setShortIndex(startIndex);
-    }
-  }, []);
+ useEffect(() => {
+  sessionStorage.removeItem("shortsFeed");
+  sessionStorage.removeItem("shortsStartVideoId");
+}, []);
 
   useEffect(() => {
     selectedMovieRef.current = selectedMovie;
@@ -226,7 +216,7 @@ export default function RoomPage() {
     if (Math.abs(e.deltaY) < 20) return;
 
     const now = Date.now();
-    if (now - lastShortScrollRef.current < 700) return;
+    if (now - lastShortScrollRef.current < 500) return;
 
     lastShortScrollRef.current = now;
 
@@ -321,16 +311,32 @@ export default function RoomPage() {
           partTitle: cat,
           youtube: true,
         };
+        if (cat === "SHORT") {
+          const shouldPlayDirect =
+            new URLSearchParams(location.search).get("play") === "true";
 
-        setSelectedMovie(youtubeMovie);
+          if (shouldPlayDirect) {
+            setSelectedMovie(youtubeMovie);
 
-        if (cat !== "SHORT") {
+            window.history.replaceState(
+              null,
+              "",
+              `/room/${roomCode}`
+            );
+          } else {
+            setSelectedMovie(null);
+            loadTamilReels();
+          }
+
+          sessionStorage.removeItem(`selected_${roomCode}`);
+        }
+        else {
+          setSelectedMovie(youtubeMovie);
+
           sessionStorage.setItem(
             `selected_${roomCode}`,
             JSON.stringify(youtubeMovie)
           );
-        } else {
-          sessionStorage.removeItem(`selected_${roomCode}`);
         }
 
         setMovieSearch("");
@@ -422,6 +428,15 @@ export default function RoomPage() {
         events: {
           onReady: (event) => {
             playerRef.current = event.target;
+
+            if (activeCategoryRef.current === "SHORT") {
+              setTimeout(() => {
+                playerRef.current?.unMute?.();
+                playerRef.current?.setVolume?.(100);
+                playerRef.current?.playVideo?.();
+              }, 500);
+            }
+
             setPlayerReady(true);
             const savedState = lastRoomStateRef.current;
 
@@ -544,22 +559,20 @@ export default function RoomPage() {
         const data = JSON.parse(message.body);
 
         if (data.action === "REEL_COMMENT") {
+          const text = data.text || data.comment;
+
+          if (!text?.trim()) return;
+
           const comment = {
             id: Date.now(),
             user: data.userName,
-            text: data.comment,
+            text,
           };
 
           setFloatingComments((prev) => [...prev, comment]);
-
-          // setTimeout(() => {
-          //   setFloatingComments((prev) =>
-          //     prev.filter((c) => c.id !== comment.id)
-          //   );
-          // }, 3000);
-
           return;
         }
+
 
         // if (data.action === "REEL_LIKE") {
         //   setShowHeart(true);
@@ -572,18 +585,16 @@ export default function RoomPage() {
 
         //   return;
         // }
-
         if (data.action === "USER_JOIN") {
 
-          if (
-            data.userName &&
-            !roomUsersRef.current.includes(data.userName)) {
-            addRoomUser(data.userName);
-          }
-          if (
-            data.userName &&
-            data.userName !== getSafeUserName()
-          ) {
+          console.log("JOIN:", data.userName);
+
+          setRoomUsers(prev => {
+            if (prev.includes(data.userName)) return prev;
+            return [...prev, data.userName];
+          });
+
+          if (data.userName !== getSafeUserName()) {
             showRoomNotification(
               `${data.userName} joined the room`
             );
@@ -623,7 +634,7 @@ export default function RoomPage() {
           const currentMovie = selectedMovieRef.current;
           const currentCategory = activeCategoryRef.current;
 
-          if (!currentMovie || !playerRef.current) return;
+          if (!currentMovie) return;
           stompClientRef.current?.send(
             "/app/room.sync",
             {},
@@ -636,10 +647,11 @@ export default function RoomPage() {
               youtubeTitle: currentMovie.groupTitle,
               movieId: currentMovie.youtube ? null : currentMovie.id,
               category: currentCategory,
-              currentTime: playerRef.current.getCurrentTime?.() || 0,
-              playbackRate: playerRef.current.getPlaybackRate?.() || 1,
+              currentTime: playerRef.current?.getCurrentTime?.() || 0,
+              playbackRate: playerRef.current?.getPlaybackRate?.() || 1,
               playing:
-                playerRef.current.getPlayerState?.() === window.YT.PlayerState.PLAYING,
+                playerRef.current?.getPlayerState?.() === window.YT.PlayerState.PLAYING ||
+                currentCategory === "SHORT",
             })
           );
 
@@ -647,8 +659,7 @@ export default function RoomPage() {
         }
 
         if (data.action === "SYNC_RESPONSE") {
-          if (data.targetUser !== userName) return;
-
+          if (data.targetUser !== getSafeUserName()) return;
           lastRoomStateRef.current = {
             action: data.playing ? "PLAY" : "PAUSE",
             currentTime: data.currentTime || 0,
@@ -656,6 +667,7 @@ export default function RoomPage() {
           };
 
           if (data.youtubeVideoId) {
+            // sessionStorage.setItem(`joined_${roomCode}`, "true");
             const youtubeMovie = {
               id: data.youtubeVideoId,
               videoUrl: data.youtubeVideoId,
@@ -664,8 +676,21 @@ export default function RoomPage() {
               youtube: true,
             };
 
-            setSelectedMovie(youtubeMovie);
             setActiveCategory(data.category || "MOVIE");
+            setSelectedMovie(youtubeMovie);
+
+            if ((data.category || "MOVIE") === "SHORT") {
+              setTimeout(() => {
+                createOrUpdatePlayer(youtubeMovie);
+
+                setTimeout(() => {
+                  playerRef.current?.seekTo?.(data.currentTime || 0, true);
+                  playerRef.current?.unMute?.();
+                  playerRef.current?.setVolume?.(100);
+                  playerRef.current?.playVideo?.();
+                }, 700);
+              }, 300);
+            }
 
             if ((data.category || "MOVIE") !== "SHORT") {
               sessionStorage.setItem(
@@ -723,6 +748,11 @@ export default function RoomPage() {
             setMovieSearch("");
 
             setTimeout(() => {
+              if (data.category === "SHORT") {
+                playerRef.current?.unMute?.();
+                playerRef.current?.setVolume?.(100);
+              }
+
               playerRef.current?.playVideo?.();
             }, 800);
 
@@ -800,19 +830,46 @@ export default function RoomPage() {
 
       client.subscribe(`/topic/chat/${roomCode}`, (message) => {
         const data = JSON.parse(message.body);
-        setMessages((prev) => [...prev, data]);
+
+        setMessages((prev) => {
+          const exists = prev.some((msg) =>
+            data.id
+              ? msg.id === data.id
+              : msg.sender === data.sender &&
+              msg.text === data.text &&
+              JSON.stringify(msg.replyTo || null) === JSON.stringify(data.replyTo || null)
+          );
+
+          if (exists) return prev;
+          return [...prev, data];
+        });
       });
 
-      addRoomUser(userName);
+      const name = getSafeUserName();
 
+      addRoomUser(name);
+
+      client.send(
+        "/app/room.sync",
+        {},
+        JSON.stringify({
+          roomCode,
+          action: "USER_JOIN",
+          userName: name,
+        })
+      );
+      console.log("SENDING USER_JOIN", name);
       setTimeout(() => {
-        sendUserJoin();
-
-        setTimeout(() => {
-          requestUsers();
-        }, 300);
-
-      }, 300);
+        client.send(
+          "/app/room.sync",
+          {},
+          JSON.stringify({
+            roomCode,
+            action: "USER_REQUEST",
+            userName: name,
+          })
+        );
+      }, 500);
     });
 
   };
@@ -1054,6 +1111,7 @@ export default function RoomPage() {
       "/app/room.chat",
       {},
       JSON.stringify({
+        id: `${Date.now()}-${getSafeUserName()}-${Math.random()}`,
         roomCode,
         sender: userName,
         text,
@@ -1149,6 +1207,18 @@ export default function RoomPage() {
     );
   };
 
+  const saveWatchedReel = (videoId) => {
+    const watched =
+      JSON.parse(localStorage.getItem("watchedReels")) || [];
+
+    watched.push(videoId);
+
+    localStorage.setItem(
+      "watchedReels",
+      JSON.stringify([...new Set(watched)])
+    );
+  };
+
   const nextShort = () => {
     const feed = shortsFeed.length > 0 ? shortsFeed : roomYoutubeResults;
     if (feed.length === 0) return;
@@ -1176,6 +1246,8 @@ export default function RoomPage() {
       partTitle: "SHORT",
       youtube: true,
     });
+    syncSelectedShort(nextVideo);
+    saveWatchedReel(nextVideo.videoId);
   };
 
   const previousShort = () => {
@@ -1198,6 +1270,7 @@ export default function RoomPage() {
       partTitle: "SHORT",
       youtube: true,
     });
+    syncSelectedShort(prevVideo);
   };
 
   const handleShortTouchStart = (e) => {
@@ -1248,15 +1321,53 @@ export default function RoomPage() {
     return randomIndex;
   };
 
-  const searchYoutubeInsideRoom = async () => {
-    if (!movieSearch.trim()) return;
+  const handleSearchTyping = (value) => {
+    setMovieSearch(value);
+
+    clearTimeout(suggestionTimerRef.current);
+
+    if (!value.trim() || value.trim().length < 2) {
+      setSearchSuggestions([]);
+      return;
+    }
+
+    suggestionTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await API.get("/youtube/search", {
+          params: {
+            q:
+              activeCategory === "SHORT"
+                ? `${value} tamil reels shorts`
+                : activeCategory === "MUSIC"
+                  ? `${value} tamil song`
+                  : `${value} tamil movie`,
+            category: activeCategory,
+          },
+        });
+
+        const suggestions = res.data
+          .slice(0, 6)
+          .map((item) => item.title)
+          .filter(Boolean);
+
+        setSearchSuggestions([...new Set(suggestions)]);
+      } catch (err) {
+        setSearchSuggestions([]);
+      }
+    }, 350);
+  };
+
+  const searchYoutubeInsideRoom = async (customQuery) => {
+    const finalQuery = customQuery || movieSearch.trim();
+
+    if (!finalQuery.trim()) return;
 
     try {
       setRoomYoutubeLoading(true);
 
       const res = await API.get("/youtube/search", {
         params: {
-          q: movieSearch.trim(),
+          q: finalQuery.trim(),
           category: activeCategory,
         },
       });
@@ -1272,9 +1383,12 @@ export default function RoomPage() {
       sessionStorage.removeItem(`selected_${roomCode}`);
 
       setRoomYoutubeResults(res.data);
+      setSearchSuggestions([]);
+
       if (activeCategory === "MUSIC") {
         setMusicSearched(true);
       }
+
       setMovieSearch("");
 
       if (activeCategory === "SHORT") {
@@ -1469,9 +1583,24 @@ export default function RoomPage() {
         return allowed && !blocked;
       });
 
-      const shuffled = [...filtered].sort(
-        () => Math.random() - 0.5
+      const watched =
+        JSON.parse(localStorage.getItem("watchedReels")) || [];
+
+      const freshReels = filtered.filter(
+        (video) => !watched.includes(video.videoId)
       );
+
+      // const watched =
+      //   JSON.parse(localStorage.getItem("watchedReels")) || [];
+
+      // const freshReels = filtered.filter(
+      //   (video) => !watched.includes(video.videoId)
+      // );
+
+      const finalReels =
+        freshReels.length > 0 ? freshReels : filtered;
+
+      const shuffled = [...finalReels].sort(() => Math.random() - 0.5);
 
       setRoomYoutubeResults(shuffled);
       setShortsFeed(shuffled);
@@ -1553,25 +1682,25 @@ export default function RoomPage() {
     }, 2000);
   };
 
-  const sendMessage = (text) => {
-    if (!stompClientRef.current) return;
+  // const sendMessage = (text) => {
+  //   if (!stompClientRef.current) return;
 
-    stompClientRef.current.send(
-      "/app/chat.send",
-      {},
-      JSON.stringify({
-        roomCode,
-        sender: userName,
-        text,
-        replyTo: replyTo
-          ? {
-            sender: replyTo.sender,
-            text: replyTo.text,
-          }
-          : null,
-      })
-    );
-  };
+  //   stompClientRef.current.send(
+  //     "/app/chat.send",
+  //     {},
+  //     JSON.stringify({
+  //       roomCode,
+  //       sender: userName,
+  //       text,
+  //       replyTo: replyTo
+  //         ? {
+  //           sender: replyTo.sender,
+  //           text: replyTo.text,
+  //         }
+  //         : null,
+  //     })
+  //   );
+  // };
 
   // const sendReelLike = () => {
   //   setReelLiked(true);
@@ -1593,13 +1722,8 @@ export default function RoomPage() {
   // };
 
   const sendReelComment = () => {
-    if (!reelComment.trim()) return;
-
-    // const comment = {
-    //   id: Date.now(),
-    //   user: userName,
-    //   text: reelComment,
-    // };
+    const text = reelComment.trim();
+    if (!text) return;
 
     stompClientRef.current?.send(
       "/app/room.sync",
@@ -1607,15 +1731,10 @@ export default function RoomPage() {
       JSON.stringify({
         roomCode,
         action: "REEL_COMMENT",
-        userName,
-        comment: reelComment,
+        userName: getSafeUserName(),
+        text: text,
       })
     );
-    // setTimeout(() => {
-    //   setFloatingComments((prev) =>
-    //     prev.filter((c) => c.id !== comment.id)
-    //   );
-    // }, 3000);
 
     setReelComment("");
     setShowReelCommentBox(false);
@@ -1852,7 +1971,7 @@ export default function RoomPage() {
               <input
                 className="room-mobile-search"
                 value={movieSearch}
-                onChange={(e) => setMovieSearch(e.target.value)}
+                onChange={(e) => handleSearchTyping(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") searchYoutubeInsideRoom();
                 }}
@@ -1885,6 +2004,22 @@ export default function RoomPage() {
               ←
             </button>
           </div>
+          {searchSuggestions.length > 0 && (
+            <div className="search-suggestions-box">
+              {searchSuggestions.map((item) => (
+                <button
+                  key={item}
+                  onClick={() => {
+                    setMovieSearch(item);
+                    setSearchSuggestions([]);
+                    searchYoutubeInsideRoom(item);
+                  }}
+                >
+                  🔍 {item}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
       {copyMessage && (
@@ -1950,16 +2085,7 @@ export default function RoomPage() {
 
                           setShortIndex(selectedIndex >= 0 ? selectedIndex : 0);
 
-                          setSelectedMovie({
-                            id: video.videoId,
-                            videoUrl: video.videoId,
-                            groupTitle: video.title,
-                            partTitle: "SHORT",
-                            youtube: true,
-                          });
-
-                          setActiveCategory("SHORT");
-
+                          selectYoutubeVideo(video, true, "SHORT");
                           return;
                         }
 
@@ -2009,8 +2135,11 @@ export default function RoomPage() {
                   />
 
                   <div className={`music-overlay-progress ${showDuration ? "show-video-ui" : ""}`}>
-                    <div className="music-progress" onClick={seekByProgress}>
-                      <div
+                    <div
+                      className="music-progress"
+                      onClick={seekByProgress}
+                      onTouchMove={seekByProgress}
+                    >                      <div
                         className="music-progress-fill"
                         style={{
                           width: duration > 0 ? `${(currentTime / duration) * 100}%` : "0%",
@@ -2137,14 +2266,23 @@ export default function RoomPage() {
 
                 {activeCategory !== "SHORT" && (
                   <div className={`video-overlay-progress ${showDuration ? "show-video-ui" : ""}`}>
-                    <div className="video-full-progress" onClick={seekByProgress}>
+                    {activeCategory !== "SHORT" && (
                       <div
-                        className="video-full-progress-fill"
-                        style={{
-                          width: duration > 0 ? `${(currentTime / duration) * 100}%` : "0%",
-                        }}
-                      />
-                    </div>
+                        className="video-full-progress"
+                        onClick={seekByProgress}
+                        onTouchMove={seekByProgress}
+                      >
+                        <div
+                          className="video-full-progress-fill"
+                          style={{
+                            width:
+                              duration > 0
+                                ? `${(currentTime / duration) * 100}%`
+                                : "0%",
+                          }}
+                        />
+                      </div>
+                    )}
 
                     <div className="video-full-time">
                       {formatTime(currentTime)} / {formatTime(duration)}
