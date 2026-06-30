@@ -110,12 +110,19 @@ export default function LoginPage() {
 
       setOtpSent(true);
       setMessage(res.data.message || "OTP sent to your email ✅");
-    } catch (err) {
-      console.error(err);
-      setMessage("Email OTP sending failed ❌");
-    } finally {
-      setLoading(false);
-    }
+   } catch (err) {
+  console.error("SEND OTP ERROR:", err);
+  console.error("SEND OTP RESPONSE:", err?.response);
+  console.error("SEND OTP DATA:", err?.response?.data);
+
+  setMessage(
+    err?.response?.data?.message ||
+    err?.message ||
+    "Email OTP sending failed ❌"
+  );
+} finally {
+  setLoading(false);
+}
   };
 
   const verifyEmailOtp = async () => {

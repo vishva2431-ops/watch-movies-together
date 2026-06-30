@@ -18258,3 +18258,23 @@ body,
   cursor: pointer;
 
 }
+.login-card .room-action-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.login-card .room-action-row button {
+  min-width: 0;
+  white-space: normal;
+  line-height: 1.25;
+  padding: 16px 10px;
+  font-size: 15px;
+  text-align: center;
+}
+
+@media (max-width: 420px) {
+  .login-card .room-action-row {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,11 +1,11 @@
 import axios from "axios";
 
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+  import.meta.env.VITE_API_BASE_URL || "https://watchparty-springboot.onrender.com";
 
 export const API = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true,
+  // withCredentials: true,
 });
 
 export const extractYouTubeId = (value) => {
