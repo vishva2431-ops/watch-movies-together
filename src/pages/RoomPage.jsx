@@ -81,6 +81,7 @@ export default function RoomPage() {
   // const [reelLiked, setReelLiked] = useState(false);
   const [musicSearched, setMusicSearched] = useState(false);
   const [searchSuggestions, setSearchSuggestions] = useState([]);
+  const [nextSuggestion, setNextSuggestion] = useState(null);
   const suggestionTimerRef = useRef(null);
 
   const chatStorageKey = `chat_${roomCode}`;
@@ -172,10 +173,10 @@ export default function RoomPage() {
     };
   }, [roomCode]);
 
- useEffect(() => {
-  sessionStorage.removeItem("shortsFeed");
-  sessionStorage.removeItem("shortsStartVideoId");
-}, []);
+  useEffect(() => {
+    sessionStorage.removeItem("shortsFeed");
+    sessionStorage.removeItem("shortsStartVideoId");
+  }, []);
 
   useEffect(() => {
     selectedMovieRef.current = selectedMovie;
@@ -213,10 +214,12 @@ export default function RoomPage() {
     if (activeCategory !== "SHORT") return;
     if (!selectedMovie) return;
 
-    if (Math.abs(e.deltaY) < 20) return;
+    e.preventDefault();
+
+    if (Math.abs(e.deltaY) < 10) return;
 
     const now = Date.now();
-    if (now - lastShortScrollRef.current < 500) return;
+    if (now - lastShortScrollRef.current < 200) return;
 
     lastShortScrollRef.current = now;
 
@@ -317,6 +320,7 @@ export default function RoomPage() {
 
           if (shouldPlayDirect) {
             setSelectedMovie(youtubeMovie);
+            setNextSuggestion(null);
 
             window.history.replaceState(
               null,
@@ -465,6 +469,17 @@ export default function RoomPage() {
 
             if (event.data === window.YT.PlayerState.PAUSED) {
               setPlaying(false);
+            }
+
+            if (event.data === window.YT.PlayerState.ENDED) {
+              setPlaying(false);
+
+              if (
+                activeCategoryRef.current === "MOVIE" ||
+                activeCategoryRef.current === "MUSIC"
+              ) {
+                showNextSuggestionCard();
+              }
             }
 
             const dur = playerRef.current?.getDuration?.();
@@ -865,7 +880,7 @@ export default function RoomPage() {
           {},
           JSON.stringify({
             roomCode,
-            action: "USER_REQUEST",
+            action: "SYNC_REQUEST",
             userName: name,
           })
         );
@@ -1209,12 +1224,12 @@ export default function RoomPage() {
 
   const saveWatchedReel = (videoId) => {
     const watched =
-      JSON.parse(localStorage.getItem("watchedReels")) || [];
+      JSON.parse(localStorage.getItem("visionArcSeenReels")) || [];
 
     watched.push(videoId);
 
     localStorage.setItem(
-      "watchedReels",
+      "visionArcSeenReels",
       JSON.stringify([...new Set(watched)])
     );
   };
@@ -1229,15 +1244,13 @@ export default function RoomPage() {
       nextIndex = reelForwardHistoryRef.current.pop();
     } else {
       reelBackHistoryRef.current.push(shortIndex);
-
-      do {
-        nextIndex = Math.floor(Math.random() * feed.length);
-      } while (feed.length > 1 && nextIndex === shortIndex);
+      nextIndex = getRandomShortIndex(feed);
     }
 
     setShortIndex(nextIndex);
-    // setReelLiked(false);
+
     const nextVideo = feed[nextIndex];
+    if (!nextVideo) return;
 
     setSelectedMovie({
       id: nextVideo.videoId,
@@ -1246,6 +1259,7 @@ export default function RoomPage() {
       partTitle: "SHORT",
       youtube: true,
     });
+
     syncSelectedShort(nextVideo);
     saveWatchedReel(nextVideo.videoId);
   };
@@ -1281,7 +1295,7 @@ export default function RoomPage() {
     const endY = e.changedTouches[0].clientY;
     const diff = touchStartYRef.current - endY;
 
-    if (Math.abs(diff) < 120) return;
+    if (Math.abs(diff) < 70) return;
 
     if (diff > 0) {
       nextShort();
@@ -1326,39 +1340,38 @@ export default function RoomPage() {
 
     clearTimeout(suggestionTimerRef.current);
 
-    if (!value.trim() || value.trim().length < 2) {
+    if (!value.trim() || value.trim().length < 3) {
       setSearchSuggestions([]);
       return;
     }
 
     suggestionTimerRef.current = setTimeout(async () => {
       try {
-        const res = await API.get("/youtube/search", {
+        const res = await API.get("/youtube/suggestions", {
           params: {
-            q:
-              activeCategory === "SHORT"
-                ? `${value} tamil reels shorts`
-                : activeCategory === "MUSIC"
-                  ? `${value} tamil song`
-                  : `${value} tamil movie`,
+            q: value,
             category: activeCategory,
           },
         });
 
         const suggestions = res.data
-          .slice(0, 6)
-          .map((item) => item.title)
-          .filter(Boolean);
+          .slice(0, 8)
+          .filter(item => item?.title)
+          .map(item => ({
+            title: item.title,
+            thumbnail: item.thumbnail
+          }));
 
-        setSearchSuggestions([...new Set(suggestions)]);
-      } catch (err) {
+        setSearchSuggestions(suggestions);
+
+      } catch {
         setSearchSuggestions([]);
       }
-    }, 350);
+    }, 700);
   };
 
-  const searchYoutubeInsideRoom = async (customQuery) => {
-    const finalQuery = customQuery || movieSearch.trim();
+  const searchYoutubeInsideRoom = async (customQuery = "") => {
+    const finalQuery = customQuery.trim() || movieSearch.trim();
 
     if (!finalQuery.trim()) return;
 
@@ -1419,6 +1432,7 @@ export default function RoomPage() {
     };
 
     setSelectedMovie(youtubeMovie);
+    setNextSuggestion(null);
 
     if (forcedCategory !== "SHORT") {
       sessionStorage.setItem(
@@ -1470,23 +1484,27 @@ export default function RoomPage() {
       setRoomYoutubeLoading(true);
 
       const queries = [
-        "latest released tamil full movie",
-        "new tamil full movie hd",
-        "latest tamil dubbed full movie",
-        "new tamil dubbed full movie hd",
-        "tamil web series full episodes",
-        "tamil dubbed web series full episodes",
-        "latest tamil webseries full episode",
-        "latest tamil dubbed webseries full episode"
+        "latest tamil full movie",
+        "latest hollywood full movie",
+        "latest tamil dubbed movie",
+        "latest hollywood dubbed movie",
+        "latest tamil web series",
+        "latest hollywood web series",
+        "latest tamil vlog",
+        "latest travel vlog tamil",
+        "latest food vlog tamil",
+        "vj siddhu vlog",
+        "irfan view latest vlog",
+        "parithabangal latest",
+        "latest comedy show tamil"
       ];
       const randomQuery =
         queries[Math.floor(Math.random() * queries.length)];
 
-      const res = await API.get("/youtube/search", {
+      const res = await API.get("/youtube/cached-discover", {
         params: {
-          q: randomQuery,
-          category: "MOVIE",
-        },
+          category: "MOVIE"
+        }
       });
 
       setRoomYoutubeResults(res.data);
@@ -1498,7 +1516,7 @@ export default function RoomPage() {
   const loadTamilMusic = async () => {
     try {
       setRoomYoutubeLoading(true);
-      const res = await API.get("/youtube/search", {
+      const res = await API.get("/youtube/cached-discover", {
         params: {
           q: "latest tamil official music video new tamil songs",
           category: "MUSIC",
@@ -1528,7 +1546,7 @@ export default function RoomPage() {
       const randomQuery =
         queries[Math.floor(Math.random() * queries.length)];
 
-      const res = await API.get("/youtube/search", {
+      const res = await API.get("/youtube/shorts-feed", {
         params: {
           q: randomQuery,
           category: "SHORT",
@@ -1584,7 +1602,7 @@ export default function RoomPage() {
       });
 
       const watched =
-        JSON.parse(localStorage.getItem("watchedReels")) || [];
+        JSON.parse(localStorage.getItem("visionArcSeenReels")) || [];
 
       const freshReels = filtered.filter(
         (video) => !watched.includes(video.videoId)
@@ -1600,7 +1618,12 @@ export default function RoomPage() {
       const finalReels =
         freshReels.length > 0 ? freshReels : filtered;
 
-      const shuffled = [...finalReels].sort(() => Math.random() - 0.5);
+      const shuffled = [...finalReels];
+
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
 
       setRoomYoutubeResults(shuffled);
       setShortsFeed(shuffled);
@@ -1721,6 +1744,51 @@ export default function RoomPage() {
   //   }, 1100);
   // };
 
+  const getNextSuggestion = () => {
+    const currentId = selectedMovieRef.current?.videoUrl;
+
+    const availableVideos = roomYoutubeResults.filter(
+      (video) => video?.videoId && video.videoId !== currentId
+    );
+
+    if (availableVideos.length > 0) {
+      return availableVideos[Math.floor(Math.random() * availableVideos.length)];
+    }
+
+    return null;
+  };
+
+  const showNextSuggestionCard = async () => {
+    let suggestion = getNextSuggestion();
+
+    if (!suggestion) {
+      if (activeCategoryRef.current === "MUSIC") {
+        await loadTamilMusic();
+      } else {
+        await loadTamilMovies();
+      }
+
+      setTimeout(() => {
+        const newSuggestion = getNextSuggestion();
+        setNextSuggestion(newSuggestion);
+      }, 300);
+
+      return;
+    }
+
+    setNextSuggestion(suggestion);
+  };
+
+  const playNextSuggestion = () => {
+    if (!nextSuggestion) return;
+
+    selectYoutubeVideo(
+      nextSuggestion,
+      true,
+      activeCategoryRef.current === "MUSIC" ? "MUSIC" : "MOVIE"
+    );
+  };
+
   const sendReelComment = () => {
     const text = reelComment.trim();
     if (!text) return;
@@ -1737,7 +1805,6 @@ export default function RoomPage() {
     );
 
     setReelComment("");
-    setShowReelCommentBox(false);
   };
 
   const formatTime = (seconds) => {
@@ -1777,43 +1844,10 @@ export default function RoomPage() {
           />
 
           <button className="shorts-only-back" onClick={goBack}>
-            ←
+            ×
           </button>
 
           <div className="shorts-only-room">{roomCode}</div>
-          <div className="reel-actions">
-            {/* <button
-              className={`reel-like-btn ${reelLiked ? "liked" : ""}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                sendReelLike();
-              }}
-            >
-              <span>{reelLiked ? "💜" : "♡"}</span>
-            </button> */}
-
-            <button
-              className="reel-comment-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowReelCommentBox(true);
-              }}
-            >
-              <svg
-                viewBox="0 0 24 24"
-                width="38"
-                height="38"
-                fill="none"
-                stroke="white"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
-              </svg>
-            </button>
-          </div>
-
           {/* {showHeart && <div className="big-like-heart">💜</div>} */}
 
           <div className="floating-comments">
@@ -1824,16 +1858,17 @@ export default function RoomPage() {
             ))}
           </div>
 
-          {showReelCommentBox && (
-            <div className="reel-comment-box">
-              <input
-                value={reelComment}
-                onChange={(e) => setReelComment(e.target.value)}
-                placeholder="Comment..."
-              />
-              <button onClick={sendReelComment}>Send</button>
-            </div>
-          )}
+          <div className="reel-sync-message-bar">
+            <input
+              value={reelComment}
+              onChange={(e) => setReelComment(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") sendReelComment();
+              }}
+              placeholder="Share your thoughts..."
+            />
+            <button onClick={sendReelComment}>Send</button>
+          </div>
         </div>
       </div>
     );
@@ -1964,7 +1999,7 @@ export default function RoomPage() {
           <div className="room-search-row">
 
             <div className="room-search-wrapper">
-              <button className="room-search-btn" onClick={searchYoutubeInsideRoom}>
+              <button className="room-search-btn" onClick={() => searchYoutubeInsideRoom()}>
                 🔍
               </button>
 
@@ -2001,21 +2036,34 @@ export default function RoomPage() {
               className="room-back-btn"
               onClick={goBack}
             >
-              ←
+              ×
             </button>
           </div>
           {searchSuggestions.length > 0 && (
-            <div className="search-suggestions-box">
-              {searchSuggestions.map((item) => (
+            <div className="youtube-like-suggestions">
+              {searchSuggestions.map((item, index) => (
                 <button
-                  key={item}
+                  key={`${item.title}-${index}`}
+                  className="youtube-like-suggestion-item"
                   onClick={() => {
-                    setMovieSearch(item);
+                    setMovieSearch(item.title);
                     setSearchSuggestions([]);
-                    searchYoutubeInsideRoom(item);
+                    searchYoutubeInsideRoom(item.title);
                   }}
                 >
-                  🔍 {item}
+                  <span className="suggestion-left-icon">🔍</span>
+
+                  <span className="suggestion-title">
+                    {item.title}
+                  </span>
+
+                  {item.thumbnail && (
+                    <img
+                      className="suggestion-thumb"
+                      src={item.thumbnail}
+                      alt={item.title}
+                    />
+                  )}
                 </button>
               ))}
             </div>
@@ -2054,12 +2102,12 @@ export default function RoomPage() {
                       onClick={() => {
                         if (activeCategory === "SHORT") {
                           const watched =
-                            JSON.parse(localStorage.getItem("watchedReels")) || [];
+                            JSON.parse(localStorage.getItem("visionArcSeenReels")) || [];
 
                           watched.push(video.videoId);
 
                           localStorage.setItem(
-                            "watchedReels",
+                            "visionArcSeenReels",
                             JSON.stringify([...new Set(watched)])
                           );
 
@@ -2191,6 +2239,19 @@ export default function RoomPage() {
   </button> */}
 
                   </div>
+
+                  {nextSuggestion && activeCategory === "MUSIC" && (
+                    <div className="up-next-card">
+                      <div className="up-next-label">Up Next</div>
+                      <div className="up-next-content">
+                        <img src={nextSuggestion.thumbnail} alt={nextSuggestion.title} />
+                        <div className="up-next-info">
+                          <h4>{nextSuggestion.title}</h4>
+                          <button onClick={playNextSuggestion}>Play Now</button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -2305,6 +2366,19 @@ export default function RoomPage() {
                     </button>
                   </div>
                 )}
+                {nextSuggestion && activeCategory !== "SHORT" && (
+                  <div className="up-next-card">
+                    <div className="up-next-label">Up Next</div>
+                    <div className="up-next-content">
+                      <img src={nextSuggestion.thumbnail} alt={nextSuggestion.title} />
+                      <div className="up-next-info">
+                        <h4>{nextSuggestion.title}</h4>
+                        <button onClick={playNextSuggestion}>Play Now</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {activeCategory === "SHORT" && (
                   <>
                     <div className="shorts-header">
@@ -2312,30 +2386,12 @@ export default function RoomPage() {
                         className="shorts-back-btn"
                         onClick={goBack}
                       >
-                        ←
+                        ×
                       </button>
 
                       <div className="shorts-room-pill">
                         {roomCode}
                       </div>
-                    </div>
-
-                    <div className="reel-actions">
-                      {/* <button
-                        className="reel-like-btn"
-                        onClick={sendReelLike}
-                      >
-                        ❤️
-                      </button> */}
-
-                      <button
-                        className="reel-comment-btn"
-                        onClick={() =>
-                          setShowReelCommentBox((v) => !v)
-                        }
-                      >
-                        💬
-                      </button>
                     </div>
 
                     {/* {showHeart && (
@@ -2352,21 +2408,20 @@ export default function RoomPage() {
                       ))}
                     </div>
 
-                    {showReelCommentBox && (
-                      <div className="reel-comment-box">
-                        <input
-                          value={reelComment}
-                          onChange={(e) =>
-                            setReelComment(e.target.value)
-                          }
-                          placeholder="Comment..."
-                        />
+                    <div className="reel-sync-message-bar">
+                      <input
+                        value={reelComment}
+                        onChange={(e) => setReelComment(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") sendReelComment();
+                        }}
+                        placeholder="Sync a comment..."
+                      />
 
-                        <button onClick={sendReelComment}>
-                          Send
-                        </button>
-                      </div>
-                    )}
+                      <button onClick={sendReelComment}>
+                        Send
+                      </button>
+                    </div>
                   </>
                 )}
               </div>

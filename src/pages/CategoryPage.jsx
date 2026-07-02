@@ -34,7 +34,13 @@ export default function CategoryPage({ category }) {
     const [loading, setLoading] = useState(false);
     const [alertMessage, setAlertMessage] = useState("");
     const [searchSuggestions, setSearchSuggestions] = useState([]);
+
+
     const suggestionTimerRef = useRef(null);
+    const searchAreaRef = useRef(null);
+    const loadingMoreRef = useRef(false);
+    const loadedVideoIdsRef = useRef(new Set());
+    const discoverIndexRef = useRef(0);
 
     const navigate = useNavigate();
     const currentUser = localStorage.getItem("userName") || "Guest";
@@ -45,12 +51,41 @@ export default function CategoryPage({ category }) {
             .catch(console.error);
     }, []);
 
-
     useEffect(() => {
-        discoverContent();
+        const closeSuggestions = (event) => {
+            if (searchAreaRef.current && !searchAreaRef.current.contains(event.target)) {
+                setSearchSuggestions([]);
+            }
+        };
+
+        document.addEventListener("mousedown", closeSuggestions);
+        document.addEventListener("touchstart", closeSuggestions);
+
+        return () => {
+            document.removeEventListener("mousedown", closeSuggestions);
+            document.removeEventListener("touchstart", closeSuggestions);
+        };
     }, []);
 
 
+    useEffect(() => {
+        if (loading) return;
+        discoverContent();
+    }, []);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            const nearBottom =
+                window.innerHeight + window.scrollY >= document.body.offsetHeight - 700;
+
+            if (nearBottom) {
+                discoverContent(true);
+            }
+        };
+
+        window.addEventListener("scroll", handleScroll);
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, [category]);
 
     const adminVideos = useMemo(() => {
         const value = search.toLowerCase();
@@ -94,111 +129,172 @@ export default function CategoryPage({ category }) {
         navigate(`/room/${res.data.roomCode}`);
     };
 
-    const discoverContent = async () => {
+    const discoverContent = async (append = false) => {
         const queries = {
             MOVIE: [
-                "latest released tamil full movie",
-                "new tamil full movie hd",
+                "latest tamil full movie",
+                "new tamil full movie",
+                "latest tamil dubbed movie",
                 "latest tamil dubbed full movie",
-                "new tamil dubbed full movie hd",
-                "tamil web series full episodes",
-                "tamil dubbed web series full episodes",
-                "latest tamil webseries full episode",
-                "latest tamil dubbed webseries full episode"
+                "latest hollywood tamil dubbed movie",
+                "latest tamil web series",
+                "latest tamil dubbed web series",
+                "latest hollywood web series tamil dubbed",
+                "latest tamil movie trailer",
+                "latest tamil movie teaser",
+                "newly released tamil trailer",
+                "newly released tamil teaser",
+                "latest tamil vlog",
+                "latest tamil food vlog",
+                "latest tamil travel vlog",
+                "vj siddhu latest vlog",
+                "irfan view latest vlog"
             ],
             MUSIC: [
-                "tamil latest songs",
-                "tamil old songs",
-                "tamil melody songs",
-                "tamil trending songs"
+                "latest tamil songs official music video",
+                "new tamil songs official music video",
+                "trending tamil songs official music video",
+                "latest tamil melody songs official music video",
+                "latest tamil romantic songs official music video",
+                "latest english songs official music video",
+                "new english songs official music video",
+                "trending english songs official music video",
+                "latest english pop songs official music video",
+                "latest english romantic songs official music video"
             ],
             SHORT: [
-                "tamil reels comedy love friendship shorts",
-                "tamil viral reels",
-                "tamil funny shorts"
+                "latest tamil love reels shorts",
+                "latest tamil couple reels shorts",
+                "latest tamil romantic reels shorts",
+                "latest tamil relationship reels shorts",
+                "latest english love reels shorts",
+                "latest couple reels shorts",
+                "latest friendship reels shorts",
+                "latest tamil comedy reels shorts"
             ]
         };
 
-        const randomQuery =
-            queries[category][
-            Math.floor(Math.random() * queries[category].length)
-            ];
+        if (loadingMoreRef.current) return;
 
-        const res = await API.get("/youtube/search", {
-            params: {
-                q: randomQuery,
-                category,
-            },
-        });
+        loadingMoreRef.current = true;
 
-        setYoutubeResults(
-            [...res.data].sort(() => Math.random() - 0.5)
-        );
+        const list = queries[category];
+        const query = list[Math.floor(Math.random() * list.length)];
+        discoverIndexRef.current += 1;
+
+        try {
+            setLoading(true);
+
+            if (!append) {
+                loadedVideoIdsRef.current = new Set();
+            }
+
+            const res = await API.get("/youtube/cached-discover", {
+                params: { q: query, category },
+            });
+
+            const fresh = res.data.filter((video) => {
+                if (!video?.videoId) return false;
+                if (loadedVideoIdsRef.current.has(video.videoId)) return false;
+
+                loadedVideoIdsRef.current.add(video.videoId);
+                return true;
+            });
+
+           setYoutubeResults((prev) => {
+    if (!append) return fresh;
+
+    const ids = new Set(prev.map(v => v.videoId));
+
+    return [
+        ...prev,
+        ...fresh.filter(v => !ids.has(v.videoId))
+    ];
+});
+        } catch (err) {
+            setAlertMessage(
+                err.response?.data?.message || "Unable to discover content."
+            );
+        } finally {
+            setLoading(false);
+            loadingMoreRef.current = false;
+        }
     };
-
     const handleSearchTyping = (value) => {
         setSearch(value);
 
         clearTimeout(suggestionTimerRef.current);
 
-        if (!value.trim() || value.trim().length < 2) {
+        if (!value.trim() || value.trim().length < 3) {
             setSearchSuggestions([]);
             return;
         }
 
         suggestionTimerRef.current = setTimeout(async () => {
             try {
-                const res = await API.get("/youtube/search", {
+                const res = await API.get("/youtube/suggestions", {
                     params: {
-                        q:
-                            category === "SHORT"
-                                ? `${value} tamil reels shorts`
-                                : category === "MUSIC"
-                                    ? `${value} tamil song`
-                                    : `${value} tamil movie`,
+                        q: value,
                         category,
                     },
                 });
 
                 const suggestions = res.data
-                    .slice(0, 6)
-                    .map((item) => item.title)
-                    .filter(Boolean);
+                    .slice(0, 100)
+                    .filter(item => item?.title)
+                    .map(item => ({
+                        title: item.title,
+                        thumbnail: item.thumbnail
+                    }));
 
-                setSearchSuggestions([...new Set(suggestions)]);
+                setSearchSuggestions(suggestions);
+
             } catch {
                 setSearchSuggestions([]);
             }
-        }, 350);
+        }, 1000);
     };
 
-    const searchYoutube = async () => {
-        if (!search.trim()) {
-            setAlertMessage("Please enter something to search");
+    const searchYoutube = async (customSearch = "") => {
+        const finalSearch = customSearch.trim() || search.trim();
+
+        if (!finalSearch) {
+            setAlertMessage("Please enter something to search.");
             return;
         }
 
         try {
             setLoading(true);
 
-            const categoryKeyword =
-                category === "MOVIE"
-                    ? "tamil full movie OR tamil dubbed full movie OR tamil webseries full episode OR tamil dubbed webseries"
-                    : category === "MUSIC"
-                        ? "tamil song"
-                        : "tamil shorts";
-
             const res = await API.get("/youtube/search", {
                 params: {
-                    q: `${search.trim()} ${categoryKeyword}`,
+                    q: finalSearch,
                     category,
                 },
             });
 
-            setYoutubeResults(res.data);
+            const getEpisodeNumber = (title = "") => {
+                const match = title.match(/\b(?:ep|episode|part)\s*\.?\s*(\d+)\b/i);
+                return match ? Number(match[1]) : 9999;
+            };
+
+            const sortedResults = [...res.data].sort((a, b) => {
+                const epA = getEpisodeNumber(a.title);
+                const epB = getEpisodeNumber(b.title);
+
+                if (epA !== epB) return epA - epB;
+
+                return a.title.localeCompare(b.title);
+            });
+
+            setYoutubeResults(sortedResults);
+
         } catch (err) {
             console.error(err);
-            setAlertMessage("YouTube search failed. Check backend/API key.");
+            setAlertMessage(
+                err.response?.data?.message ||
+                "Unable to load YouTube results. Please try again."
+            );
         } finally {
             setLoading(false);
         }
@@ -239,7 +335,7 @@ export default function CategoryPage({ category }) {
                 </div>
             )}
 
-            <div className="category-page-header-clean">
+            <div className="category-page-header-clean" ref={searchAreaRef}>
 
                 <div className="category-row1">
                     <button
@@ -253,7 +349,7 @@ export default function CategoryPage({ category }) {
                 <div className="category-search-clean">
                     <button
                         className="category-search-icon-btn"
-                        onClick={searchYoutube}
+                        onClick={() => searchYoutube()}
                         disabled={loading}
                     >
                         🔍
@@ -276,20 +372,30 @@ export default function CategoryPage({ category }) {
                     </button>
                 </div>
                 {searchSuggestions.length > 0 && (
-                    <div className="search-suggestions-box">
-                        {searchSuggestions.map((item) => (
+                    <div className="youtube-like-suggestions">
+                        {searchSuggestions.map((item, index) => (
                             <button
-                                key={item}
+                                key={`${item.title}-${index}`}
+                                className="youtube-like-suggestion-item"
                                 onClick={() => {
-                                    setSearch(item);
+                                    setSearch(item.title);
                                     setSearchSuggestions([]);
-
-                                    setTimeout(() => {
-                                        searchYoutube();
-                                    }, 100);
+                                    searchYoutube(item.title);
                                 }}
                             >
-                                🔍 {item}
+                                <span className="suggestion-left-icon">🔍</span>
+
+                                <span className="suggestion-title">
+                                    {item.title}
+                                </span>
+
+                                {item.thumbnail && (
+                                    <img
+                                        className="suggestion-thumb"
+                                        src={item.thumbnail}
+                                        alt={item.title}
+                                    />
+                                )}
                             </button>
                         ))}
                     </div>
@@ -322,7 +428,7 @@ export default function CategoryPage({ category }) {
                     </div>
                 </>
             )}
-            <h2 className="section-title">Admin Uploaded {config.title}</h2>
+            {/* <h2 className="section-title">Admin Uploaded {config.title}</h2>
 
             {adminVideos.length === 0 ? (
                 <div className="empty-state">
@@ -338,7 +444,7 @@ export default function CategoryPage({ category }) {
                         />
                     ))}
                 </div>
-            )}
+            )} */}
         </div>
     );
 }
