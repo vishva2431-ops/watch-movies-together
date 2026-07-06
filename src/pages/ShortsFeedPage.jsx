@@ -50,7 +50,10 @@ export default function ShortsFeedPage() {
         window.innerHeight + window.scrollY >= document.body.offsetHeight - 700;
 
       if (nearBottom && !loadingMoreRef.current) {
-        loadTamilShorts("", true);
+        loadTamilShorts(
+          search.trim().length >= 3 ? `${search.trim()} reels shorts` : "",
+          true
+        );
       }
     };
 
@@ -74,35 +77,35 @@ export default function ShortsFeedPage() {
     localStorage.setItem(REEL_HISTORY_KEY, JSON.stringify(unique));
   };
 
- const isValidReel = (video) => {
-  const text = `${video.title || ""} ${video.description || ""}`.toLowerCase();
+  const isValidReel = (video) => {
+    const text = `${video.title || ""} ${video.description || ""}`.toLowerCase();
 
-  const blockedWords = [
-    "full movie", "movie", "web series", "webseries", "episode",
-    "serial", "trailer", "teaser", "review", "reaction", "explained",
-    "news", "interview", "promo", "podcast", "cringe",
+    const blockedWords = [
+      "full movie", "movie", "web series", "webseries", "episode",
+      "serial", "trailer", "teaser", "review", "reaction", "explained",
+      "news", "interview", "promo", "podcast", "cringe",
 
-    "hindi", "bollywood", "bhojpuri", "punjabi", "haryanvi",
-    "gujarati", "gujju", "telugu", "tollywood",
-    "malayalam", "kannada", "marathi", "bengali",
+      "hindi", "bollywood", "bhojpuri", "punjabi", "haryanvi",
+      "gujarati", "gujju", "telugu", "tollywood",
+      "malayalam", "kannada", "marathi", "bengali",
 
-    "desi", "north indian", "vadakan", "vadakkans",
-    "vlog", "food", "travel"
-  ];
+      "desi", "north indian", "vadakan", "vadakkans",
+      "vlog", "food", "travel"
+    ];
 
-  const allowedWords = [
-    "tamil", "english",
-    "tamil short", "tamil shorts", "tamil reel", "tamil reels",
-    "love tamil", "tamil couple", "tamil romantic", "tamil relationship",
-    "tamil comedy", "tamil funny", "tamil friend", "tamil friendship",
-    "mallesh", "malleshkannan", "vijay tv", "kathadi club","tamil content creators",
-  ];
+    const allowedWords = [
+      "tamil", "english",
+      "tamil short", "tamil shorts", "tamil reel", "tamil reels",
+      "love tamil", "tamil couple", "tamil romantic", "tamil relationship",
+      "tamil comedy", "tamil funny", "tamil friend", "tamil friendship",
+      "mallesh", "malleshkannan", "vijay tv", "kathadi club", "tamil content creators",
+    ];
 
-  const blocked = blockedWords.some((word) => text.includes(word));
-  const allowed = allowedWords.some((word) => text.includes(word));
+    const blocked = blockedWords.some((word) => text.includes(word));
+    const allowed = allowedWords.some((word) => text.includes(word));
 
-  return !blocked && (allowed || video.category === "SHORT");
-};
+    return !blocked && (allowed || video.category === "SHORT");
+  };
 
   const loadTamilShorts = async (customSearch = "", append = false) => {
     try {
@@ -143,11 +146,14 @@ export default function ShortsFeedPage() {
 
       const seenReels = getSeenReels().slice(-300);
 
-const res = await API.get("/youtube/shorts-feed", {
-    params: {
-        seenIds: seenReels.join(","),
-    },
-});
+      const res = await API.get("/youtube/shorts-feed", {
+        params: {
+          q: finalQuery,
+          category: "SHORT",
+          seenIds: append ? seenReels.join(",") : "",
+          fresh: Date.now(),
+        },
+      });
 
       // const seenReels = getSeenReels();
 
@@ -223,26 +229,22 @@ const res = await API.get("/youtube/shorts-feed", {
     }));
   };
 
- const handleSearchTyping = (value) => {
-  setSearch(value);
-  clearTimeout(suggestionTimerRef.current);
+  const handleSearchTyping = (value) => {
+    setSearch(value);
+    clearTimeout(suggestionTimerRef.current);
 
-  const q = value.trim();
+    const q = value.trim();
 
-  if (q.length < 3) {
-    setSearchSuggestions([]);
-    loadedIdsRef.current = new Set();
-    loadTamilShorts("", false);
-    return;
-  }
+    if (q.length < 3) {
+      setSearchSuggestions([]);
+      return;
+    }
 
-  suggestionTimerRef.current = setTimeout(() => {
-    setSearchSuggestions([]);
-    loadedIdsRef.current = new Set();
-    loadTamilShorts(`${q} reels shorts`, false);
-  }, 400);
-};
-
+    suggestionTimerRef.current = setTimeout(() => {
+      loadedIdsRef.current = new Set();
+      loadTamilShorts(`${q} reels shorts`, false);
+    }, 400);
+  };
   return (
     <div className="page shorts-feed-page">
       <Header userName={currentUser} />
@@ -261,40 +263,40 @@ const res = await API.get("/youtube/shorts-feed", {
 
         <div className="shorts-search-box">
           <button
-  className="search-icon-btn"
-  onClick={() => {
-    if (search.trim().length >= 3) {
-      loadedIdsRef.current = new Set();
-      loadTamilShorts(`${search.trim()} reels shorts`, false);
-    } else {
-      loadedIdsRef.current = new Set();
-      loadTamilShorts("", false);
-    }
-  }}
->
-  🔍
-</button>
+            className="search-icon-btn"
+            onClick={() => {
+              if (search.trim().length >= 3) {
+                loadedIdsRef.current = new Set();
+                loadTamilShorts(`${search.trim()} reels shorts`, false);
+              } else {
+                loadedIdsRef.current = new Set();
+                loadTamilShorts("", false);
+              }
+            }}
+          >
+            🔍
+          </button>
 
-<input
-  value={search}
-  onChange={(e) => handleSearchTyping(e.target.value)}
-  placeholder="Search Tamil reels..."
-/>
+          <input
+            value={search}
+            onChange={(e) => handleSearchTyping(e.target.value)}
+            placeholder="Search Tamil reels..."
+          />
 
-<button
-  className="refresh-btn"
-  onClick={() => {
-    loadedIdsRef.current = new Set();
+          <button
+            className="refresh-btn"
+            onClick={() => {
+              loadedIdsRef.current = new Set();
 
-    if (search.trim().length >= 3) {
-      loadTamilShorts(`${search.trim()} reels shorts`, false);
-    } else {
-      loadTamilShorts("", false);
-    }
-  }}
->
-  🔄
-</button>
+              if (search.trim().length >= 3) {
+                loadTamilShorts(`${search.trim()} reels shorts`, false);
+              } else {
+                loadTamilShorts("", false);
+              }
+            }}
+          >
+            🔄
+          </button>
         </div>
 
         {/* {searchSuggestions.length > 0 && (

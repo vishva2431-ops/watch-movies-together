@@ -604,6 +604,10 @@ export default function RoomPage() {
       })
     );
 
+    setTimeout(() => requestUsers(), 500);
+    setTimeout(() => requestUsers(), 1500);
+    setTimeout(() => requestUsers(), 3000);
+
     stompClientRef.current?.send(
       "/app/room.sync",
       {},
