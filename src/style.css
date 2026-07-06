@@ -1269,6 +1269,7 @@ button:hover {
 }
 
 @media (max-width: 1000px) {
+
   .admin-layout,
   .admin-layout-stacked {
 
@@ -1278,6 +1279,7 @@ button:hover {
 }
 
 @media (max-width: 700px) {
+
   .admin-split-grid,
   .admin-upload-grid {
 
@@ -2010,6 +2012,7 @@ button:hover {
 }
 
 @media (max-width: 480px) {
+
   .room-video-card video,
   .room-video-card iframe {
 
@@ -4932,9 +4935,9 @@ button:hover {
 
   display: grid;
 
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 
-  gap: 6px;
+  gap: 10px;
 
 }
 
@@ -4950,6 +4953,14 @@ button:hover {
 
   cursor: pointer;
 
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  border-radius: 16px;
+
+}
+
+.reels-grid{
+    margin-top:20px;
 }
 
 .reel-card img {
@@ -5762,6 +5773,7 @@ body,
 }
 
 @media (max-width: 520px) {
+
   .room-reels-grid,
   .movie-grid,
   .youtube-result-grid {
@@ -6373,6 +6385,7 @@ body,
 }
 
 @media (max-width: 900px) {
+
   .room-one-line-topbar,
   .room-action-row {
 
@@ -8060,10 +8073,7 @@ body {
   }
 }
 
-*/
-
-
-.room-category-select option {
+*/ .room-category-select option {
 
   background: #14142b;
 
@@ -8706,6 +8716,7 @@ body {
 }
 
 @media (max-width: 768px) {
+
   .music-player-card .music-video-frame,
   .music-player-card .music-video-frame iframe,
   .music-player-card .music-video-frame #youtube-player {
@@ -9062,6 +9073,7 @@ body {
 }
 
 @media (max-width: 768px) {
+
   .room-chat-right,
   .chat-box {
 
@@ -10037,7 +10049,7 @@ body,
 
   display: grid;
 
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 
   gap: 10px;
 
@@ -10050,6 +10062,10 @@ body,
   overflow: hidden;
 
   position: relative;
+
+  width: 100%;
+  aspect-ratio: 9 / 16;
+
 
 }
 
@@ -10942,6 +10958,7 @@ body,
 }
 
 @media (max-width: 900px) {
+
   .admin-layout,
   .admin-layout-stacked {
 
@@ -13645,6 +13662,7 @@ body,
 }
 
 @media (max-width: 768px) {
+
   .room-body-clean,
   .room-player-right,
   .normal-watch-page {
@@ -13762,6 +13780,7 @@ body,
 }
 
 @media (max-width: 768px) {
+
   html,
   body,
   #root {
@@ -15290,7 +15309,7 @@ body,
 
   display: grid !important;
 
-  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 
   gap: 12px !important;
 
@@ -15307,6 +15326,8 @@ body,
   overflow: hidden !important;
 
   position: relative !important;
+
+  aspect-ratio: 9 / 16;
 
 }
 
@@ -15334,6 +15355,23 @@ body,
 
   font-size: 11px;
 
+}
+
+.reel-title{
+    opacity:0;
+    transition:.25s;
+}
+
+.reel-card:hover .reel-title{
+    opacity:1;
+}
+
+.shorts-header h1{
+    font-size:32px;
+}
+
+.search-container{
+    margin-top:10px;
 }
 
 @media (min-width: 769px) {
@@ -15933,6 +15971,7 @@ body,
 }
 
 @media (max-width: 1024px) {
+
   .room-shell-clean,
   .home-page-bg,
   .shorts-feed-page {
@@ -16172,6 +16211,7 @@ body,
 }
 
 @media (max-width: 390px) {
+
   .room-shell-clean,
   .home-page-bg,
   .shorts-feed-page {
@@ -16224,6 +16264,7 @@ body,
 }
 
 @media (min-width: 1200px) {
+
   .room-shell-clean,
   .home-page-bg,
   .shorts-feed-page {
@@ -16771,7 +16812,7 @@ body.short-mode {
 
   border-radius: 999px;
 
-  background: linear-gradient( 135deg, rgba(124,58,237,.35), rgba(59,130,246,.2) );
+  background: linear-gradient(135deg, rgba(124, 58, 237, .35), rgba(59, 130, 246, .2));
 
   backdrop-filter: blur(12px);
 
@@ -17289,6 +17330,7 @@ body {
 }
 
 @keyframes logoFloat {
+
   0%,
   100% {
 
@@ -17832,8 +17874,7 @@ body,
 .shorts-only-page,
 .short-watch-page {
 
-  background: radial-gradient(circle at top left, rgba(124, 58, 237, 0.35), transparent 28%), radial-gradient(circle at top right, rgba(59, 130, 246, 0.28), transparent 30%), linear-gradient(145deg, #070b16, #0b1020 45%, #15112d 100%) !important;
-
+background: radial-gradient(circle at top left, rgba(23, 6, 52, 0.75), transparent 28%), radial-gradient(circle at top right, rgba(59, 130, 246, 0.28), transparent 30%), linear-gradient(145deg, #070b16, #0b1020 45%, #15112d 100%) !important;
 }
 
 .room-header-row2 {
@@ -18258,6 +18299,7 @@ body,
   cursor: pointer;
 
 }
+
 .login-card .room-action-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -18337,9 +18379,11 @@ body,
 .category-search-clean {
   position: relative;
 }
+
 .shorts-feed-top {
   position: relative;
 }
+
 /* FINAL RESPONSIVE SAFETY FIX */
 * {
   box-sizing: border-box;
@@ -18417,6 +18461,7 @@ iframe {
 }
 
 @media (max-width: 430px) {
+
   .youtube-result-grid,
   .reels-grid,
   .movie-grid {
@@ -18436,6 +18481,7 @@ iframe {
     height: 32px;
   }
 }
+
 /* Vision Arc - Up Next card for movie/music */
 .up-next-card {
   position: absolute;
@@ -18563,5 +18609,182 @@ iframe {
 
   .up-next-info h4 {
     font-size: 13px;
+  }
+}
+
+.shorts-feed-page .reels-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px;
+}
+
+.shorts-feed-page .reel-card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #111;
+}
+
+.shorts-feed-page .reel-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.shorts-feed-page .reel-title {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 8px;
+  font-size: 12px;
+  color: white;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shorts-feed-page .reel-overlay {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  z-index: 2;
+}
+
+@media (min-width: 700px) {
+  .shorts-feed-page .reels-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1100px) {
+  .shorts-feed-page .reels-grid {
+    grid-template-columns: repeat(4, 1fr);
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+}
+/* ---------- Shorts UI Improvements ---------- */
+
+.shorts-feed-page {
+    max-width: 430px;
+    margin: 0 auto;
+}
+
+.reel-card {
+    transition: transform .25s ease;
+}
+
+.reel-card:hover {
+    transform: translateY(-4px) scale(1.02);
+}
+
+/* ===== SHORTS FINAL OVERRIDE ===== */
+
+.shorts-feed-page {
+  max-width: 430px !important;
+  margin: 0 auto !important;
+  padding: 18px !important;
+}
+
+.shorts-feed-page .reels-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  margin-top: 18px !important;
+  padding: 0 !important;
+}
+
+.shorts-feed-page .reel-card {
+  width: 100% !important;
+  aspect-ratio: 9 / 16 !important;
+  border-radius: 14px !important;
+  overflow: hidden !important;
+  position: relative !important;
+  background: #000 !important;
+  transition: transform .25s ease !important;
+}
+
+.shorts-feed-page .reel-card:hover {
+  transform: translateY(-4px) scale(1.02) !important;
+}
+
+.shorts-feed-page .reel-card img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+.shorts-feed-page .reel-title {
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  padding: 8px !important;
+  font-size: 11px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  background: linear-gradient(transparent, rgba(0,0,0,.8)) !important;
+}
+/* ===== SHORTS RESPONSIVE FINAL FIX ===== */
+
+.shorts-feed-page {
+  width: 100% !important;
+  max-width: 1200px !important;
+  margin: 0 auto !important;
+  padding: 28px !important;
+}
+
+.shorts-feed-page .shorts-feed-top {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.shorts-feed-page .reels-grid {
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(150px, 1fr)) !important;
+  gap: 18px !important;
+  margin-top: 24px !important;
+  padding: 0 !important;
+}
+
+.shorts-feed-page .reel-card {
+  width: 100% !important;
+  aspect-ratio: 9 / 16 !important;
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  position: relative !important;
+  background: #000 !important;
+}
+
+.shorts-feed-page .reel-card img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+@media (max-width: 1100px) {
+  .shorts-feed-page .reels-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .shorts-feed-page {
+    max-width: 430px !important;
+    padding: 18px !important;
+  }
+
+  .shorts-feed-page .reels-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
   }
 }

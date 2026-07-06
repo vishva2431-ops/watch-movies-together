@@ -21,7 +21,7 @@ export default function ShortsFeedPage() {
   const loadedIdsRef = useRef(new Set());
 
   const REEL_HISTORY_KEY = "visionArcSeenReels";
-  const MAX_SEEN_REELS = 20000;
+  const MAX_SEEN_REELS = 300;
 
 
   useEffect(() => {
@@ -74,74 +74,35 @@ export default function ShortsFeedPage() {
     localStorage.setItem(REEL_HISTORY_KEY, JSON.stringify(unique));
   };
 
-  const isValidReel = (video) => {
-    const text = `${video.title || ""} ${video.description || ""}`.toLowerCase();
+ const isValidReel = (video) => {
+  const text = `${video.title || ""} ${video.description || ""}`.toLowerCase();
 
-    const blockedWords = [
-      "full movie",
-      "movie",
-      "web series",
-      "webseries",
-      "episode",
-      "full episode",
-      "serial",
-      "trailer",
-      "teaser",
-      "review",
-      "reaction",
-      "explained",
-      "explanation",
-      "news",
-      "interview",
-      "promo",
-      "movie scene",
-      "film scene",
-      "top 5",
-      "top 10",
-      "top five",
-      "top ten",
-      "cringe",
-      "podcast",
-      "hindi",
-      "bollywood",
-      "bhojpuri",
-      "punjabi",
-      "haryanvi",
-      "north indian",
-      "vadakan",
-      "vadakkans",
-      "music reel",
-      "song status",
-      "lyrical status",
-      "bgm status",
-      "movie status"
-    ];
+  const blockedWords = [
+    "full movie", "movie", "web series", "webseries", "episode",
+    "serial", "trailer", "teaser", "review", "reaction", "explained",
+    "news", "interview", "promo", "podcast", "cringe",
 
-    const allowedWords = [
-      "short",
-      "shorts",
-      "reel",
-      "reels",
-      "love",
-      "comedy",
-      "funny",
-      "friend",
-      "friendship",
-      "couple",
-      "vlog",
-      "food",
-      "travel",
-      "dance",
-      "status",
-      "trending",
-      "viral"
-    ];
+    "hindi", "bollywood", "bhojpuri", "punjabi", "haryanvi",
+    "gujarati", "gujju", "telugu", "tollywood",
+    "malayalam", "kannada", "marathi", "bengali",
 
-    const blocked = blockedWords.some((word) => text.includes(word));
-    const allowed = allowedWords.some((word) => text.includes(word));
+    "desi", "north indian", "vadakan", "vadakkans",
+    "vlog", "food", "travel"
+  ];
 
-    return !blocked && (allowed || video.category === "SHORT");
-  };
+  const allowedWords = [
+    "tamil", "english",
+    "tamil short", "tamil shorts", "tamil reel", "tamil reels",
+    "love tamil", "tamil couple", "tamil romantic", "tamil relationship",
+    "tamil comedy", "tamil funny", "tamil friend", "tamil friendship",
+    "mallesh", "malleshkannan", "vijay tv", "kathadi club","tamil content creators",
+  ];
+
+  const blocked = blockedWords.some((word) => text.includes(word));
+  const allowed = allowedWords.some((word) => text.includes(word));
+
+  return !blocked && (allowed || video.category === "SHORT");
+};
 
   const loadTamilShorts = async (customSearch = "", append = false) => {
     try {
@@ -157,12 +118,15 @@ export default function ShortsFeedPage() {
         "latest tamil relationship reels shorts",
         "latest tamil love status shorts",
         "latest english love reels shorts",
-        "latest couple reels shorts",
-        "latest friendship reels shorts",
+        "latest couple reels shorts with tamil songs",
+        "latest tamil friendship reels shorts",
         "latest tamil comedy reels shorts",
-        "latest funny reels shorts",
-        "new viral love reels shorts",
-        "new trending couple reels shorts"
+        "latest tamil funny reels shorts",
+        "new viral love reels shorts tamil",
+        "new trending couple reels shorts tamil",
+        "latest tamil content creator shorts reels",
+        "malleshkannan",
+        "kathadi club"
       ];
 
       const randomQuery =
@@ -177,13 +141,13 @@ export default function ShortsFeedPage() {
       //   },
       // });
 
-      const seenReels = getSeenReels();
+      const seenReels = getSeenReels().slice(-300);
 
-      const res = await API.get("/youtube/shorts-feed", {
-        params: {
-          seenIds: seenReels.join(","),
-        },
-      });
+const res = await API.get("/youtube/shorts-feed", {
+    params: {
+        seenIds: seenReels.join(","),
+    },
+});
 
       // const seenReels = getSeenReels();
 

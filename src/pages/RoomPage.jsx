@@ -49,6 +49,13 @@ export default function RoomPage() {
   const reelBackHistoryRef = useRef([]);
   const reelForwardHistoryRef = useRef([]);
   const roomUsersRef = useRef([]);
+  const roomClientIdRef = useRef(
+    sessionStorage.getItem("roomClientId") || crypto.randomUUID()
+  );
+
+  useEffect(() => {
+    sessionStorage.setItem("roomClientId", roomClientIdRef.current);
+  }, []);
 
 
   const [selectedMovie, setSelectedMovie] = useState(null);
@@ -465,10 +472,24 @@ export default function RoomPage() {
           onStateChange: (event) => {
             if (event.data === window.YT.PlayerState.PLAYING) {
               setPlaying(true);
+
+              // Sync real player state changes too, not only overlay button clicks.
+              // ignoreEventRef prevents rebroadcast loops when this change came from another device.
+              if (!ignoreEventRef.current) {
+                sendSync("PLAY", {
+                  currentTime: playerRef.current?.getCurrentTime?.() || 0,
+                });
+              }
             }
 
             if (event.data === window.YT.PlayerState.PAUSED) {
               setPlaying(false);
+
+              if (!ignoreEventRef.current) {
+                sendSync("PAUSE", {
+                  currentTime: playerRef.current?.getCurrentTime?.() || 0,
+                });
+              }
             }
 
             if (event.data === window.YT.PlayerState.ENDED) {
@@ -519,6 +540,7 @@ export default function RoomPage() {
         roomCode,
         action: "USER_JOIN",
         userName: name,
+        clientId: roomClientIdRef.current,
       })
     );
 
@@ -529,6 +551,8 @@ export default function RoomPage() {
         roomCode,
         action: "SYNC_REQUEST",
         userName: name,
+        clientId: roomClientIdRef.current,
+
       })
     );
   };
@@ -543,7 +567,9 @@ export default function RoomPage() {
         roomCode,
         action: "USER_LEAVE",
         userName: name,
+        clientId: roomClientIdRef.current,
       })
+
     );
   };
 
@@ -557,6 +583,7 @@ export default function RoomPage() {
         roomCode,
         action: "USER_REQUEST",
         userName: name,
+        clientId: roomClientIdRef.current,
       })
     );
   };
@@ -657,9 +684,12 @@ export default function RoomPage() {
               roomCode,
               action: "SYNC_RESPONSE",
               targetUser: data.userName,
-              userName,
+              targetClientId: data.clientId,
+              userName: getSafeUserName(),
+              clientId: roomClientIdRef.current,
               youtubeVideoId: currentMovie.youtube ? currentMovie.videoUrl : null,
               youtubeTitle: currentMovie.groupTitle,
+              youtubeThumbnail: currentMovie.youtubeThumbnail || "",
               movieId: currentMovie.youtube ? null : currentMovie.id,
               category: currentCategory,
               currentTime: playerRef.current?.getCurrentTime?.() || 0,
@@ -674,7 +704,7 @@ export default function RoomPage() {
         }
 
         if (data.action === "SYNC_RESPONSE") {
-          if (data.targetUser !== getSafeUserName()) return;
+          if (data.targetClientId !== roomClientIdRef.current) return;
           lastRoomStateRef.current = {
             action: data.playing ? "PLAY" : "PAUSE",
             currentTime: data.currentTime || 0,
@@ -721,6 +751,7 @@ export default function RoomPage() {
         }
 
         if (data.action === "SELECT") {
+          if (data.clientId === roomClientIdRef.current) return;
           if (
             activeCategoryRef.current === "SHORT" &&
             selectedMovieRef.current?.videoUrl === data.youtubeVideoId
@@ -751,6 +782,28 @@ export default function RoomPage() {
             setActiveCategory(data.category || "MOVIE");
             setSelectedMovie(youtubeMovie);
 
+            lastRoomStateRef.current = {
+              action: "PLAY",
+              currentTime: data.currentTime || 0,
+              playbackRate: data.playbackRate || 1,
+            };
+
+            setTimeout(() => {
+              createOrUpdatePlayer(youtubeMovie);
+
+              setTimeout(() => {
+                playerRef.current?.seekTo?.(data.currentTime || 0, true);
+                playerRef.current?.setPlaybackRate?.(data.playbackRate || 1);
+
+                if (data.category === "SHORT") {
+                  playerRef.current?.unMute?.();
+                  playerRef.current?.setVolume?.(100);
+                }
+
+                playerRef.current?.playVideo?.();
+              }, 700);
+            }, 250);
+
             if ((data.category || "MOVIE") !== "SHORT") {
               sessionStorage.setItem(
                 `selected_${roomCode}`,
@@ -762,14 +815,14 @@ export default function RoomPage() {
 
             setMovieSearch("");
 
-            setTimeout(() => {
-              if (data.category === "SHORT") {
-                playerRef.current?.unMute?.();
-                playerRef.current?.setVolume?.(100);
-              }
+            // setTimeout(() => {
+            //   if (data.category === "SHORT") {
+            //     playerRef.current?.unMute?.();
+            //     playerRef.current?.setVolume?.(100);
+            //   }
 
-              playerRef.current?.playVideo?.();
-            }, 800);
+            //   playerRef.current?.playVideo?.();
+            // }, 800);
 
             return;
           }
@@ -784,8 +837,26 @@ export default function RoomPage() {
           }
 
           if (movie) {
+            setActiveCategory(data.category || movie.category || "MOVIE");
             setSelectedMovie(movie);
+            selectedMovieRef.current = movie;
             setMovieSearch("");
+
+            lastRoomStateRef.current = {
+              action: "PLAY",
+              currentTime: data.currentTime || 0,
+              playbackRate: data.playbackRate || 1,
+            };
+
+            setTimeout(() => {
+              createOrUpdatePlayer(movie);
+
+              setTimeout(() => {
+                playerRef.current?.seekTo?.(data.currentTime || 0, true);
+                playerRef.current?.setPlaybackRate?.(data.playbackRate || 1);
+                playerRef.current?.playVideo?.();
+              }, 700);
+            }, 250);
           }
 
           return;
@@ -871,7 +942,9 @@ export default function RoomPage() {
           roomCode,
           action: "USER_JOIN",
           userName: name,
+          clientId: roomClientIdRef.current,
         })
+
       );
       console.log("SENDING USER_JOIN", name);
       setTimeout(() => {
@@ -882,6 +955,7 @@ export default function RoomPage() {
             roomCode,
             action: "SYNC_REQUEST",
             userName: name,
+            clientId: roomClientIdRef.current,
           })
         );
       }, 500);
@@ -891,6 +965,7 @@ export default function RoomPage() {
 
   const selectMovie = async (movie) => {
     setSelectedMovie(movie);
+    selectedMovieRef.current = movie;
     setMovieSearch(`${movie.groupTitle} - ${movie.partTitle}`);
     setShowMovieDropdown(false);
     setActiveCategory(movie.category || "MOVIE");
@@ -905,8 +980,12 @@ export default function RoomPage() {
       JSON.stringify({
         roomCode,
         action: "SELECT",
+        userName: getSafeUserName(),
+        clientId: roomClientIdRef.current,
         movieId: movie.id,
+        category: movie.category || "MOVIE",
         currentTime: 0,
+        playbackRate: 1,
       })
     );
   };
@@ -918,21 +997,23 @@ export default function RoomPage() {
 
   const sendSync = (action, extra = {}) => {
     if (!stompClientRef.current || !playerRef.current) return;
-    lastRoomStateRef.current = {
+
+    const payload = {
+      roomCode,
       action,
+      userName: getSafeUserName(),
+      clientId: roomClientIdRef.current,
       currentTime: getCurrentTime(),
-      playbackRate: extra.playbackRate || playerRef.current.getPlaybackRate?.() || 1,
+      playbackRate: playerRef.current.getPlaybackRate?.() || 1,
+      ...extra,
     };
+
+    lastRoomStateRef.current = payload;
 
     stompClientRef.current.send(
       "/app/room.sync",
       {},
-      JSON.stringify({
-        roomCode,
-        action,
-        currentTime: getCurrentTime(),
-        ...extra,
-      })
+      JSON.stringify(payload)
     );
   };
 
@@ -994,6 +1075,7 @@ export default function RoomPage() {
 
     setTimeout(() => {
       playerRef.current.playVideo();
+      sendSync("PLAY", { currentTime: newTime });
     }, 300);
   };
   const backward10 = () => {
@@ -1013,6 +1095,7 @@ export default function RoomPage() {
 
     setTimeout(() => {
       playerRef.current.playVideo();
+      sendSync("PLAY", { currentTime: newTime });
     }, 300);
   };
 
@@ -1213,25 +1296,27 @@ export default function RoomPage() {
       JSON.stringify({
         roomCode,
         action: "SELECT",
+        userName: getSafeUserName(),
+        clientId: roomClientIdRef.current,
         youtubeVideoId: shortVideo.videoId,
         youtubeTitle: shortVideo.title,
         youtubeThumbnail: shortVideo.thumbnail,
         category: "SHORT",
         currentTime: 0,
+        playbackRate: 1,
       })
     );
   };
 
   const saveWatchedReel = (videoId) => {
+    if (!videoId) return;
+
     const watched =
       JSON.parse(localStorage.getItem("visionArcSeenReels")) || [];
 
-    watched.push(videoId);
+    const unique = [...new Set([...watched, videoId])].slice(-200);
 
-    localStorage.setItem(
-      "visionArcSeenReels",
-      JSON.stringify([...new Set(watched)])
-    );
+    localStorage.setItem("visionArcSeenReels", JSON.stringify(unique));
   };
 
   const nextShort = () => {
@@ -1252,16 +1337,26 @@ export default function RoomPage() {
     const nextVideo = feed[nextIndex];
     if (!nextVideo) return;
 
-    setSelectedMovie({
+    // setSelectedMovie({
+    //   id: nextVideo.videoId,
+    //   videoUrl: nextVideo.videoId,
+    //   groupTitle: nextVideo.title,
+    //   partTitle: "SHORT",
+    //   youtube: true,
+    // });
+
+    const shortMovie = {
       id: nextVideo.videoId,
       videoUrl: nextVideo.videoId,
       groupTitle: nextVideo.title,
       partTitle: "SHORT",
       youtube: true,
-    });
+    };
 
+    setSelectedMovie(shortMovie);
+    selectedMovieRef.current = shortMovie;
     syncSelectedShort(nextVideo);
-    saveWatchedReel(nextVideo.videoId);
+
   };
 
   const previousShort = () => {
@@ -1277,14 +1372,26 @@ export default function RoomPage() {
     // setReelLiked(false);
     const prevVideo = feed[prevIndex];
 
-    setSelectedMovie({
+    // setSelectedMovie({
+    //   id: prevVideo.videoId,
+    //   videoUrl: prevVideo.videoId,
+    //   groupTitle: prevVideo.title,
+    //   partTitle: "SHORT",
+    //   youtube: true,
+    // });
+
+    const shortMovie = {
       id: prevVideo.videoId,
       videoUrl: prevVideo.videoId,
       groupTitle: prevVideo.title,
       partTitle: "SHORT",
       youtube: true,
-    });
+    };
+
+    setSelectedMovie(shortMovie);
+    selectedMovieRef.current = shortMovie;
     syncSelectedShort(prevVideo);
+
   };
 
   const handleShortTouchStart = (e) => {
@@ -1316,28 +1423,42 @@ export default function RoomPage() {
   };
 
   const getRandomShortIndex = (feed) => {
-    if (feed.length === 0) return 0;
+    if (!feed || feed.length === 0) return 0;
 
-    const available = feed
-      .map((_, i) => i)
-      .filter((i) => !playedReelsRef.current.includes(i));
+    const watched =
+      JSON.parse(localStorage.getItem("visionArcSeenReels")) || [];
+
+    const watchedSet = new Set(watched);
+    const currentId = selectedMovieRef.current?.videoUrl;
+
+    let available = feed
+      .map((video, index) => ({ video, index }))
+      .filter(({ video }) => video?.videoId)
+      .filter(({ video }) => video.videoId !== currentId)
+      .filter(({ video }) => !playedReelsRef.current.includes(video.videoId))
+      .filter(({ video }) => !watchedSet.has(video.videoId));
 
     if (available.length === 0) {
       playedReelsRef.current = [];
-      return Math.floor(Math.random() * feed.length);
+
+      available = feed
+        .map((video, index) => ({ video, index }))
+        .filter(({ video }) => video?.videoId)
+        .filter(({ video }) => video.videoId !== currentId);
     }
 
-    const randomIndex =
-      available[Math.floor(Math.random() * available.length)];
+    if (available.length === 0) return 0;
 
-    playedReelsRef.current.push(randomIndex);
+    const selected = available[Math.floor(Math.random() * available.length)];
 
-    return randomIndex;
+    playedReelsRef.current.push(selected.video.videoId);
+    saveWatchedReel(selected.video.videoId);
+
+    return selected.index;
   };
 
   const handleSearchTyping = (value) => {
     setMovieSearch(value);
-
     clearTimeout(suggestionTimerRef.current);
 
     if (!value.trim() || value.trim().length < 3) {
@@ -1349,21 +1470,41 @@ export default function RoomPage() {
       try {
         const res = await API.get("/youtube/suggestions", {
           params: {
-            q: value,
-            category: activeCategory,
+            q: value.trim(),
+            category: activeCategoryRef.current,
           },
         });
 
         const suggestions = res.data
+          .filter((item) => item?.title && item?.videoId)
+          .filter((item) => {
+            const text = `${item.title} ${item.description || ""}`.toLowerCase();
+
+            if (activeCategoryRef.current === "MOVIE") {
+              return !text.includes("shorts") &&
+                !text.includes("reels") &&
+                !text.includes("shortvideo") &&
+                !text.includes("status");
+            }
+
+            if (activeCategoryRef.current === "MUSIC") {
+              return !text.includes("movie") &&
+                !text.includes("web series") &&
+                !text.includes("shorts") &&
+                !text.includes("reels");
+            }
+
+            return true;
+          })
           .slice(0, 8)
-          .filter(item => item?.title)
-          .map(item => ({
+          .map((item) => ({
             title: item.title,
-            thumbnail: item.thumbnail
+            thumbnail: item.thumbnail,
+            videoId: item.videoId,
+            original: item,
           }));
 
         setSearchSuggestions(suggestions);
-
       } catch {
         setSearchSuggestions([]);
       }
@@ -1372,46 +1513,57 @@ export default function RoomPage() {
 
   const searchYoutubeInsideRoom = async (customQuery = "") => {
     const finalQuery = customQuery.trim() || movieSearch.trim();
+    const category = activeCategoryRef.current;
 
-    if (!finalQuery.trim()) return;
+    if (!finalQuery) return;
 
     try {
       setRoomYoutubeLoading(true);
-
-      const res = await API.get("/youtube/search", {
-        params: {
-          q: finalQuery.trim(),
-          category: activeCategory,
-        },
-      });
-
-      playerRef.current?.destroy?.();
-      playerRef.current = null;
-
-      if (youtubeBoxRef.current) {
-        youtubeBoxRef.current.innerHTML = "";
-      }
-
       setSelectedMovie(null);
       sessionStorage.removeItem(`selected_${roomCode}`);
 
-      setRoomYoutubeResults(res.data);
+      setRoomYoutubeResults([]);
+      setShortsFeed([]);
       setSearchSuggestions([]);
 
-      if (activeCategory === "MUSIC") {
+      const res = await API.get("/youtube/search", {
+        params: {
+          q: finalQuery,
+          category,
+        },
+      });
+
+      let results = res.data || [];
+
+      if (category === "MOVIE") {
+        results = results.filter((item) => {
+          const text = `${item.title || ""} ${item.description || ""}`.toLowerCase();
+          return !text.includes("shorts") &&
+            !text.includes("reels") &&
+            !text.includes("shortvideo") &&
+            !text.includes("shortsfeed") &&
+            !text.includes("whatsappstatus") &&
+            !text.includes("status");
+        });
+      }
+
+      setRoomYoutubeResults(results);
+
+      if (category === "SHORT") {
+        setShortsFeed(results);
+        setShortIndex(0);
+      }
+
+      if (category === "MUSIC") {
         setMusicSearched(true);
       }
 
-      setMovieSearch("");
-
-      if (activeCategory === "SHORT") {
-        setShortsFeed(res.data);
-        setShortIndex(0);
-      }
+      setMovieSearch(finalQuery);
     } finally {
       setRoomYoutubeLoading(false);
     }
   };
+
   const selectYoutubeVideo = async (
     video,
     keepFeed = false,
@@ -1432,6 +1584,7 @@ export default function RoomPage() {
     };
 
     setSelectedMovie(youtubeMovie);
+    selectedMovieRef.current = youtubeMovie;
     setNextSuggestion(null);
 
     if (forcedCategory !== "SHORT") {
@@ -1470,13 +1623,43 @@ export default function RoomPage() {
       JSON.stringify({
         roomCode,
         action: "SELECT",
+        userName: getSafeUserName(),
+        clientId: roomClientIdRef.current,
         youtubeVideoId: video.videoId,
         youtubeTitle: video.title,
         youtubeThumbnail: video.thumbnail,
         category: forcedCategory,
         currentTime: 0,
+        playbackRate: 1,
       })
     );
+  };
+
+  const switchRoomCategory = (category) => {
+    setActiveCategory(category);
+    activeCategoryRef.current = category;
+
+    setSelectedMovie(null);
+    selectedMovieRef.current = null;
+
+    setRoomYoutubeResults([]);
+    setShortsFeed([]);
+    setSearchSuggestions([]);
+    setNextSuggestion(null);
+    setMovieSearch("");
+    setMusicSearched(false);
+    setShortIndex(0);
+    playedReelsRef.current = [];
+    reelBackHistoryRef.current = [];
+    reelForwardHistoryRef.current = [];
+
+    sessionStorage.removeItem(`selected_${roomCode}`);
+
+    setTimeout(() => {
+      if (category === "MOVIE") loadTamilMovies();
+      if (category === "MUSIC") loadTamilMusic();
+      if (category === "SHORT") loadTamilReels();
+    }, 0);
   };
 
   const loadTamilMovies = async () => {
@@ -1571,7 +1754,14 @@ export default function RoomPage() {
         "telugu",
         "malayalam",
         "kannada",
-        "bhojpuri"
+        "bhojpuri",
+        "vlog",
+        "food vlog",
+        "travel vlog",
+        "telugu",
+        "hindi",
+        "malayalam",
+        "kannada",
       ];
 
       const tamilKeywords = [
@@ -1583,9 +1773,6 @@ export default function RoomPage() {
         "friend",
         "friendship",
         "comedy",
-        "vlog",
-        "food",
-        "travel"
       ];
 
       const filtered = res.data.filter((video) => {
@@ -1874,6 +2061,13 @@ export default function RoomPage() {
     );
   }
 
+  // const roomClientIdRef = useRef(
+  //   sessionStorage.getItem("roomClientId") || crypto.randomUUID()
+  // );
+
+  // useEffect(() => {
+  //   sessionStorage.setItem("roomClientId", roomClientIdRef.current);
+  // }, []);
 
   return (
     <div className="page room-shell-clean">
@@ -1924,9 +2118,7 @@ export default function RoomPage() {
                   {activeCategory !== "MOVIE" && (
                     <button
                       onClick={() => {
-                        setActiveCategory("MOVIE");
-                        setSelectedMovie(null);
-                        loadTamilMovies();
+                        switchRoomCategory("MOVIE");
                         setShowCategoryMenu(false);
                       }}
                     >
@@ -1937,9 +2129,7 @@ export default function RoomPage() {
                   {activeCategory !== "MUSIC" && (
                     <button
                       onClick={() => {
-                        setActiveCategory("MUSIC");
-                        setSelectedMovie(null);
-                        loadTamilMusic();
+                        switchRoomCategory("MUSIC");
                         setShowCategoryMenu(false);
                       }}
                     >
@@ -1950,9 +2140,7 @@ export default function RoomPage() {
                   {activeCategory !== "SHORT" && (
                     <button
                       onClick={() => {
-                        setActiveCategory("SHORT");
-                        setSelectedMovie(null);
-                        loadTamilReels();
+                        switchRoomCategory("SHORT");
                         setShowCategoryMenu(false);
                       }}
                     >
@@ -2036,7 +2224,7 @@ export default function RoomPage() {
               className="room-back-btn"
               onClick={goBack}
             >
-              ×
+              Back
             </button>
           </div>
           {searchSuggestions.length > 0 && (
