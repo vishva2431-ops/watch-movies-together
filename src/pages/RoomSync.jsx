@@ -1,6 +1,4 @@
 // Centralized room sync helpers for Vision Arc.
-// This file keeps WebSocket/STOMP payload creation in one place
-// without changing the UI code inside RoomPage.jsx.
 
 export const createRoomClientId = () => {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -13,12 +11,7 @@ export const createRoomClientId = () => {
 export const sendRoomSync = (stompClient, payload) => {
   if (!stompClient || !payload?.roomCode || !payload?.action) return false;
 
-  stompClient.send(
-    "/app/room.sync",
-    {},
-    JSON.stringify(payload)
-  );
-
+  stompClient.send("/app/room.sync", {}, JSON.stringify(payload));
   return true;
 };
 
@@ -44,13 +37,7 @@ export const buildBaseSyncPayload = ({
   ...extra,
 });
 
-export const buildSelectMoviePayload = ({
-  roomCode,
-  userName,
-  clientId,
-  movie,
-  category,
-}) => ({
+export const buildSelectMoviePayload = ({ roomCode, userName, clientId, movie, category }) => ({
   roomCode,
   action: "SELECT",
   userName,
@@ -61,13 +48,7 @@ export const buildSelectMoviePayload = ({
   playbackRate: 1,
 });
 
-export const buildSelectYoutubePayload = ({
-  roomCode,
-  userName,
-  clientId,
-  video,
-  category,
-}) => ({
+export const buildSelectYoutubePayload = ({ roomCode, userName, clientId, video, category }) => ({
   roomCode,
   action: "SELECT",
   userName,
@@ -80,12 +61,7 @@ export const buildSelectYoutubePayload = ({
   playbackRate: 1,
 });
 
-export const buildCategorySyncPayload = ({
-  roomCode,
-  userName,
-  clientId,
-  category,
-}) => ({
+export const buildCategorySyncPayload = ({ roomCode, userName, clientId, category }) => ({
   roomCode,
   action: "SELECT",
   userName,
@@ -93,32 +69,4 @@ export const buildCategorySyncPayload = ({
   category: category || "MOVIE",
   currentTime: 0,
   playbackRate: 1,
-});
-
-export const buildSyncResponsePayload = ({
-  roomCode,
-  targetUser,
-  targetClientId,
-  userName,
-  clientId,
-  currentMovie,
-  currentCategory,
-  currentTime = 0,
-  playbackRate = 1,
-  playing = false,
-}) => ({
-  roomCode,
-  action: "SYNC_RESPONSE",
-  targetUser,
-  targetClientId,
-  userName,
-  clientId,
-  youtubeVideoId: currentMovie?.youtube ? currentMovie.videoUrl : null,
-  youtubeTitle: currentMovie?.groupTitle || "",
-  youtubeThumbnail: currentMovie?.youtubeThumbnail || "",
-  movieId: currentMovie && !currentMovie.youtube ? currentMovie.id : null,
-  category: currentCategory || "MOVIE",
-  currentTime,
-  playbackRate,
-  playing,
 });
