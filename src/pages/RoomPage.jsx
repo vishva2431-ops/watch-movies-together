@@ -3,6 +3,16 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import SockJS from "sockjs-client/dist/sockjs";
 import Stomp from "stompjs";
 import { API, API_BASE_URL, extractYouTubeId } from "../api";
+import {
+  buildBaseSyncPayload,
+  buildCategorySyncPayload,
+  buildSelectMoviePayload,
+  buildSelectYoutubePayload,
+  buildSyncResponsePayload,
+  createRoomClientId,
+  isOwnRoomSyncMessage,
+  sendRoomSync,
+} from "../sync/RoomSync";
 import Header from "../components/Header";
 import ChatBox from "../components/ChatBox";
 import {
@@ -49,13 +59,11 @@ export default function RoomPage() {
   const reelBackHistoryRef = useRef([]);
   const reelForwardHistoryRef = useRef([]);
   const roomUsersRef = useRef([]);
-  // IMPORTANT: this id must be unique for every open tab/window.
-  // Do not store it in sessionStorage because duplicated tabs copy sessionStorage,
-  // then both clients get the same id and ignore each other's sync messages.
-  const roomClientIdRef = useRef(crypto.randomUUID());
-  const socketConnectedRef = useRef(false);
-  const pendingRoomMessagesRef = useRef([]);
-  const contentLoadTokenRef = useRef(0);
+  // IMPORTANT: keep this ID unique per opened tab/window.
+  // Do not store it in sessionStorage because duplicated tabs can copy the same value
+  // and then one browser will ignore the other browser's sync as its own message.
+  const roomClientIdRef = useRef(createRoomClientId());
+
 
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [movies, setMovies] = useState([]);
@@ -127,9 +135,16 @@ export default function RoomPage() {
   });
 
   useEffect(() => {
-    // Always trust the backend room state on entering a room.
-    // A stale selected_${roomCode} from a previous tab/session can overwrite live sync.
-    sessionStorage.removeItem(`selected_${roomCode}`);
+    const savedMovie =
+      sessionStorage.getItem(
+        `selected_${roomCode}`
+      );
+
+    if (savedMovie) {
+      setSelectedMovie(
+        JSON.parse(savedMovie)
+      );
+    }
   }, [roomCode]);
 
   useEffect(() => {
@@ -163,7 +178,6 @@ export default function RoomPage() {
       clearTimeout(durationTimerRef.current);
 
       if (stompClientRef.current) {
-        socketConnectedRef.current = false;
         stompClientRef.current.disconnect(() => { });
         stompClientRef.current = null;
       }
@@ -185,6 +199,38 @@ export default function RoomPage() {
   useEffect(() => {
     activeCategoryRef.current = activeCategory;
   }, [activeCategory]);
+
+  const resetRoomListsForCategory = (category) => {
+    setRoomYoutubeResults([]);
+    setShortsFeed([]);
+    setSearchSuggestions([]);
+    setNextSuggestion(null);
+    setMovieSearch("");
+    setMusicSearched(false);
+    setShortIndex(0);
+    playedReelsRef.current = [];
+    reelBackHistoryRef.current = [];
+    reelForwardHistoryRef.current = [];
+  };
+
+  const loadCategorySuggestions = (category) => {
+    setTimeout(() => {
+      if (category === "MOVIE") loadTamilMovies();
+      if (category === "MUSIC") loadTamilMusic();
+      if (category === "SHORT") loadTamilReels();
+    }, 0);
+  };
+
+  const applyCategoryOnlySync = (category = "MOVIE") => {
+    const safeCategory = category || "MOVIE";
+    setActiveCategory(safeCategory);
+    activeCategoryRef.current = safeCategory;
+    setSelectedMovie(null);
+    selectedMovieRef.current = null;
+    resetRoomListsForCategory(safeCategory);
+    sessionStorage.removeItem(`selected_${roomCode}`);
+    loadCategorySuggestions(safeCategory);
+  };
 
   useEffect(() => {
     if (!selectedMovie && roomYoutubeResults.length === 0 && !roomYoutubeLoading) {
@@ -408,11 +454,18 @@ export default function RoomPage() {
         document.body.contains(playerRef.current.getIframe());
 
       if (playerRef.current?.loadVideoById && iframeStillExists) {
+        const savedState = lastRoomStateRef.current;
         playerRef.current.loadVideoById(videoId);
         setTimeout(() => {
-          playerRef.current?.playVideo?.();
+          playerRef.current?.seekTo?.(savedState.currentTime || 0, true);
+          playerRef.current?.setPlaybackRate?.(savedState.playbackRate || 1);
+          if (savedState.action === "PAUSE") {
+            playerRef.current?.pauseVideo?.();
+          } else {
+            playerRef.current?.playVideo?.();
+          }
           setDuration(playerRef.current?.getDuration?.() || 0);
-        }, 100);
+        }, 250);
         return;
       }
 
@@ -523,90 +576,62 @@ export default function RoomPage() {
     return localStorage.getItem("userName") || userNameRef.current;
   };
 
-  const sendRoomMessage = (payload) => {
-    const fullPayload = {
-      roomCode,
-      userName: getSafeUserName(),
-      clientId: roomClientIdRef.current,
-      ...payload,
-    };
-
-    const client = stompClientRef.current;
-
-    if (client && socketConnectedRef.current && client.connected) {
-      client.send("/app/room.sync", {}, JSON.stringify(fullPayload));
-      return true;
-    }
-
-    pendingRoomMessagesRef.current.push(fullPayload);
-    return false;
-  };
-
-  const flushPendingRoomMessages = () => {
-    const client = stompClientRef.current;
-    if (!client || !client.connected) return;
-
-    const queued = [...pendingRoomMessagesRef.current];
-    pendingRoomMessagesRef.current = [];
-
-    queued.forEach((payload) => {
-      client.send("/app/room.sync", {}, JSON.stringify(payload));
-    });
-  };
-
-  const resetRoomViewForCategory = (category) => {
-    contentLoadTokenRef.current += 1;
-
-    setActiveCategory(category);
-    activeCategoryRef.current = category;
-
-    setSelectedMovie(null);
-    selectedMovieRef.current = null;
-
-    setRoomYoutubeResults([]);
-    setShortsFeed([]);
-    setSearchSuggestions([]);
-    setNextSuggestion(null);
-    setMovieSearch("");
-    setMusicSearched(false);
-    setShortIndex(0);
-    playedReelsRef.current = [];
-    reelBackHistoryRef.current = [];
-    reelForwardHistoryRef.current = [];
-
-    sessionStorage.removeItem(`selected_${roomCode}`);
-  };
-
   const sendUserJoin = () => {
     const name = getSafeUserName();
 
-    sendRoomMessage({
-      action: "USER_JOIN",
-      userName: name,
-    });
+    stompClientRef.current?.send(
+      "/app/room.sync",
+      {},
+      JSON.stringify({
+        roomCode,
+        action: "USER_JOIN",
+        userName: name,
+        clientId: roomClientIdRef.current,
+      })
+    );
 
-    sendRoomMessage({
-      action: "SYNC_REQUEST",
-      userName: name,
-    });
+    stompClientRef.current?.send(
+      "/app/room.sync",
+      {},
+      JSON.stringify({
+        roomCode,
+        action: "SYNC_REQUEST",
+        userName: name,
+        clientId: roomClientIdRef.current,
+
+      })
+    );
   };
 
   const sendUserLeave = () => {
     const name = getSafeUserName();
 
-    sendRoomMessage({
-      action: "USER_LEAVE",
-      userName: name,
-    });
+    stompClientRef.current?.send(
+      "/app/room.sync",
+      {},
+      JSON.stringify({
+        roomCode,
+        action: "USER_LEAVE",
+        userName: name,
+        clientId: roomClientIdRef.current,
+      })
+
+    );
   };
 
   const requestUsers = () => {
     const name = getSafeUserName();
 
-    sendRoomMessage({
-      action: "USER_REQUEST",
-      userName: name,
-    });
+    stompClientRef.current?.send(
+      "/app/room.sync",
+      {},
+      JSON.stringify({
+        roomCode,
+        action: "USER_REQUEST",
+        userName: name,
+        clientId: roomClientIdRef.current,
+      })
+    );
   };
 
   const connectSocket = () => {
@@ -617,7 +642,6 @@ export default function RoomPage() {
 
     client.connect({}, () => {
       stompClientRef.current = client;
-      socketConnectedRef.current = true;
 
       client.subscribe(`/topic/room/${roomCode}`, async (message) => {
         const data = JSON.parse(message.body);
@@ -693,42 +717,33 @@ export default function RoomPage() {
           return;
         }
 
-        if (data.action === "CATEGORY_CHANGE") {
-          if (data.clientId === roomClientIdRef.current) return;
-
-          const nextCategory = data.category || "MOVIE";
-          resetRoomViewForCategory(nextCategory);
-
-          setTimeout(() => {
-            if (nextCategory === "MOVIE") loadTamilMovies();
-            if (nextCategory === "MUSIC") loadTamilMusic();
-            if (nextCategory === "SHORT") loadTamilReels();
-          }, 0);
-
-          return;
-        }
-
         // ✅ ADD THIS BEFORE SELECT
         if (data.action === "SYNC_REQUEST") {
           const currentMovie = selectedMovieRef.current;
           const currentCategory = activeCategoryRef.current;
 
-          if (!currentMovie) return;
-          sendRoomMessage({
-            action: "SYNC_RESPONSE",
-            targetUser: data.userName,
-            targetClientId: data.clientId,
-            youtubeVideoId: currentMovie.youtube ? currentMovie.videoUrl : null,
-            youtubeTitle: currentMovie.groupTitle,
-            youtubeThumbnail: currentMovie.youtubeThumbnail || "",
-            movieId: currentMovie.youtube ? null : currentMovie.id,
-            category: currentCategory,
-            currentTime: playerRef.current?.getCurrentTime?.() || 0,
-            playbackRate: playerRef.current?.getPlaybackRate?.() || 1,
-            playing:
-              playerRef.current?.getPlayerState?.() === window.YT.PlayerState.PLAYING ||
-              currentCategory === "SHORT",
-          });
+          stompClientRef.current?.send(
+            "/app/room.sync",
+            {},
+            JSON.stringify({
+              roomCode,
+              action: "SYNC_RESPONSE",
+              targetUser: data.userName,
+              targetClientId: data.clientId,
+              userName: getSafeUserName(),
+              clientId: roomClientIdRef.current,
+              youtubeVideoId: currentMovie?.youtube ? currentMovie.videoUrl : null,
+              youtubeTitle: currentMovie?.groupTitle || "",
+              youtubeThumbnail: currentMovie?.youtubeThumbnail || "",
+              movieId: currentMovie && !currentMovie.youtube ? currentMovie.id : null,
+              category: currentCategory,
+              currentTime: playerRef.current?.getCurrentTime?.() || 0,
+              playbackRate: playerRef.current?.getPlaybackRate?.() || 1,
+              playing:
+                playerRef.current?.getPlayerState?.() === window.YT?.PlayerState?.PLAYING ||
+                currentCategory === "SHORT",
+            })
+          );
 
           return;
         }
@@ -751,7 +766,6 @@ export default function RoomPage() {
               youtube: true,
             };
 
-            contentLoadTokenRef.current += 1;
             setActiveCategory(data.category || "MOVIE");
             activeCategoryRef.current = data.category || "MOVIE";
             setSelectedMovie(youtubeMovie);
@@ -765,7 +779,7 @@ export default function RoomPage() {
                   playerRef.current?.seekTo?.(data.currentTime || 0, true);
                   playerRef.current?.unMute?.();
                   playerRef.current?.setVolume?.(100);
-                  playerRef.current?.playVideo?.();
+                  if (data.playing !== false) playerRef.current?.playVideo?.();
                 }, 700);
               }, 300);
             }
@@ -778,13 +792,15 @@ export default function RoomPage() {
             } else {
               sessionStorage.removeItem(`selected_${roomCode}`);
             }
+          } else if (data.category) {
+            applyCategoryOnlySync(data.category);
           }
 
           return;
         }
 
         if (data.action === "SELECT") {
-          if (data.clientId === roomClientIdRef.current) return;
+          if (isOwnRoomSyncMessage(data, roomClientIdRef.current)) return;
           if (
             activeCategoryRef.current === "SHORT" &&
             selectedMovieRef.current?.videoUrl === data.youtubeVideoId
@@ -798,10 +814,7 @@ export default function RoomPage() {
           };
 
           if (!data.movieId && !data.youtubeVideoId) {
-            contentLoadTokenRef.current += 1;
-            setSelectedMovie(null);
-            selectedMovieRef.current = null;
-            setMovieSearch("");
+            applyCategoryOnlySync(data.category || "MOVIE");
             return;
           }
 
@@ -814,7 +827,6 @@ export default function RoomPage() {
               youtube: true,
             };
 
-            contentLoadTokenRef.current += 1;
             setActiveCategory(data.category || "MOVIE");
             activeCategoryRef.current = data.category || "MOVIE";
             setSelectedMovie(youtubeMovie);
@@ -875,9 +887,7 @@ export default function RoomPage() {
           }
 
           if (movie) {
-            contentLoadTokenRef.current += 1;
             setActiveCategory(data.category || movie.category || "MOVIE");
-            activeCategoryRef.current = data.category || movie.category || "MOVIE";
             setSelectedMovie(movie);
             selectedMovieRef.current = movie;
             setMovieSearch("");
@@ -974,18 +984,36 @@ export default function RoomPage() {
       const name = getSafeUserName();
 
       addRoomUser(name);
-      flushPendingRoomMessages();
-      sendUserJoin();
+
+      client.send(
+        "/app/room.sync",
+        {},
+        JSON.stringify({
+          roomCode,
+          action: "USER_JOIN",
+          userName: name,
+          clientId: roomClientIdRef.current,
+        })
+
+      );
       console.log("SENDING USER_JOIN", name);
-    }, (error) => {
-      socketConnectedRef.current = false;
-      console.error("WebSocket connection failed", error);
+      setTimeout(() => {
+        client.send(
+          "/app/room.sync",
+          {},
+          JSON.stringify({
+            roomCode,
+            action: "SYNC_REQUEST",
+            userName: name,
+            clientId: roomClientIdRef.current,
+          })
+        );
+      }, 500);
     });
 
   };
 
   const selectMovie = async (movie) => {
-    contentLoadTokenRef.current += 1;
     setSelectedMovie(movie);
     selectedMovieRef.current = movie;
     setMovieSearch(`${movie.groupTitle} - ${movie.partTitle}`);
@@ -995,15 +1023,19 @@ export default function RoomPage() {
 
     await API.put(`/rooms/${roomCode}/movie`, {
       movieId: movie.id,
+      category: movie.category || "MOVIE",
     });
 
-    sendRoomMessage({
-      action: "SELECT",
-      movieId: movie.id,
-      category: movie.category || "MOVIE",
-      currentTime: 0,
-      playbackRate: 1,
-    });
+    sendRoomSync(
+      stompClientRef.current,
+      buildSelectMoviePayload({
+        roomCode,
+        userName: getSafeUserName(),
+        clientId: roomClientIdRef.current,
+        movie,
+        category: movie.category || "MOVIE",
+      })
+    );
   };
 
   const getCurrentTime = () => {
@@ -1012,23 +1044,20 @@ export default function RoomPage() {
   };
 
   const sendSync = (action, extra = {}) => {
-    if (!playerRef.current) return;
+    if (!stompClientRef.current || !playerRef.current) return;
 
-    const payload = {
-      action,
-      currentTime: getCurrentTime(),
-      playbackRate: playerRef.current.getPlaybackRate?.() || 1,
-      ...extra,
-    };
-
-    lastRoomStateRef.current = {
+    const payload = buildBaseSyncPayload({
       roomCode,
+      action,
       userName: getSafeUserName(),
       clientId: roomClientIdRef.current,
-      ...payload,
-    };
+      currentTime: getCurrentTime(),
+      playbackRate: playerRef.current.getPlaybackRate?.() || 1,
+      extra,
+    });
 
-    sendRoomMessage(payload);
+    lastRoomStateRef.current = payload;
+    sendRoomSync(stompClientRef.current, payload);
   };
 
   const playVideo = () => {
@@ -1304,15 +1333,16 @@ export default function RoomPage() {
   };
 
   const syncSelectedShort = (shortVideo) => {
-    sendRoomMessage({
-      action: "SELECT",
-      youtubeVideoId: shortVideo.videoId,
-      youtubeTitle: shortVideo.title,
-      youtubeThumbnail: shortVideo.thumbnail,
-      category: "SHORT",
-      currentTime: 0,
-      playbackRate: 1,
-    });
+    sendRoomSync(
+      stompClientRef.current,
+      buildSelectYoutubePayload({
+        roomCode,
+        userName: getSafeUserName(),
+        clientId: roomClientIdRef.current,
+        video: shortVideo,
+        category: "SHORT",
+      })
+    );
   };
 
   const saveWatchedReel = (videoId) => {
@@ -1360,7 +1390,6 @@ export default function RoomPage() {
       youtube: true,
     };
 
-    contentLoadTokenRef.current += 1;
     setSelectedMovie(shortMovie);
     selectedMovieRef.current = shortMovie;
     syncSelectedShort(nextVideo);
@@ -1396,7 +1425,6 @@ export default function RoomPage() {
       youtube: true,
     };
 
-    contentLoadTokenRef.current += 1;
     setSelectedMovie(shortMovie);
     selectedMovieRef.current = shortMovie;
     syncSelectedShort(prevVideo);
@@ -1592,7 +1620,6 @@ export default function RoomPage() {
       youtube: true,
     };
 
-    contentLoadTokenRef.current += 1;
     setSelectedMovie(youtubeMovie);
     selectedMovieRef.current = youtubeMovie;
     setNextSuggestion(null);
@@ -1628,19 +1655,20 @@ export default function RoomPage() {
       playbackRate: 1,
     };
 
-    sendRoomMessage({
-      action: "SELECT",
-      youtubeVideoId: video.videoId,
-      youtubeTitle: video.title,
-      youtubeThumbnail: video.thumbnail,
-      category: forcedCategory,
-      currentTime: 0,
-      playbackRate: 1,
-    });
+    sendRoomSync(
+      stompClientRef.current,
+      buildSelectYoutubePayload({
+        roomCode,
+        userName: getSafeUserName(),
+        clientId: roomClientIdRef.current,
+        video,
+        category: forcedCategory,
+      })
+    );
   };
 
   const switchRoomCategory = async (category) => {
-    resetRoomViewForCategory(category);
+    applyCategoryOnlySync(category);
 
     try {
       await API.put(`/rooms/${roomCode}/movie`, { category });
@@ -1648,22 +1676,18 @@ export default function RoomPage() {
       console.error("Unable to save room category", err);
     }
 
-    sendRoomMessage({
-      action: "CATEGORY_CHANGE",
-      category,
-      currentTime: 0,
-      playbackRate: 1,
-    });
-
-    setTimeout(() => {
-      if (category === "MOVIE") loadTamilMovies();
-      if (category === "MUSIC") loadTamilMusic();
-      if (category === "SHORT") loadTamilReels();
-    }, 0);
+    sendRoomSync(
+      stompClientRef.current,
+      buildCategorySyncPayload({
+        roomCode,
+        userName: getSafeUserName(),
+        clientId: roomClientIdRef.current,
+        category,
+      })
+    );
   };
 
   const loadTamilMovies = async () => {
-    const token = contentLoadTokenRef.current;
     try {
       setRoomYoutubeLoading(true);
 
@@ -1691,7 +1715,6 @@ export default function RoomPage() {
         }
       });
 
-      if (token !== contentLoadTokenRef.current || activeCategoryRef.current !== "MOVIE") return;
       setRoomYoutubeResults(res.data);
     } finally {
       setRoomYoutubeLoading(false);
@@ -1699,7 +1722,6 @@ export default function RoomPage() {
   };
 
   const loadTamilMusic = async () => {
-    const token = contentLoadTokenRef.current;
     try {
       setRoomYoutubeLoading(true);
       const res = await API.get("/youtube/cached-discover", {
@@ -1708,7 +1730,6 @@ export default function RoomPage() {
           category: "MUSIC",
         },
       });
-      if (token !== contentLoadTokenRef.current || activeCategoryRef.current !== "MUSIC") return;
       setMusicSearched(false);
       setRoomYoutubeResults(res.data);
     } finally {
@@ -1717,7 +1738,6 @@ export default function RoomPage() {
   };
 
   const loadTamilReels = async () => {
-    const token = contentLoadTokenRef.current;
     try {
       setRoomYoutubeLoading(true);
 
@@ -1817,15 +1837,10 @@ export default function RoomPage() {
         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
       }
 
-      if (token !== contentLoadTokenRef.current || activeCategoryRef.current !== "SHORT") return;
       setRoomYoutubeResults(shuffled);
       setShortsFeed(shuffled);
       setShortIndex(0);
-
-      if (!selectedMovieRef.current) {
-        setSelectedMovie(null);
-      }
-
+      setSelectedMovie(null);
       setMovieSearch("");
 
     } catch (err) {
@@ -1990,10 +2005,16 @@ export default function RoomPage() {
     const text = reelComment.trim();
     if (!text) return;
 
-    sendRoomMessage({
-      action: "REEL_COMMENT",
-      text: text,
-    });
+    stompClientRef.current?.send(
+      "/app/room.sync",
+      {},
+      JSON.stringify({
+        roomCode,
+        action: "REEL_COMMENT",
+        userName: getSafeUserName(),
+        text: text,
+      })
+    );
 
     setReelComment("");
   };
