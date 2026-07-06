@@ -63,6 +63,8 @@ export default function RoomPage() {
   // Do not store it in sessionStorage because duplicated tabs can copy the same value
   // and then one browser will ignore the other browser's sync as its own message.
   const roomClientIdRef = useRef(createRoomClientId());
+  const suppressPlayerStateSyncRef = useRef(false);
+  const lastRemoteSeekAtRef = useRef(0);
 
 
   const [selectedMovie, setSelectedMovie] = useState(null);
@@ -521,7 +523,7 @@ export default function RoomPage() {
 
               // Sync real player state changes too, not only overlay button clicks.
               // ignoreEventRef prevents rebroadcast loops when this change came from another device.
-              if (!ignoreEventRef.current) {
+              if (!ignoreEventRef.current && !suppressPlayerStateSyncRef.current) {
                 sendSync("PLAY", {
                   currentTime: playerRef.current?.getCurrentTime?.() || 0,
                 });
@@ -531,7 +533,7 @@ export default function RoomPage() {
             if (event.data === window.YT.PlayerState.PAUSED) {
               setPlaying(false);
 
-              if (!ignoreEventRef.current) {
+              if (!ignoreEventRef.current && !suppressPlayerStateSyncRef.current) {
                 sendSync("PAUSE", {
                   currentTime: playerRef.current?.getCurrentTime?.() || 0,
                 });
@@ -916,35 +918,48 @@ export default function RoomPage() {
 
         ignoreEventRef.current = true;
 
-        if (typeof data.currentTime === "number") {
-          playerRef.current.seekTo(data.currentTime, true);
-        }
+        // if (typeof data.currentTime === "number") {
+        //   playerRef.current.seekTo(data.currentTime, true);
+        // }
 
         if (data.playbackRate) {
           playerRef.current.setPlaybackRate(data.playbackRate);
         }
 
         if (data.action === "PLAY") {
+          suppressPlayerStateSyncRef.current = true;
           playerRef.current.playVideo();
 
           lastRoomStateRef.current = {
             action: "PLAY",
-            currentTime: data.currentTime || 0,
+            currentTime: playerRef.current?.getCurrentTime?.() || data.currentTime || 0,
             playbackRate: data.playbackRate || 1,
           };
+
+          setTimeout(() => {
+            suppressPlayerStateSyncRef.current = false;
+          }, 900);
         }
 
         if (data.action === "PAUSE") {
+          suppressPlayerStateSyncRef.current = true;
           playerRef.current.pauseVideo();
 
           lastRoomStateRef.current = {
             action: "PAUSE",
-            currentTime: data.currentTime || 0,
+            currentTime: playerRef.current?.getCurrentTime?.() || data.currentTime || 0,
             playbackRate: data.playbackRate || 1,
           };
+
+          setTimeout(() => {
+            suppressPlayerStateSyncRef.current = false;
+          }, 900);
         }
 
         if (data.action === "SEEK") {
+          suppressPlayerStateSyncRef.current = true;
+          lastRemoteSeekAtRef.current = Date.now();
+
           playerRef.current.seekTo(data.currentTime, true);
           setCurrentTime(data.currentTime);
 
@@ -953,6 +968,10 @@ export default function RoomPage() {
             currentTime: data.currentTime || 0,
             playbackRate: data.playbackRate || 1,
           };
+
+          setTimeout(() => {
+            suppressPlayerStateSyncRef.current = false;
+          }, 1200);
         }
 
         if (data.action === "SPEED") {
@@ -1104,42 +1123,51 @@ export default function RoomPage() {
     if (!isPlayerReady()) return;
 
     const current = playerRef.current.getCurrentTime();
-    const duration = playerRef.current.getDuration();
+    const total = playerRef.current.getDuration();
+    const newTime = Math.min(current + 10, total - 1);
 
-    const newTime = Math.min(current + 10, duration - 1);
+    const wasPlaying =
+      playerRef.current.getPlayerState?.() === window.YT.PlayerState.PLAYING;
+
+    suppressPlayerStateSyncRef.current = true;
 
     playerRef.current.seekTo(newTime, true);
-
     setCurrentTime(newTime);
 
-    sendSync("SEEK", {
-      currentTime: newTime,
-    });
+    sendSync("SEEK", { currentTime: newTime });
 
     setTimeout(() => {
-      playerRef.current.playVideo();
-      sendSync("PLAY", { currentTime: newTime });
-    }, 300);
+      if (wasPlaying) {
+        playerRef.current?.playVideo?.();
+        sendSync("PLAY");
+      }
+      suppressPlayerStateSyncRef.current = false;
+    }, 700);
   };
+
   const backward10 = () => {
     if (!isPlayerReady()) return;
 
     const current = playerRef.current.getCurrentTime();
-
     const newTime = Math.max(current - 10, 0);
 
-    playerRef.current.seekTo(newTime, true);
+    const wasPlaying =
+      playerRef.current.getPlayerState?.() === window.YT.PlayerState.PLAYING;
 
+    suppressPlayerStateSyncRef.current = true;
+
+    playerRef.current.seekTo(newTime, true);
     setCurrentTime(newTime);
 
-    sendSync("SEEK", {
-      currentTime: newTime,
-    });
+    sendSync("SEEK", { currentTime: newTime });
 
     setTimeout(() => {
-      playerRef.current.playVideo();
-      sendSync("PLAY", { currentTime: newTime });
-    }, 300);
+      if (wasPlaying) {
+        playerRef.current?.playVideo?.();
+        sendSync("PLAY");
+      }
+      suppressPlayerStateSyncRef.current = false;
+    }, 700);
   };
 
   const speed2x = () => {
