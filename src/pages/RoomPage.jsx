@@ -65,6 +65,7 @@ export default function RoomPage() {
   const roomClientIdRef = useRef(createRoomClientId());
   const suppressPlayerStateSyncRef = useRef(false);
   const lastRemoteSeekAtRef = useRef(0);
+  const roomUserMapRef = useRef(new Map());
 
 
   const [selectedMovie, setSelectedMovie] = useState(null);
@@ -562,18 +563,29 @@ export default function RoomPage() {
     }, 150);
   };
 
-  const addRoomUser = (name) => {
-    if (!name) return;
-    setRoomUsers((prev) => {
-      if (prev.includes(name)) return prev;
-      return [...prev, name];
-    });
+  const addRoomUser = (name, clientId = name) => {
+    if (!name || !clientId) return;
+
+    roomUserMapRef.current.set(clientId, name);
+
+    const uniqueNames = [...new Set([...roomUserMapRef.current.values()])];
+    setRoomUsers(uniqueNames);
   };
 
-  const removeRoomUser = (name) => {
-    setRoomUsers((prev) => prev.filter((u) => u !== name));
-  };
+  const removeRoomUser = (clientIdOrName) => {
+    if (!clientIdOrName) return;
 
+    roomUserMapRef.current.delete(clientIdOrName);
+
+    for (const [id, name] of roomUserMapRef.current.entries()) {
+      if (name === clientIdOrName) {
+        roomUserMapRef.current.delete(id);
+      }
+    }
+
+    const uniqueNames = [...new Set([...roomUserMapRef.current.values()])];
+    setRoomUsers(uniqueNames);
+  };
   const getSafeUserName = () => {
     return localStorage.getItem("userName") || userNameRef.current;
   };
@@ -679,10 +691,7 @@ export default function RoomPage() {
 
           console.log("JOIN:", data.userName);
 
-          setRoomUsers(prev => {
-            if (prev.includes(data.userName)) return prev;
-            return [...prev, data.userName];
-          });
+          addRoomUser(data.userName, data.clientId);
 
           if (data.userName !== getSafeUserName()) {
             showRoomNotification(
@@ -695,7 +704,7 @@ export default function RoomPage() {
 
         if (data.action === "USER_LEAVE") {
 
-          removeRoomUser(data.userName);
+          removeRoomUser(data.clientId || data.userName);
 
           if (data.userName !== getSafeUserName()) {
 
@@ -1002,7 +1011,7 @@ export default function RoomPage() {
 
       const name = getSafeUserName();
 
-      addRoomUser(name);
+      addRoomUser(name, roomClientIdRef.current);
 
       client.send(
         "/app/room.sync",
@@ -1526,54 +1535,17 @@ export default function RoomPage() {
     setMovieSearch(value);
     clearTimeout(suggestionTimerRef.current);
 
-    if (!value.trim() || value.trim().length < 3) {
+    const q = value.trim();
+
+    if (q.length < 3) {
+      setRoomYoutubeResults([]);
       setSearchSuggestions([]);
       return;
     }
 
-    suggestionTimerRef.current = setTimeout(async () => {
-      try {
-        const res = await API.get("/youtube/suggestions", {
-          params: {
-            q: value.trim(),
-            category: activeCategoryRef.current,
-          },
-        });
-
-        const suggestions = res.data
-          .filter((item) => item?.title && item?.videoId)
-          .filter((item) => {
-            const text = `${item.title} ${item.description || ""}`.toLowerCase();
-
-            if (activeCategoryRef.current === "MOVIE") {
-              return !text.includes("shorts") &&
-                !text.includes("reels") &&
-                !text.includes("shortvideo") &&
-                !text.includes("status");
-            }
-
-            if (activeCategoryRef.current === "MUSIC") {
-              return !text.includes("movie") &&
-                !text.includes("web series") &&
-                !text.includes("shorts") &&
-                !text.includes("reels");
-            }
-
-            return true;
-          })
-          .slice(0, 8)
-          .map((item) => ({
-            title: item.title,
-            thumbnail: item.thumbnail,
-            videoId: item.videoId,
-            original: item,
-          }));
-
-        setSearchSuggestions(suggestions);
-      } catch {
-        setSearchSuggestions([]);
-      }
-    }, 700);
+    suggestionTimerRef.current = setTimeout(() => {
+      searchYoutubeInsideRoom(q);
+    }, 400);
   };
 
   const searchYoutubeInsideRoom = async (customQuery = "") => {
@@ -1715,7 +1687,7 @@ export default function RoomPage() {
     );
   };
 
-  const loadTamilMovies = async () => {
+  const loadTamilMovies = async (fresh = false) => {
     try {
       setRoomYoutubeLoading(true);
 
@@ -1734,13 +1706,15 @@ export default function RoomPage() {
         "parithabangal latest",
         "latest comedy show tamil"
       ];
-      const randomQuery =
-        queries[Math.floor(Math.random() * queries.length)];
 
-      const res = await API.get("/youtube/cached-discover", {
+      const randomQuery = queries[Math.floor(Math.random() * queries.length)];
+
+      const res = await API.get(fresh ? "/youtube/search" : "/youtube/cached-discover", {
         params: {
-          category: "MOVIE"
-        }
+          q: randomQuery,
+          category: "MOVIE",
+          fresh: fresh ? Date.now() : undefined,
+        },
       });
 
       setRoomYoutubeResults(res.data);
@@ -1749,15 +1723,31 @@ export default function RoomPage() {
     }
   };
 
-  const loadTamilMusic = async () => {
+  const loadTamilMusic = async (fresh = false) => {
     try {
       setRoomYoutubeLoading(true);
-      const res = await API.get("/youtube/cached-discover", {
+
+      const queries = [
+        "latest tamil songs official music video",
+        "new tamil songs official music video",
+        "trending tamil songs official music video",
+        "latest tamil melody songs official music video",
+        "latest tamil romantic songs official music video",
+        "latest english songs official music video",
+        "new english songs official music video",
+        "trending english songs official music video",
+      ];
+
+      const randomQuery = queries[Math.floor(Math.random() * queries.length)];
+
+      const res = await API.get(fresh ? "/youtube/search" : "/youtube/cached-discover", {
         params: {
-          q: "latest tamil official music video new tamil songs",
+          q: randomQuery,
           category: "MUSIC",
+          fresh: fresh ? Date.now() : undefined,
         },
       });
+
       setMusicSearched(false);
       setRoomYoutubeResults(res.data);
     } finally {
@@ -2262,13 +2252,16 @@ export default function RoomPage() {
 
               <button
                 className="room-refresh-btn"
-                onClick={
-                  activeCategory === "SHORT"
-                    ? loadTamilReels
-                    : activeCategory === "MUSIC"
-                      ? loadTamilMusic
-                      : loadTamilMovies
-                }
+                onClick={() => {
+                  if (movieSearch.trim().length >= 3) {
+                    searchYoutubeInsideRoom(movieSearch.trim());
+                    return;
+                  }
+
+                  if (activeCategory === "SHORT") loadTamilReels();
+                  else if (activeCategory === "MUSIC") loadTamilMusic(true);
+                  else loadTamilMovies(true);
+                }}
               >
                 🔄
               </button>
@@ -2280,7 +2273,7 @@ export default function RoomPage() {
               Back
             </button>
           </div>
-          {searchSuggestions.length > 0 && (
+          {/* {searchSuggestions.length > 0 && (
             <div className="youtube-like-suggestions">
               {searchSuggestions.map((item, index) => (
                 <button
@@ -2308,7 +2301,7 @@ export default function RoomPage() {
                 </button>
               ))}
             </div>
-          )}
+          )} */}
         </div>
       </div>
       {copyMessage && (

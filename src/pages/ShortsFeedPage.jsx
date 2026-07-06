@@ -223,53 +223,25 @@ const res = await API.get("/youtube/shorts-feed", {
     }));
   };
 
-  const handleSearchTyping = (value) => {
-    setSearch(value);
-    clearTimeout(suggestionTimerRef.current);
+ const handleSearchTyping = (value) => {
+  setSearch(value);
+  clearTimeout(suggestionTimerRef.current);
 
-    if (!value.trim() || value.trim().length < 3) {
-      setSearchSuggestions([]);
-      return;
-    }
+  const q = value.trim();
 
-    suggestionTimerRef.current = setTimeout(async () => {
-      try {
-        const res = await API.get("/youtube/suggestions", {
-          params: {
-            q: `${value} reels shorts`,
-            category: "SHORT",
-          },
-        });
+  if (q.length < 3) {
+    setSearchSuggestions([]);
+    loadedIdsRef.current = new Set();
+    loadTamilShorts("", false);
+    return;
+  }
 
-        const cleanTitle = (title) => {
-          return title
-            .replace(/#\S+/g, "")
-            .replace(/\|.*/g, "")
-            .replace(/-.*/g, "")
-            .replace(/\bshorts?\b/gi, "")
-            .replace(/\breels?\b/gi, "")
-            .replace(/\btamil\b/gi, "")
-            .replace(/\s+/g, " ")
-            .trim();
-        };
-
-        const suggestions = res.data
-          .filter(isValidReel)
-          .filter((item) => item?.title)
-          .map((item) => ({
-            title: cleanTitle(item.title),
-            originalTitle: item.title,
-            thumbnail: item.thumbnail,
-          }))
-          .filter((item) => item.title.length > 3)
-          .slice(0, 8);
-
-        setSearchSuggestions(suggestions);
-      } catch {
-        setSearchSuggestions([]);
-      }
-    }, 1000);
-  };
+  suggestionTimerRef.current = setTimeout(() => {
+    setSearchSuggestions([]);
+    loadedIdsRef.current = new Set();
+    loadTamilShorts(`${q} reels shorts`, false);
+  }, 400);
+};
 
   return (
     <div className="page shorts-feed-page">
@@ -288,25 +260,44 @@ const res = await API.get("/youtube/shorts-feed", {
         </div>
 
         <div className="shorts-search-box">
-          <button className="search-icon-btn" onClick={() => loadTamilShorts()}>
-            🔍
-          </button>
+          <button
+  className="search-icon-btn"
+  onClick={() => {
+    if (search.trim().length >= 3) {
+      loadedIdsRef.current = new Set();
+      loadTamilShorts(`${search.trim()} reels shorts`, false);
+    } else {
+      loadedIdsRef.current = new Set();
+      loadTamilShorts("", false);
+    }
+  }}
+>
+  🔍
+</button>
 
-          <input
-            value={search}
-            onChange={(e) => handleSearchTyping(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") loadTamilShorts();
-            }}
-            placeholder="Search Tamil reels..."
-          />
+<input
+  value={search}
+  onChange={(e) => handleSearchTyping(e.target.value)}
+  placeholder="Search Tamil reels..."
+/>
 
-          <button className="refresh-btn" onClick={() => loadTamilShorts()}>
-            🔄
-          </button>
+<button
+  className="refresh-btn"
+  onClick={() => {
+    loadedIdsRef.current = new Set();
+
+    if (search.trim().length >= 3) {
+      loadTamilShorts(`${search.trim()} reels shorts`, false);
+    } else {
+      loadTamilShorts("", false);
+    }
+  }}
+>
+  🔄
+</button>
         </div>
 
-        {searchSuggestions.length > 0 && (
+        {/* {searchSuggestions.length > 0 && (
           <div className="youtube-like-suggestions">
             {searchSuggestions.map((item, index) => (
               <button
@@ -331,7 +322,7 @@ const res = await API.get("/youtube/shorts-feed", {
               </button>
             ))}
           </div>
-        )}
+        )} */}
       </div>
 
       {loading && shorts.length === 0 && (

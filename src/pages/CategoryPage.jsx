@@ -201,16 +201,16 @@ export default function CategoryPage({ category }) {
                 return true;
             });
 
-           setYoutubeResults((prev) => {
-    if (!append) return fresh;
+            setYoutubeResults((prev) => {
+                if (!append) return fresh;
 
-    const ids = new Set(prev.map(v => v.videoId));
+                const ids = new Set(prev.map(v => v.videoId));
 
-    return [
-        ...prev,
-        ...fresh.filter(v => !ids.has(v.videoId))
-    ];
-});
+                return [
+                    ...prev,
+                    ...fresh.filter(v => !ids.has(v.videoId))
+                ];
+            });
         } catch (err) {
             setAlertMessage(
                 err.response?.data?.message || "Unable to discover content."
@@ -222,37 +222,18 @@ export default function CategoryPage({ category }) {
     };
     const handleSearchTyping = (value) => {
         setSearch(value);
-
         clearTimeout(suggestionTimerRef.current);
 
-        if (!value.trim() || value.trim().length < 3) {
-            setSearchSuggestions([]);
+        const q = value.trim();
+
+        if (q.length < 3) {
+            setYoutubeResults([]);
             return;
         }
 
-        suggestionTimerRef.current = setTimeout(async () => {
-            try {
-                const res = await API.get("/youtube/suggestions", {
-                    params: {
-                        q: value,
-                        category,
-                    },
-                });
-
-                const suggestions = res.data
-                    .slice(0, 100)
-                    .filter(item => item?.title)
-                    .map(item => ({
-                        title: item.title,
-                        thumbnail: item.thumbnail
-                    }));
-
-                setSearchSuggestions(suggestions);
-
-            } catch {
-                setSearchSuggestions([]);
-            }
-        }, 1000);
+        suggestionTimerRef.current = setTimeout(() => {
+            searchYoutube(q);
+        }, 400);
     };
 
     const searchYoutube = async (customSearch = "") => {
@@ -358,20 +339,23 @@ export default function CategoryPage({ category }) {
                     <input
                         value={search}
                         onChange={(e) => handleSearchTyping(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter") searchYoutube();
-                        }}
                         placeholder={config.placeholder}
                     />
 
                     <button
                         className="category-refresh-icon-btn"
-                        onClick={discoverContent}
+                        onClick={() => {
+                            if (search.trim().length >= 3) {
+                                searchYoutube(search.trim());
+                            } else {
+                                discoverContent();
+                            }
+                        }}
                     >
                         🔄
                     </button>
                 </div>
-                {searchSuggestions.length > 0 && (
+                {/* {searchSuggestions.length > 0 && (
                     <div className="youtube-like-suggestions">
                         {searchSuggestions.map((item, index) => (
                             <button
@@ -399,7 +383,7 @@ export default function CategoryPage({ category }) {
                             </button>
                         ))}
                     </div>
-                )}
+                )} */}
 
             </div>
 
