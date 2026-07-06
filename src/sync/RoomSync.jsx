@@ -70,3 +70,31 @@ export const buildCategorySyncPayload = ({ roomCode, userName, clientId, categor
   currentTime: 0,
   playbackRate: 1,
 });
+
+export const buildSyncResponsePayload = ({
+  roomCode,
+  targetUser,
+  targetClientId,
+  userName,
+  clientId,
+  currentMovie,
+  currentCategory,
+  currentTime = 0,
+  playbackRate = 1,
+  playing = false,
+}) => ({
+  roomCode,
+  action: "SYNC_RESPONSE",
+  targetUser,
+  targetClientId,
+  userName,
+  clientId,
+  youtubeVideoId: currentMovie?.youtube ? currentMovie.videoUrl : null,
+  youtubeTitle: currentMovie?.groupTitle || "",
+  youtubeThumbnail: currentMovie?.youtubeThumbnail || "",
+  movieId: currentMovie && !currentMovie.youtube ? currentMovie.id : null,
+  category: currentCategory || "MOVIE",
+  currentTime,
+  playbackRate,
+  playing,
+});
