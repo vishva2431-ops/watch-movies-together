@@ -66,6 +66,8 @@ export default function RoomPage() {
   const suppressPlayerStateSyncRef = useRef(false);
   const lastRemoteSeekAtRef = useRef(0);
   const roomUserMapRef = useRef(new Map());
+  const reconnectTimerRef = useRef(null);
+  const isUnmountingRef = useRef(false);
 
 
   const [selectedMovie, setSelectedMovie] = useState(null);
@@ -80,6 +82,7 @@ export default function RoomPage() {
   const [currentTime, setCurrentTime] = useState(0);
   const [showUsers, setShowUsers] = useState(false);
   const [roomUsers, setRoomUsers] = useState([]);
+  const [roomHostName, setRoomHostName] = useState("");
   const [showDuration, setShowDuration] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [shortsFeed, setShortsFeed] = useState([]);
@@ -174,6 +177,8 @@ export default function RoomPage() {
     loadYouTubeScript();
 
     return () => {
+      isUnmountingRef.current = true;
+      clearTimeout(reconnectTimerRef.current);
       sendUserLeave();
 
       clearTimeout(singleTapTimerRef.current);
@@ -203,6 +208,29 @@ export default function RoomPage() {
     activeCategoryRef.current = activeCategory;
   }, [activeCategory]);
 
+  useEffect(() => {
+    const handleOnline = () => {
+      if (!stompClientRef.current?.connected && !isUnmountingRef.current) {
+        console.log("Internet restored. Reconnecting socket...");
+        connectSocket();
+      }
+    };
+
+    window.addEventListener("online", handleOnline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+    };
+  }, []);
+
+useEffect(() => {
+  if (activeCategory !== "SHORT") return;
+
+  const feed = shortsFeed.length > 0 ? shortsFeed : roomYoutubeResults;
+  preloadShortThumbnails(feed, shortIndex);
+}, [shortIndex, shortsFeed, roomYoutubeResults, activeCategory]);
+
+
   const resetRoomListsForCategory = (category) => {
     setRoomYoutubeResults([]);
     setShortsFeed([]);
@@ -227,6 +255,11 @@ export default function RoomPage() {
   const applyCategoryOnlySync = (category = "MOVIE") => {
     const safeCategory = category || "MOVIE";
     setActiveCategory(safeCategory);
+    document.body.classList.add("category-switching");
+
+    setTimeout(() => {
+      document.body.classList.remove("category-switching");
+    }, 250);
     activeCategoryRef.current = safeCategory;
     setSelectedMovie(null);
     selectedMovieRef.current = null;
@@ -268,7 +301,7 @@ export default function RoomPage() {
     if (Math.abs(e.deltaY) < 10) return;
 
     const now = Date.now();
-    if (now - lastShortScrollRef.current < 200) return;
+    if (now - lastShortScrollRef.current < 90) return;
 
     lastShortScrollRef.current = now;
 
@@ -338,6 +371,7 @@ export default function RoomPage() {
     try {
       const res = await API.get(`/rooms/${roomCode}`);
       const roomData = res.data;
+      setRoomHostName(roomData.hostName || "");
       if (!roomData.movie && !roomData.youtubeVideoId && roomData.category === "SHORT") {
         setActiveCategory("SHORT");
         loadTamilReels();
@@ -653,13 +687,32 @@ export default function RoomPage() {
   };
 
   const connectSocket = () => {
+    if (stompClientRef.current?.connected) return;
+
     const socket = new SockJS(`${API_BASE_URL}/ws`);
     const client = Stomp.over(socket);
 
     client.debug = () => { };
 
+    socket.onclose = () => {
+      console.log("Socket disconnected");
+
+      if (isUnmountingRef.current) return;
+
+      clearTimeout(reconnectTimerRef.current);
+
+      reconnectTimerRef.current = setTimeout(() => {
+        if (navigator.onLine && !stompClientRef.current?.connected) {
+          console.log("Trying to reconnect socket...");
+          connectSocket();
+        }
+      }, 2000);
+    };
+
     client.connect({}, () => {
       stompClientRef.current = client;
+      clearTimeout(reconnectTimerRef.current);
+      isUnmountingRef.current = false;
 
       client.subscribe(`/topic/room/${roomCode}`, async (message) => {
         const data = JSON.parse(message.body);
@@ -1337,17 +1390,17 @@ export default function RoomPage() {
 
       } else {
 
-        if (screen.orientation?.unlock) {
-          try {
-            screen.orientation.unlock();
-          } catch (err) {
-            console.log("Orientation unlock not supported");
-          }
-        }
+     await document.exitFullscreen();
 
-        await document.exitFullscreen();
+if (screen.orientation?.lock) {
+  try {
+    await screen.orientation.lock("portrait");
+  } catch (err) {
+    console.log("Portrait lock not supported");
+  }
+}
 
-        setIsFullscreen(false);
+setIsFullscreen(false);
       }
 
     } catch (err) {
@@ -1396,6 +1449,23 @@ export default function RoomPage() {
 
     localStorage.setItem("visionArcSeenReels", JSON.stringify(unique));
   };
+
+  const preloadShortThumbnails = (feed, currentIndex) => {
+  if (!feed || feed.length === 0) return;
+
+  const nextItems = [
+    feed[currentIndex + 1],
+    feed[currentIndex + 2],
+    feed[currentIndex + 3],
+  ].filter(Boolean);
+
+  nextItems.forEach((item) => {
+    if (item?.thumbnail) {
+      const img = new Image();
+      img.src = item.thumbnail;
+    }
+  });
+};
 
   const nextShort = () => {
     const feed = shortsFeed.length > 0 ? shortsFeed : roomYoutubeResults;
@@ -2326,7 +2396,10 @@ export default function RoomPage() {
           {!selectedMovie ? (
             <div className="room-grid-area">
               {roomYoutubeLoading ? (
-                <div className="empty-room-box">Loading...</div>
+                <div className="page-loader">
+                  <div className="loader"></div>
+                  <span>Loading...</span>
+                </div>
               ) : roomYoutubeResults.length > 0 ? (
                 <div className="room-content-grid">
                   {roomYoutubeResults.map((video, index) => (
@@ -2693,6 +2766,7 @@ export default function RoomPage() {
               roomUsers.map((user, index) => (
                 <div key={index} className="user-row">
                   👤 {user}
+                  {user === roomHostName && <span className="host-badge"> 👑 Host</span>}
                 </div>
               ))
             )}

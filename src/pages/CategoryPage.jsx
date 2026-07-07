@@ -34,6 +34,7 @@ export default function CategoryPage({ category }) {
     const [loading, setLoading] = useState(false);
     const [alertMessage, setAlertMessage] = useState("");
     const [searchSuggestions, setSearchSuggestions] = useState([]);
+    // const [loading, setLoading] = useState(false);
 
 
     const suggestionTimerRef = useRef(null);
@@ -78,14 +79,18 @@ export default function CategoryPage({ category }) {
             const nearBottom =
                 window.innerHeight + window.scrollY >= document.body.offsetHeight - 700;
 
-            if (nearBottom) {
+            if (!nearBottom || loadingMoreRef.current) return;
+
+            if (search.trim().length >= 3) {
+                searchYoutube(search.trim(), true);
+            } else {
                 discoverContent(true);
             }
         };
 
         window.addEventListener("scroll", handleScroll);
         return () => window.removeEventListener("scroll", handleScroll);
-    }, [category]);
+    }, [category, search]);
 
     const adminVideos = useMemo(() => {
         const value = search.toLowerCase();
@@ -236,7 +241,7 @@ export default function CategoryPage({ category }) {
         }, 400);
     };
 
-    const searchYoutube = async (customSearch = "") => {
+    const searchYoutube = async (customSearch = "", append = false) => {
         const finalSearch = customSearch.trim() || search.trim();
 
         if (!finalSearch) {
@@ -244,13 +249,21 @@ export default function CategoryPage({ category }) {
             return;
         }
 
+        if (loadingMoreRef.current) return;
+
         try {
+            loadingMoreRef.current = true;
             setLoading(true);
+
+            if (!append) {
+                loadedVideoIdsRef.current = new Set();
+            }
 
             const res = await API.get("/youtube/search", {
                 params: {
                     q: finalSearch,
                     category,
+                    fresh: append ? Date.now() : undefined,
                 },
             });
 
@@ -268,16 +281,35 @@ export default function CategoryPage({ category }) {
                 return a.title.localeCompare(b.title);
             });
 
-            setYoutubeResults(sortedResults);
+            const freshResults = sortedResults.filter((video) => {
+                if (!video?.videoId) return false;
+                if (loadedVideoIdsRef.current.has(video.videoId)) return false;
+
+                loadedVideoIdsRef.current.add(video.videoId);
+                return true;
+            });
+
+            setYoutubeResults((prev) => {
+                if (!append) return freshResults;
+
+                const ids = new Set(prev.map((v) => v.videoId));
+                return [...prev, ...freshResults.filter((v) => !ids.has(v.videoId))];
+            });
 
         } catch (err) {
-            console.error(err);
-            setAlertMessage(
-                err.response?.data?.message ||
-                "Unable to load YouTube results. Please try again."
-            );
+            console.error("YouTube Search Error:", err);
+
+            if (!navigator.onLine) {
+                setAlertMessage("📶 No internet connection.");
+            } else {
+                setAlertMessage(
+                    err.response?.data?.message ||
+                    "Unable to load videos. Please try again."
+                );
+            }
         } finally {
             setLoading(false);
+            loadingMoreRef.current = false;
         }
     };
 
@@ -346,7 +378,7 @@ export default function CategoryPage({ category }) {
                         className="category-refresh-icon-btn"
                         onClick={() => {
                             if (search.trim().length >= 3) {
-                                searchYoutube(search.trim());
+                                searchYoutube(search.trim(), false);
                             } else {
                                 discoverContent();
                             }
@@ -411,6 +443,13 @@ export default function CategoryPage({ category }) {
                         ))}
                     </div>
                 </>
+            )}
+
+            {loading && (
+                <div className="page-loader">
+                    <div className="loader"></div>
+                    <span>Loading...</span>
+                </div>
             )}
             {/* <h2 className="section-title">Admin Uploaded {config.title}</h2>
 

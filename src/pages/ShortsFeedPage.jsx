@@ -107,6 +107,15 @@ export default function ShortsFeedPage() {
     return !blocked && (allowed || video.category === "SHORT");
   };
 
+  const preloadThumbnails = (items = []) => {
+    items.slice(0, 6).forEach((item) => {
+      if (item?.thumbnail) {
+        const img = new Image();
+        img.src = item.thumbnail;
+      }
+    });
+  };
+
   const loadTamilShorts = async (customSearch = "", append = false) => {
     try {
       if (loadingMoreRef.current) return;
@@ -185,6 +194,8 @@ export default function ShortsFeedPage() {
         const j = Math.floor(Math.random() * (i + 1));
         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
       }
+
+      preloadThumbnails(shuffled);
 
       if (append) {
         setShorts((prev) => [...prev, ...shuffled]);
@@ -328,7 +339,10 @@ export default function ShortsFeedPage() {
       </div>
 
       {loading && shorts.length === 0 && (
-        <p className="empty-state">Loading latest reels...</p>
+        <div className="page-loader">
+          <div className="loader"></div>
+          <span>Loading latest reels...</span>
+        </div>
       )}
 
       {!loading && shorts.length === 0 && (
@@ -360,7 +374,10 @@ export default function ShortsFeedPage() {
       </div>
 
       {loading && shorts.length > 0 && (
-        <p className="empty-state">Loading more reels...</p>
+        <div className="page-loader">
+          <div className="loader"></div>
+          <span>Loading more reels...</span>
+        </div>
       )}
 
       {showPopup && (
