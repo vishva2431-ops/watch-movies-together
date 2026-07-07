@@ -18873,3 +18873,61 @@ video,
 iframe {
   max-width: 100%;
 }
+
+/* Shorts card bottom actions fix */
+.shorts-feed-page .reel-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+.shorts-feed-page .reel-overlay {
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  top: auto !important;
+  bottom: 0 !important;
+  z-index: 5 !important;
+
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: flex-end !important;
+  gap: 8px;
+
+  padding: 34px 9px 8px;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.85),
+    rgba(0, 0, 0, 0.35),
+    transparent
+  );
+}
+
+.shorts-feed-page .reel-overlay button {
+  width: 32px !important;
+  height: 32px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  background: rgba(0, 0, 0, 0.45) !important;
+  color: white !important;
+  font-size: 16px !important;
+}
+
+.shorts-feed-page .reel-overlay span {
+  padding: 5px 8px !important;
+  border-radius: 999px !important;
+  background: rgba(0, 0, 0, 0.45) !important;
+  color: white !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+}
+
+.shorts-feed-page .reel-title {
+  bottom: 38px !important;
+  z-index: 6 !important;
+  padding: 0 9px !important;
+  font-size: 11px !important;
+  line-height: 1.25 !important;
+  max-height: 28px !important;
+  opacity: 1 !important;
+}
