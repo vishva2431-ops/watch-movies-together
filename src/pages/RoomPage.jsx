@@ -223,12 +223,12 @@ export default function RoomPage() {
     };
   }, []);
 
-useEffect(() => {
-  if (activeCategory !== "SHORT") return;
+  useEffect(() => {
+    if (activeCategory !== "SHORT") return;
 
-  const feed = shortsFeed.length > 0 ? shortsFeed : roomYoutubeResults;
-  preloadShortThumbnails(feed, shortIndex);
-}, [shortIndex, shortsFeed, roomYoutubeResults, activeCategory]);
+    const feed = shortsFeed.length > 0 ? shortsFeed : roomYoutubeResults;
+    preloadShortThumbnails(feed, shortIndex);
+  }, [shortIndex, shortsFeed, roomYoutubeResults, activeCategory]);
 
 
   const resetRoomListsForCategory = (category) => {
@@ -478,6 +478,25 @@ useEffect(() => {
     window.onYouTubeIframeAPIReady = () => setPlayerReady(true);
   };
 
+  const forcePlayShort = () => {
+    if (activeCategoryRef.current !== "SHORT") return;
+
+    suppressPlayerStateSyncRef.current = true;
+
+    setTimeout(() => {
+      playerRef.current?.seekTo?.(0, true);
+      playerRef.current?.unMute?.();
+      playerRef.current?.setVolume?.(100);
+      playerRef.current?.setPlaybackRate?.(1);
+      playerRef.current?.playVideo?.();
+      setPlaying(true);
+
+      setTimeout(() => {
+        suppressPlayerStateSyncRef.current = false;
+      }, 800);
+    }, 450);
+  };
+
   const createOrUpdatePlayer = (movie) => {
     const videoId = extractYouTubeId(movie.videoUrl) || movie.videoUrl;
     if (!videoId || !window.YT?.Player) return;
@@ -496,7 +515,9 @@ useEffect(() => {
         setTimeout(() => {
           playerRef.current?.seekTo?.(savedState.currentTime || 0, true);
           playerRef.current?.setPlaybackRate?.(savedState.playbackRate || 1);
-          if (savedState.action === "PAUSE") {
+          if (activeCategoryRef.current === "SHORT") {
+            forcePlayShort();
+          } else if (savedState.action === "PAUSE") {
             playerRef.current?.pauseVideo?.();
           } else {
             playerRef.current?.playVideo?.();
@@ -524,11 +545,7 @@ useEffect(() => {
             playerRef.current = event.target;
 
             if (activeCategoryRef.current === "SHORT") {
-              setTimeout(() => {
-                playerRef.current?.unMute?.();
-                playerRef.current?.setVolume?.(100);
-                playerRef.current?.playVideo?.();
-              }, 500);
+              forcePlayShort();
             }
 
             setPlayerReady(true);
@@ -596,6 +613,22 @@ useEffect(() => {
       });
     }, 150);
   };
+
+  // const handleReelTap = (e) => {
+  //   if (activeCategoryRef.current !== "SHORT") return;
+  //   e.stopPropagation();
+
+  //   const state = playerRef.current?.getPlayerState?.();
+
+  //   if (state === window.YT.PlayerState.PLAYING) {
+  //     playerRef.current?.pauseVideo?.();
+  //     setPlaying(false);
+  //   } else {
+  //     playerRef.current?.playVideo?.();
+  //     setPlaying(true);
+  //   }
+  // };
+
 
   const addRoomUser = (name, clientId = name) => {
     if (!name || !clientId) return;
@@ -1259,39 +1292,45 @@ useEffect(() => {
     }, 4000);
   };
 
-  const handleVideoTap = (e) => {
-    if (isHoldingRef.current) return;
+ const handleVideoTap = (e) => {
+  if (isHoldingRef.current) return;
 
-    showDurationTemporarily();
+  showDurationTemporarily();
 
-    const now = Date.now();
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clientX = e.clientX || e.changedTouches?.[0]?.clientX || 0;
-    const x = clientX - rect.left;
+  const now = Date.now();
+  const rect = e.currentTarget.getBoundingClientRect();
+  const clientX = e.clientX || e.changedTouches?.[0]?.clientX || 0;
+  const x = clientX - rect.left;
 
-    const isDoubleTap = now - lastTapRef.current < 300;
+  const isDoubleTap = now - lastTapRef.current < 300;
 
-    clearTimeout(singleTapTimerRef.current);
+  clearTimeout(singleTapTimerRef.current);
 
-    if (isDoubleTap) {
-      lastTapRef.current = 0;
+  if (isDoubleTap) {
+    lastTapRef.current = 0;
 
-      if (x < rect.width * 0.35) {
-        backward10();
-      } else if (x > rect.width * 0.65) {
-        forward10();
-      }
-
-      return;
+    if (x < rect.width * 0.35) {
+      backward10();
+    } else if (x > rect.width * 0.65) {
+      forward10();
     }
 
-    lastTapRef.current = now;
+    return;
+  }
 
-    singleTapTimerRef.current = setTimeout(() => {
+  lastTapRef.current = now;
+
+  singleTapTimerRef.current = setTimeout(() => {
+    if (activeCategoryRef.current === "SHORT") {
+      togglePlay();
+    } else {
       showDurationTemporarily();
-      lastTapRef.current = 0;
-    }, 300);
-  };
+    }
+
+    lastTapRef.current = 0;
+  }, 300);
+};
+
   const handleHoldStart = () => {
     isHoldingRef.current = false;
 
@@ -1390,17 +1429,17 @@ useEffect(() => {
 
       } else {
 
-     await document.exitFullscreen();
+        await document.exitFullscreen();
 
-if (screen.orientation?.lock) {
-  try {
-    await screen.orientation.lock("portrait");
-  } catch (err) {
-    console.log("Portrait lock not supported");
-  }
-}
+        if (screen.orientation?.lock) {
+          try {
+            await screen.orientation.lock("portrait");
+          } catch (err) {
+            console.log("Portrait lock not supported");
+          }
+        }
 
-setIsFullscreen(false);
+        setIsFullscreen(false);
       }
 
     } catch (err) {
@@ -1451,21 +1490,21 @@ setIsFullscreen(false);
   };
 
   const preloadShortThumbnails = (feed, currentIndex) => {
-  if (!feed || feed.length === 0) return;
+    if (!feed || feed.length === 0) return;
 
-  const nextItems = [
-    feed[currentIndex + 1],
-    feed[currentIndex + 2],
-    feed[currentIndex + 3],
-  ].filter(Boolean);
+    const nextItems = [
+      feed[currentIndex + 1],
+      feed[currentIndex + 2],
+      feed[currentIndex + 3],
+    ].filter(Boolean);
 
-  nextItems.forEach((item) => {
-    if (item?.thumbnail) {
-      const img = new Image();
-      img.src = item.thumbnail;
-    }
-  });
-};
+    nextItems.forEach((item) => {
+      if (item?.thumbnail) {
+        const img = new Image();
+        img.src = item.thumbnail;
+      }
+    });
+  };
 
   const nextShort = () => {
     const feed = shortsFeed.length > 0 ? shortsFeed : roomYoutubeResults;
@@ -1834,14 +1873,44 @@ setIsFullscreen(false);
       setRoomYoutubeLoading(true);
 
       const queries = [
-        "tamil love reels",
-        "tamil couple reels",
-        "tamil friendship reels",
-        "tamil food vlog shorts",
-        "tamil travel vlog shorts",
-        "tamil comedy reels",
-        "tamil couple vlog shorts"
-      ];
+  "Manikandan YT shorts",
+  "Manikandan YT tamil reels",
+  "Manikandan YT latest shorts",
+
+  "Kaathadi Club shorts",
+  "Kaathadi Club tamil reels",
+  "Kaathadi Club comedy shorts",
+
+  "Shiva Entertainer shorts",
+  "Shiva Entertainer tamil reels",
+  "Shiva Entertainer comedy shorts",
+
+  "The Content Hub shorts",
+  "The Content Hub tamil reels",
+  "The Content Hub latest shorts",
+
+  "Mallesh Kannan shorts",
+  "Mallesh Kannan tamil reels",
+
+  "VJ Siddhu shorts",
+  "VJ Siddhu latest reels",
+  "VJ Siddhu comedy shorts",
+
+  "Eruma Saani shorts",
+  "Black Sheep Tamil shorts",
+  "Parithabangal latest shorts",
+  "Gopi Sudhakar shorts",
+
+  "latest tamil love reels shorts",
+  "latest tamil couple reels shorts",
+  "latest tamil friendship reels shorts",
+  "latest tamil comedy reels shorts",
+  "new viral love reels shorts tamil",
+
+  "english love reels shorts",
+  "couple goals shorts tamil",
+  "tamil romantic couple shorts"
+];
 
       const randomQuery =
         queries[Math.floor(Math.random() * queries.length)];

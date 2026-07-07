@@ -124,22 +124,44 @@ export default function ShortsFeedPage() {
       setLoading(true);
 
       const mixedQueries = [
-        "latest tamil love reels shorts",
-        "latest tamil couple reels shorts",
-        "latest tamil romantic reels shorts",
-        "latest tamil relationship reels shorts",
-        "latest tamil love status shorts",
-        "latest english love reels shorts",
-        "latest couple reels shorts with tamil songs",
-        "latest tamil friendship reels shorts",
-        "latest tamil comedy reels shorts",
-        "latest tamil funny reels shorts",
-        "new viral love reels shorts tamil",
-        "new trending couple reels shorts tamil",
-        "latest tamil content creator shorts reels",
-        "malleshkannan",
-        "kathadi club"
-      ];
+  "Manikandan YT shorts",
+  "Manikandan YT tamil reels",
+  "Manikandan YT latest shorts",
+
+  "Kaathadi Club shorts",
+  "Kaathadi Club tamil reels",
+  "Kaathadi Club comedy shorts",
+
+  "Shiva Entertainer shorts",
+  "Shiva Entertainer tamil reels",
+  "Shiva Entertainer comedy shorts",
+
+  "The Content Hub shorts",
+  "The Content Hub tamil reels",
+  "The Content Hub latest shorts",
+
+  "Mallesh Kannan shorts",
+  "Mallesh Kannan tamil reels",
+
+  "VJ Siddhu shorts",
+  "VJ Siddhu latest reels",
+  "VJ Siddhu comedy shorts",
+
+  "Eruma Saani shorts",
+  "Black Sheep Tamil shorts",
+  "Parithabangal latest shorts",
+  "Gopi Sudhakar shorts",
+
+  "latest tamil love reels shorts",
+  "latest tamil couple reels shorts",
+  "latest tamil friendship reels shorts",
+  "latest tamil comedy reels shorts",
+  "new viral love reels shorts tamil",
+
+  "english love reels shorts",
+  "couple goals shorts tamil",
+  "tamil romantic couple shorts"
+];
 
       const randomQuery =
         mixedQueries[Math.floor(Math.random() * mixedQueries.length)];
