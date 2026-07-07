@@ -2002,7 +2002,7 @@ export default function RoomPage() {
 
       const q = customQuery.toLowerCase();
 
-      let queries = creatorQueries;
+      let selectedQueries = queries;
 
       if (q.includes("love") || q.includes("crush") || q.includes("couple")) {
         queries = [...loveQueries, ...creatorQueries];
