@@ -204,7 +204,7 @@ export default function CategoryPage({ category }) {
                 params: {
                     q: query,
                     category,
-                    // fresh: Date.now(),
+                    fresh: Date.now(),
                 },
             });
 
@@ -243,7 +243,8 @@ export default function CategoryPage({ category }) {
         const q = value.trim();
 
         if (q.length < 3) {
-            setYoutubeResults([]);
+            loadedVideoIdsRef.current = new Set();
+            discoverContent(false);
             return;
         }
 
