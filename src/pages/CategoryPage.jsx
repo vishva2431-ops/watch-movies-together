@@ -216,11 +216,12 @@ export default function CategoryPage({ category }) {
                     ...fresh.filter(v => !ids.has(v.videoId))
                 ];
             });
-        } catch (err) {
-            setAlertMessage(
-                err.response?.data?.message || "Unable to discover content."
-            );
-        } finally {
+         } catch (err) {
+    console.error("Discover content error:", err);
+
+    // Don't disturb user with popup on auto-discover failure
+    setYoutubeResults([]);
+} finally {
             setLoading(false);
             loadingMoreRef.current = false;
         }
