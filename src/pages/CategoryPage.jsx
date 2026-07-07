@@ -137,23 +137,24 @@ export default function CategoryPage({ category }) {
     const discoverContent = async (append = false) => {
         const queries = {
             MOVIE: [
-                "latest tamil full movie",
-                "new tamil full movie",
-                "latest tamil dubbed movie",
-                "latest tamil dubbed full movie",
-                "latest hollywood tamil dubbed movie",
-                "latest tamil web series",
-                "latest tamil dubbed web series",
-                "latest hollywood web series tamil dubbed",
                 "latest tamil movie trailer",
-                "latest tamil movie teaser",
-                "newly released tamil trailer",
-                "newly released tamil teaser",
+                "latest tamil teaser",
+                "new tamil movie",
+                "latest netflix tamil",
+                "amazon prime tamil movie",
+                "latest disney hotstar tamil",
+                "latest tamil web series",
+                "latest investigation thriller tamil",
+                "latest action movie tamil",
+                "latest romantic movie tamil",
+                "latest comedy movie tamil",
+                "latest hollywood tamil dubbed",
+                "latest korean drama tamil dubbed",
+                "latest anime tamil dubbed",
                 "latest tamil vlog",
-                "latest tamil food vlog",
-                "latest tamil travel vlog",
-                "vj siddhu latest vlog",
-                "irfan view latest vlog"
+                "latest irfan view",
+                "latest vj siddhu vlog",
+                "latest black sheep video"
             ],
             MUSIC: [
                 "latest tamil songs official music video",
@@ -179,6 +180,11 @@ export default function CategoryPage({ category }) {
             ]
         };
 
+        // const query =
+        //     category === "MUSIC"
+        //         ? musicQueries[Math.floor(Math.random() * musicQueries.length)]
+        //         : movieQueries[Math.floor(Math.random() * movieQueries.length)];
+
         if (loadingMoreRef.current) return;
 
         loadingMoreRef.current = true;
@@ -195,7 +201,11 @@ export default function CategoryPage({ category }) {
             }
 
             const res = await API.get("/youtube/cached-discover", {
-                params: { q: query, category },
+                params: {
+                    q: query,
+                    category,
+                    // fresh: Date.now(),
+                },
             });
 
             const fresh = res.data.filter((video) => {
@@ -216,12 +226,12 @@ export default function CategoryPage({ category }) {
                     ...fresh.filter(v => !ids.has(v.videoId))
                 ];
             });
-         } catch (err) {
-    console.error("Discover content error:", err);
+        } catch (err) {
+            console.error("Discover content error:", err);
 
-    // Don't disturb user with popup on auto-discover failure
-    setYoutubeResults([]);
-} finally {
+            // Don't disturb user with popup on auto-discover failure
+            setYoutubeResults([]);
+        } finally {
             setLoading(false);
             loadingMoreRef.current = false;
         }
