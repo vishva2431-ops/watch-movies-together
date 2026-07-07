@@ -166,16 +166,25 @@ export default function ShortsFeedPage() {
 
       // const seenReels = getSeenReels();
 
-      let cleanReels = res.data
-        .filter(isValidReel)
-        .filter((video) => video?.videoId)
-        .filter((video) => {
-          if (loadedIdsRef.current.has(video.videoId)) return false;
-          if (seenReels.includes(video.videoId)) return false;
+     let cleanReels = res.data
+  .filter((video) => video?.videoId)
+  .filter((video) => {
+    if (loadedIdsRef.current.has(video.videoId)) return false;
 
-          loadedIdsRef.current.add(video.videoId);
-          return true;
-        });
+    loadedIdsRef.current.add(video.videoId);
+    return true;
+  });
+
+if (cleanReels.length === 0 && !append) {
+  localStorage.removeItem(REEL_HISTORY_KEY);
+  loadedIdsRef.current = new Set();
+
+  cleanReels = res.data
+    .filter((video) => video?.videoId)
+    .slice(0, 50);
+
+  cleanReels.forEach((video) => loadedIdsRef.current.add(video.videoId));
+}
 
       // if (cleanReels.length < 5) {
       //   cleanReels = res.data
@@ -186,7 +195,9 @@ export default function ShortsFeedPage() {
       //   cleanReels.forEach((video) => loadedIdsRef.current.add(video.videoId));
       // }
 
-      saveSeenReels(cleanReels.map((video) => video.videoId));
+      if (append) {
+  saveSeenReels(cleanReels.map((video) => video.videoId));
+}
 
       const shuffled = [...cleanReels];
 
