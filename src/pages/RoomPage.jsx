@@ -265,7 +265,14 @@ export default function RoomPage() {
     selectedMovieRef.current = null;
     resetRoomListsForCategory(safeCategory);
     sessionStorage.removeItem(`selected_${roomCode}`);
-    loadCategorySuggestions(safeCategory);
+
+    if (safeCategory === "SHORT") {
+      setTimeout(() => {
+        loadTamilReels();
+      }, 150);
+    } else {
+      loadCategorySuggestions(safeCategory);
+    }
   };
 
   useEffect(() => {

@@ -432,8 +432,8 @@ export default function CategoryPage({ category }) {
             </div>
 
             {youtubeResults.length > 0 && (
-                <>
-                    <h2 className="section-title youtube-section-title">YouTube Results</h2>
+                // <>
+                //     <h2 className="section-title youtube-section-title">YouTube Results</h2>
 
 
                     <div className="youtube-result-grid">
@@ -454,7 +454,7 @@ export default function CategoryPage({ category }) {
                             </div>
                         ))}
                     </div>
-                </>
+                // </>
             )}
 
             {loading && (
