@@ -1986,9 +1986,10 @@ export default function RoomPage() {
 
         "ismail",
 
-        "vj siddhu",
+        "vj siddhu shorts",
+        "vj siddhu reels",
 
-        "eruma saani",
+        "eruma saani shorts reels",
 
         "black sheep",
 
@@ -1996,7 +1997,7 @@ export default function RoomPage() {
 
         "gopi sudhakar",
 
-        "vijay tv",
+        "vijay tv comedy shorts",
 
         // Tamil topics
         "tamil love",
@@ -2040,7 +2041,7 @@ export default function RoomPage() {
 
       const blockedWords = [
         "trailer", "teaser", "promo", "official trailer", "official teaser",
-        "first look", "glimpse",
+        "first look", "glimpse","vlogs",
 
         "full movie", "movie review", "review", "reaction", "explained",
         "story explained", "interview", "press meet", "audio launch",
