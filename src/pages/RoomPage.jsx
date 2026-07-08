@@ -1879,261 +1879,75 @@ export default function RoomPage() {
     }
   };
 
-  const loadTamilReels = async () => {
-    try {
-      setRoomYoutubeLoading(true);
+ const loadTamilReels = async () => {
+  try {
+    setRoomYoutubeLoading(true);
 
-      const queries = [
-        "tamil love reels shorts",
-        "tamil romantic reels shorts",
-        "tamil couple love shorts",
-        "tamil crush love shorts",
-        "tamil relationship love shorts",
-        "tamil love proposal shorts",
-        "kollywood love shorts",
-        "tamil movie love scene shorts",
+    const queries = [
+      "latest tamil love reels shorts",
+      "latest tamil romantic reels shorts",
+      "latest tamil couple love shorts",
+      "latest tamil crush love shorts",
+      "latest tamil relationship love shorts",
+      "new viral love reels shorts tamil",
+      "kollywood love shorts",
+      "tamil romantic couple shorts",
 
-        "latest tamil love reels shorts",
-        "latest tamil couple reels shorts",
-        "latest tamil friendship reels shorts",
-        "latest tamil comedy reels shorts",
-        "new viral love reels shorts tamil",
+      "mabu crush shorts tamil",
+      "ismail shorts tamil",
+      "manikandan yt  shorts",
+      "mallesh kannan shorts",
+      "kaathadi club shorts",
+      "shiva entertainer shorts",
+      "the content hub shorts",
 
-        "english love reels shorts",
-        "couple goals shorts tamil",
-        "tamil romantic couple shorts",
+      "latest tamil comedy reels shorts",
+      "kaathadi club comedy shorts",
+      "shiva entertainer comedy shorts",
+      "tamil friendship reels shorts",
+      "tamil content creators #shorts #reels"
+    ];
 
-        "tamil movie love shorts",
-        "tamil movie romantic shorts",
-        "tamil movie comedy shorts",
-        "tamil movie friendship shorts",
-        "kollywood love shorts",
-        "kollywood comedy shorts",
-        "kollywood romantic shorts",
-        "tamil love scene shorts",
-        "tamil comedy scene shorts",
-        "tamil romantic scene shorts",
+    const randomQuery = queries[Math.floor(Math.random() * queries.length)];
 
-        "Manikandan YT shorts",
-        "Manikandan YT tamil reels",
-        "Manikandan YT latest shorts",
+    const res = await API.get("/youtube/shorts-feed", {
+      params: {
+        q: randomQuery,
+        category: "SHORT",
+        fresh: Date.now(),
+      },
+    });
 
-        "Kaathadi Club shorts",
-        "Kaathadi Club tamil reels",
-        "Kaathadi Club comedy shorts",
+    const blockedWords = [
+      "trailer", "teaser", "promo", "official trailer", "official teaser",
+      "glimpse", "first look", "announcement",
+      "full movie", "movie review", "review", "reaction", "explained",
+      "story explained",
+      "serial", "episode", "episodes", "web series", "webseries",
+      "news", "breaking", "interview", "press meet", "audio launch",
+      "hindi", "bollywood", "telugu", "tollywood", "malayalam",
+      "kannada", "bhojpuri", "punjabi", "urdu", "bengali", "marathi"
+    ];
 
-        "Shiva Entertainer shorts",
-        "Shiva Entertainer tamil reels",
-        "Shiva Entertainer comedy shorts",
+    const filtered = (res.data || []).filter((video) => {
+      const text = `${video.title || ""} ${video.description || ""}`.toLowerCase();
+      return video?.videoId && !blockedWords.some((word) => text.includes(word));
+    });
 
-        "The Content Hub shorts",
-        "The Content Hub tamil reels",
-        "The Content Hub latest shorts",
-
-        "Mallesh Kannan shorts",
-        "Mallesh Kannan tamil reels",
-
-        "VJ Siddhu shorts",
-        "VJ Siddhu latest reels",
-        "VJ Siddhu comedy shorts",
-
-        "mabu crush shorts",
-        "ismail shorts tamil",
-        "manikandan yt shorts",
-        "kaathadi club shorts",
-        "kaathadi club reels",
-        "shiva entertainer shorts",
-        "the content hub shorts",
-        "mallesh kannan shorts",
-        "vijay tv shorts tamil",
-        "tamil content creators shorts",
-
-        "Eruma Saani shorts",
-        "Black Sheep Tamil shorts",
-        "Parithabangal latest shorts",
-        "Gopi Sudhakar shorts",
-
-
-      ];
-
-
-      const allowedWords = [
-        "tamil movie love shorts",
-        "tamil movie comedy shorts",
-        "tamil movie friendship shorts",
-        "tamil movie romantic shorts",
-        "tamil movie scene shorts",
-
-        "kollywood love shorts",
-        "kollywood comedy shorts",
-        "kollywood romantic shorts",
-        "kollywood friendship shorts",
-
-        "tamil love scene",
-        "tamil comedy scene",
-        "tamil romantic scene",
-        "tamil friendship scene",
-
-        "tamil", "kollywood",
-
-        // Tamil identity
-        "tamil",
-        "tamizh",
-        "kollywood",
-
-        // Tamil creators
-        "manikandan yt",
-        "manikandan",
-
-        "kaathadi club",
-
-        "shiva entertainer",
-
-        "the content hub",
-
-        "mallesh kannan",
-        "mallesh",
-
-        "mabu crush",
-
-        "ismail",
-
-        "vj siddhu shorts",
-        "vj siddhu reels",
-
-        "eruma saani shorts reels",
-
-        "black sheep",
-
-        "parithabangal",
-
-        "gopi sudhakar",
-
-        "vijay tv comedy shorts",
-
-        // Tamil topics
-        "tamil love",
-        "tamil comedy",
-        "tamil friendship",
-        "tamil couple",
-        "tamil relationship",
-        "tamil funny"
-      ];
-
-      const q = customQuery.toLowerCase();
-
-      let selectedQueries = queries;
-
-      if (q.includes("love") || q.includes("crush") || q.includes("couple")) {
-        queries = [...loveQueries, ...creatorQueries];
-      } else if (q.includes("comedy") || q.includes("funny") || q.includes("cmdy")) {
-        queries = [...comedyQueries, ...creatorQueries];
-      } else if (q.includes("friend") || q.includes("friendship")) {
-        queries = [...friendshipQueries, ...creatorQueries];
-      } else {
-        queries = [
-          ...loveQueries,
-          ...comedyQueries,
-          ...friendshipQueries,
-          ...creatorQueries
-        ];
-      }
-
-      const randomQuery =
-        customQuery.trim() ||
-        queries[Math.floor(Math.random() * queries.length)];
-
-      const res = await API.get("/youtube/shorts-feed", {
-        params: {
-          q: randomQuery,
-          category: "SHORT",
-          fresh: Date.now(),
-        },
-      });
-
-      const blockedWords = [
-        "trailer", "teaser", "promo", "official trailer", "official teaser",
-        "first look", "glimpse", "vlogs",
-
-        "full movie", "movie review", "review", "reaction", "explained",
-        "story explained", "interview", "press meet", "audio launch",
-
-        "serial", "episode", "episodes", "web series", "webseries",
-        "news", "breaking", "live news", "politics",
-
-        "status", "whatsapp status", "bgm status", "lyrical",
-
-        "hindi", "bollywood", "telugu", "tollywood", "malayalam",
-        "kannada", "bhojpuri", "punjabi", "urdu", "bengali", "marathi",
-
-        "trailer", "teaser", "promo", "official trailer", "official teaser",
-        "glimpse", "first look", "review", "reaction", "explained",
-        "serial", "episode", "episodes", "web series", "webseries",
-        "news", "breaking", "interview", "press meet", "audio launch",
-        "full movie", "movie review", "whatsapp status", "bgm status",
-        "hindi", "telugu", "malayalam", "kannada", "bollywood", "tollywood"
-      ];
-
-      const tamilKeywords = [
-        "tamil",
-        "tamizh",
-        "kollywood",
-        "tamil love",
-        "tamil couple",
-        "tamil friend",
-        "tamil friendship",
-        "tamil comedy",
-      ];
-
-      const filtered = res.data.filter((video) => {
-        const text =
-          `${video.title || ""} ${video.description || ""}`.toLowerCase();
-
-        const allowed =
-          tamilKeywords.some((word) => text.includes(word));
-
-        const blocked =
-          blockedWords.some((word) => text.includes(word));
-
-        return allowed && !blocked;
-      });
-
-      const watched =
-        JSON.parse(localStorage.getItem("visionArcSeenReels")) || [];
-
-      const freshReels = filtered.filter(
-        (video) => !watched.includes(video.videoId)
-      );
-
-      // const watched =
-      //   JSON.parse(localStorage.getItem("watchedReels")) || [];
-
-      // const freshReels = filtered.filter(
-      //   (video) => !watched.includes(video.videoId)
-      // );
-
-      const finalReels =
-        freshReels.length > 0 ? freshReels : filtered;
-
-      const shuffled = [...finalReels];
-
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-      }
-
-      setRoomYoutubeResults(shuffled);
-      setShortsFeed(shuffled);
-      setShortIndex(0);
-      setSelectedMovie(null);
-      setMovieSearch("");
-
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setRoomYoutubeLoading(false);
-    }
-  };
+    setRoomYoutubeResults(filtered);
+    setShortsFeed(filtered);
+    setShortIndex(0);
+    setSelectedMovie(null);
+    selectedMovieRef.current = null;
+    setMovieSearch("");
+  } catch (err) {
+    console.error("Loading Reels error:", err);
+    setRoomYoutubeResults([]);
+    setShortsFeed([]);
+  } finally {
+    setRoomYoutubeLoading(false);
+  }
+};
 
   const goBack = () => {
     if (selectedMovie) {
