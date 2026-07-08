@@ -1884,6 +1884,36 @@ export default function RoomPage() {
       setRoomYoutubeLoading(true);
 
       const queries = [
+        "tamil love reels shorts",
+        "tamil romantic reels shorts",
+        "tamil couple love shorts",
+        "tamil crush love shorts",
+        "tamil relationship love shorts",
+        "tamil love proposal shorts",
+        "kollywood love shorts",
+        "tamil movie love scene shorts",
+
+        "latest tamil love reels shorts",
+        "latest tamil couple reels shorts",
+        "latest tamil friendship reels shorts",
+        "latest tamil comedy reels shorts",
+        "new viral love reels shorts tamil",
+
+        "english love reels shorts",
+        "couple goals shorts tamil",
+        "tamil romantic couple shorts",
+
+        "tamil movie love shorts",
+        "tamil movie romantic shorts",
+        "tamil movie comedy shorts",
+        "tamil movie friendship shorts",
+        "kollywood love shorts",
+        "kollywood comedy shorts",
+        "kollywood romantic shorts",
+        "tamil love scene shorts",
+        "tamil comedy scene shorts",
+        "tamil romantic scene shorts",
+
         "Manikandan YT shorts",
         "Manikandan YT tamil reels",
         "Manikandan YT latest shorts",
@@ -1911,6 +1941,7 @@ export default function RoomPage() {
         "ismail shorts tamil",
         "manikandan yt shorts",
         "kaathadi club shorts",
+        "kaathadi club reels",
         "shiva entertainer shorts",
         "the content hub shorts",
         "mallesh kannan shorts",
@@ -1922,26 +1953,7 @@ export default function RoomPage() {
         "Parithabangal latest shorts",
         "Gopi Sudhakar shorts",
 
-        "latest tamil love reels shorts",
-        "latest tamil couple reels shorts",
-        "latest tamil friendship reels shorts",
-        "latest tamil comedy reels shorts",
-        "new viral love reels shorts tamil",
 
-        "english love reels shorts",
-        "couple goals shorts tamil",
-        "tamil romantic couple shorts",
-
-        "tamil movie love shorts",
-        "tamil movie romantic shorts",
-        "tamil movie comedy shorts",
-        "tamil movie friendship shorts",
-        "kollywood love shorts",
-        "kollywood comedy shorts",
-        "kollywood romantic shorts",
-        "tamil love scene shorts",
-        "tamil comedy scene shorts",
-        "tamil romantic scene shorts"
       ];
 
 
@@ -2041,7 +2053,7 @@ export default function RoomPage() {
 
       const blockedWords = [
         "trailer", "teaser", "promo", "official trailer", "official teaser",
-        "first look", "glimpse","vlogs",
+        "first look", "glimpse", "vlogs",
 
         "full movie", "movie review", "review", "reaction", "explained",
         "story explained", "interview", "press meet", "audio launch",
@@ -2052,7 +2064,14 @@ export default function RoomPage() {
         "status", "whatsapp status", "bgm status", "lyrical",
 
         "hindi", "bollywood", "telugu", "tollywood", "malayalam",
-        "kannada", "bhojpuri", "punjabi", "urdu", "bengali", "marathi"
+        "kannada", "bhojpuri", "punjabi", "urdu", "bengali", "marathi",
+
+        "trailer", "teaser", "promo", "official trailer", "official teaser",
+        "glimpse", "first look", "review", "reaction", "explained",
+        "serial", "episode", "episodes", "web series", "webseries",
+        "news", "breaking", "interview", "press meet", "audio launch",
+        "full movie", "movie review", "whatsapp status", "bgm status",
+        "hindi", "telugu", "malayalam", "kannada", "bollywood", "tollywood"
       ];
 
       const tamilKeywords = [
