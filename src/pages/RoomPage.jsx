@@ -1584,10 +1584,17 @@ export default function RoomPage() {
   };
 
   const nextShort = () => {
-    const feed = shortsFeed.length > 0 ? shortsFeed : roomYoutubeResults;
-    if (feed.length === 0) return;
+  const feed = shortsFeed.length > 0 ? shortsFeed : roomYoutubeResults;
+  if (feed.length === 0) return;
 
-    let nextIndex;
+  if (
+    !roomYoutubeLoading &&
+    playedReelsRef.current.length >= feed.length - 5
+  ) {
+    loadTamilReels(true);
+  }
+
+  let nextIndex;
 
     if (reelForwardHistoryRef.current.length > 0) {
       nextIndex = reelForwardHistoryRef.current.pop();
@@ -1960,8 +1967,8 @@ export default function RoomPage() {
     }
   };
 
-  const loadTamilReels = async () => {
-    try {
+const loadTamilReels = async (append = false) => {
+      try {
       setRoomYoutubeLoading(true);
 
       const queries = [
@@ -2001,26 +2008,40 @@ export default function RoomPage() {
 
       const blockedWords = [
         "trailer", "teaser", "promo", "official trailer", "official teaser",
-        "glimpse", "first look", "announcement",
+        "glimpse", "first look", "announcement", "food", "vlog",
         "full movie", "movie review", "review", "reaction", "explained",
-        "story explained",
+        "story explained", "re release", "rerelease", "episode", "episodes", "ep-",
         "serial", "episode", "episodes", "web series", "webseries",
         "news", "breaking", "interview", "press meet", "audio launch",
         "hindi", "bollywood", "telugu", "tollywood", "malayalam",
         "kannada", "bhojpuri", "punjabi", "urdu", "bengali", "marathi"
       ];
 
-      const filtered = (res.data || []).filter((video) => {
+      const newItems = (res.data || []).filter((video) => {
         const text = `${video.title || ""} ${video.description || ""}`.toLowerCase();
         return video?.videoId && !blockedWords.some((word) => text.includes(word));
       });
 
-      setRoomYoutubeResults(filtered);
-      setShortsFeed(filtered);
-      setShortIndex(0);
-      setSelectedMovie(null);
-      selectedMovieRef.current = null;
-      setMovieSearch("");
+      if (append) {
+        setShortsFeed((prev) => {
+          const map = new Map();
+          [...prev, ...newItems].forEach((v) => map.set(v.videoId, v));
+          return [...map.values()];
+        });
+
+        setRoomYoutubeResults((prev) => {
+          const map = new Map();
+          [...prev, ...newItems].forEach((v) => map.set(v.videoId, v));
+          return [...map.values()];
+        });
+      } else {
+        setRoomYoutubeResults(newItems);
+        setShortsFeed(newItems);
+        setShortIndex(0);
+        setSelectedMovie(null);
+        selectedMovieRef.current = null;
+        setMovieSearch("");
+      }
     } catch (err) {
       console.error("Loading Reels error:", err);
       setRoomYoutubeResults([]);
@@ -2778,23 +2799,23 @@ export default function RoomPage() {
                   </div>
                 )}
 
-  {nextEpisode && activeCategory !== "SHORT" && (
-  <div className="next-episode-card">
-    <img src={nextEpisode.thumbnail} alt={nextEpisode.title} />
+                {nextEpisode && activeCategory !== "SHORT" && (
+                  <div className="next-episode-card">
+                    <img src={nextEpisode.thumbnail} alt={nextEpisode.title} />
 
-    <h3>{nextEpisode.title}</h3>
+                    <h3>{nextEpisode.title}</h3>
 
-    <button
-      onClick={() => {
-        selectYoutubeVideo(nextEpisode, false, activeCategory);
-        setNextEpisode(null);
-        setNextSuggestion(null);
-      }}
-    >
-      ▶ Play Next Episode
-    </button>
-  </div>
-)}
+                    <button
+                      onClick={() => {
+                        selectYoutubeVideo(nextEpisode, false, activeCategory);
+                        setNextEpisode(null);
+                        setNextSuggestion(null);
+                      }}
+                    >
+                      ▶ Play Next Episode
+                    </button>
+                  </div>
+                )}
 
                 {activeCategory === "SHORT" && (
                   <>
