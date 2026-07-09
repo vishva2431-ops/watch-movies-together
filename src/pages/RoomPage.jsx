@@ -102,6 +102,8 @@ export default function RoomPage() {
   const [musicSearched, setMusicSearched] = useState(false);
   const [searchSuggestions, setSearchSuggestions] = useState([]);
   const [nextSuggestion, setNextSuggestion] = useState(null);
+  const [nextEpisode, setNextEpisode] = useState(null);
+
   const suggestionTimerRef = useRef(null);
 
   const chatStorageKey = `chat_${roomCode}`;
@@ -452,22 +454,48 @@ export default function RoomPage() {
       console.error(err);
     }
   };
-  // const savedFeed = sessionStorage.getItem("shortsFeed");
-  // const startVideoId = sessionStorage.getItem("shortsStartVideoId");
+  useEffect(() => {
+    if (activeCategory !== "SHORT") return;
 
-  // if (savedFeed) {
-  //   const parsedFeed = JSON.parse(savedFeed);
+    const savedFeed = sessionStorage.getItem("shortsFeed");
+    const startVideoId = sessionStorage.getItem("shortsStartVideoId");
 
-  //   setShortsFeed(parsedFeed);
+    if (!savedFeed) return;
 
-  //   const startIndex = parsedFeed.findIndex(
-  //     (item) => item.videoId === startVideoId
-  //   );
+    try {
+      const parsedFeed = JSON.parse(savedFeed);
 
-  //   if (startIndex >= 0) {
-  //     setCurrentShortIndex(startIndex);
-  //   }
-  // }
+      if (!Array.isArray(parsedFeed) || parsedFeed.length === 0) return;
+
+      const cleanFeed = parsedFeed.filter((video) => {
+        const text = `${video.title || ""} ${video.description || ""}`.toLowerCase();
+
+        return (
+          video?.videoId &&
+          !text.includes("movie") &&
+          !text.includes("trailer") &&
+          !text.includes("teaser") &&
+          !text.includes("episode") &&
+          !text.includes("web series") &&
+          !text.includes("serial") &&
+          !text.includes("hindi") &&
+          !text.includes("telugu") &&
+          !text.includes("dubbed")
+        );
+      });
+
+      setShortsFeed(cleanFeed);
+      setRoomYoutubeResults(cleanFeed);
+
+      const startIndex = cleanFeed.findIndex(
+        (item) => item.videoId === startVideoId
+      );
+
+      setShortIndex(startIndex >= 0 ? startIndex : 0);
+    } catch (err) {
+      console.error("Saved shorts feed parse error:", err);
+    }
+  }, [activeCategory]);
 
   const loadYouTubeScript = () => {
     if (window.YT && window.YT.Player) {
@@ -502,6 +530,47 @@ export default function RoomPage() {
         suppressPlayerStateSyncRef.current = false;
       }, 800);
     }, 450);
+  };
+
+  const findNextEpisode = async () => {
+    if (!selectedMovieRef.current) return;
+
+    const title = selectedMovieRef.current.groupTitle || "";
+
+    const match = title.match(/episode\s*(\d+)|ep\s*(\d+)/i);
+    if (!match) return;
+
+    const currentEpisode = Number(match[1] || match[2]);
+    const nextEp = currentEpisode + 1;
+
+    const baseTitle = title
+      .replace(/episode\s*\d+/i, "")
+      .replace(/ep\s*\d+/i, "")
+      .replace(/\|/g, " ")
+      .trim();
+
+    try {
+      const res = await API.get("/youtube/search", {
+        params: {
+          q: `${baseTitle} episode ${nextEp}`,
+          category: activeCategoryRef.current || "MOVIE",
+          fresh: Date.now(),
+        },
+      });
+
+      const next = (res.data || []).find((v) => {
+        const text = `${v.title || ""} ${v.description || ""}`.toLowerCase();
+        return (
+          v.videoId &&
+          (text.includes(`episode ${nextEp}`) || text.includes(`ep ${nextEp}`))
+        );
+      });
+
+      setNextEpisode(next || null);
+    } catch (err) {
+      console.error("Next episode search error:", err);
+      setNextEpisode(null);
+    }
   };
 
   const createOrUpdatePlayer = (movie) => {
@@ -606,6 +675,7 @@ export default function RoomPage() {
                 activeCategoryRef.current === "MOVIE" ||
                 activeCategoryRef.current === "MUSIC"
               ) {
+                findNextEpisode();
                 showNextSuggestionCard();
               }
             }
@@ -1828,7 +1898,18 @@ export default function RoomPage() {
         "vj siddhu vlog",
         "irfan view latest vlog",
         "parithabangal latest",
-        "latest comedy show tamil"
+        "latest comedy show tamil",
+        "latest tamil full movie",
+        "new tamil full movie",
+        "latest tamil dubbed movie",
+        "new tamil dubbed full movie",
+        "latest tamil comedy movie",
+        "latest tamil romantic movie",
+        "latest tamil action movie",
+        "latest tamil thriller movie",
+        "latest tamil family movie",
+        "latest tamil short film",
+        "new tamil short film"
       ];
 
       const randomQuery = queries[Math.floor(Math.random() * queries.length)];
@@ -1879,75 +1960,75 @@ export default function RoomPage() {
     }
   };
 
- const loadTamilReels = async () => {
-  try {
-    setRoomYoutubeLoading(true);
+  const loadTamilReels = async () => {
+    try {
+      setRoomYoutubeLoading(true);
 
-    const queries = [
-      "latest tamil love reels shorts",
-      "latest tamil romantic reels shorts",
-      "latest tamil couple love shorts",
-      "latest tamil crush love shorts",
-      "latest tamil relationship love shorts",
-      "new viral love reels shorts tamil",
-      "kollywood love shorts",
-      "tamil romantic couple shorts",
+      const queries = [
+        "latest tamil love reels shorts",
+        "latest tamil romantic reels shorts",
+        "latest tamil couple love shorts",
+        "latest tamil crush love shorts",
+        "latest tamil relationship love shorts",
+        "new viral love reels shorts tamil",
+        "kollywood love shorts",
+        "tamil romantic couple shorts",
 
-      "mabu crush shorts tamil",
-      "ismail shorts tamil",
-      "manikandan yt  shorts",
-      "mallesh kannan shorts",
-      "kaathadi club shorts",
-      "shiva entertainer shorts",
-      "the content hub shorts",
+        "mabu crush shorts tamil",
+        "ismail shorts tamil",
+        "manikandan yt  shorts",
+        "mallesh kannan shorts",
+        "kaathadi club shorts",
+        "shiva entertainer shorts",
+        "the content hub shorts",
 
-      "latest tamil comedy reels shorts",
-      "kaathadi club comedy shorts",
-      "shiva entertainer comedy shorts",
-      "tamil friendship reels shorts",
-      "tamil content creators #shorts #reels"
-    ];
+        "latest tamil comedy reels shorts",
+        "kaathadi club comedy shorts",
+        "shiva entertainer comedy shorts",
+        "tamil friendship reels shorts",
+        "tamil content creators #shorts #reels"
+      ];
 
-    const randomQuery = queries[Math.floor(Math.random() * queries.length)];
+      const randomQuery = queries[Math.floor(Math.random() * queries.length)];
 
-    const res = await API.get("/youtube/shorts-feed", {
-      params: {
-        q: randomQuery,
-        category: "SHORT",
-        fresh: Date.now(),
-      },
-    });
+      const res = await API.get("/youtube/shorts-feed", {
+        params: {
+          q: randomQuery,
+          category: "SHORT",
+          fresh: Date.now(),
+        },
+      });
 
-    const blockedWords = [
-      "trailer", "teaser", "promo", "official trailer", "official teaser",
-      "glimpse", "first look", "announcement",
-      "full movie", "movie review", "review", "reaction", "explained",
-      "story explained",
-      "serial", "episode", "episodes", "web series", "webseries",
-      "news", "breaking", "interview", "press meet", "audio launch",
-      "hindi", "bollywood", "telugu", "tollywood", "malayalam",
-      "kannada", "bhojpuri", "punjabi", "urdu", "bengali", "marathi"
-    ];
+      const blockedWords = [
+        "trailer", "teaser", "promo", "official trailer", "official teaser",
+        "glimpse", "first look", "announcement",
+        "full movie", "movie review", "review", "reaction", "explained",
+        "story explained",
+        "serial", "episode", "episodes", "web series", "webseries",
+        "news", "breaking", "interview", "press meet", "audio launch",
+        "hindi", "bollywood", "telugu", "tollywood", "malayalam",
+        "kannada", "bhojpuri", "punjabi", "urdu", "bengali", "marathi"
+      ];
 
-    const filtered = (res.data || []).filter((video) => {
-      const text = `${video.title || ""} ${video.description || ""}`.toLowerCase();
-      return video?.videoId && !blockedWords.some((word) => text.includes(word));
-    });
+      const filtered = (res.data || []).filter((video) => {
+        const text = `${video.title || ""} ${video.description || ""}`.toLowerCase();
+        return video?.videoId && !blockedWords.some((word) => text.includes(word));
+      });
 
-    setRoomYoutubeResults(filtered);
-    setShortsFeed(filtered);
-    setShortIndex(0);
-    setSelectedMovie(null);
-    selectedMovieRef.current = null;
-    setMovieSearch("");
-  } catch (err) {
-    console.error("Loading Reels error:", err);
-    setRoomYoutubeResults([]);
-    setShortsFeed([]);
-  } finally {
-    setRoomYoutubeLoading(false);
-  }
-};
+      setRoomYoutubeResults(filtered);
+      setShortsFeed(filtered);
+      setShortIndex(0);
+      setSelectedMovie(null);
+      selectedMovieRef.current = null;
+      setMovieSearch("");
+    } catch (err) {
+      console.error("Loading Reels error:", err);
+      setRoomYoutubeResults([]);
+      setShortsFeed([]);
+    } finally {
+      setRoomYoutubeLoading(false);
+    }
+  };
 
   const goBack = () => {
     if (selectedMovie) {
@@ -2696,6 +2777,24 @@ export default function RoomPage() {
                     </div>
                   </div>
                 )}
+
+  {nextEpisode && activeCategory !== "SHORT" && (
+  <div className="next-episode-card">
+    <img src={nextEpisode.thumbnail} alt={nextEpisode.title} />
+
+    <h3>{nextEpisode.title}</h3>
+
+    <button
+      onClick={() => {
+        selectYoutubeVideo(nextEpisode, false, activeCategory);
+        setNextEpisode(null);
+        setNextSuggestion(null);
+      }}
+    >
+      ▶ Play Next Episode
+    </button>
+  </div>
+)}
 
                 {activeCategory === "SHORT" && (
                   <>

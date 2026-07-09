@@ -197,6 +197,7 @@ export default function ShortsFeedPage() {
       // const seenReels = getSeenReels();
 
       let cleanReels = res.data
+        .filter(isValidReel)
         .filter((video) => video?.videoId)
         .filter((video) => {
           if (loadedIdsRef.current.has(video.videoId)) return false;
@@ -210,6 +211,7 @@ export default function ShortsFeedPage() {
         loadedIdsRef.current = new Set();
 
         cleanReels = res.data
+          .filter(isValidReel)
           .filter((video) => video?.videoId)
           .slice(0, 50);
 
