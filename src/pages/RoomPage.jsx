@@ -197,10 +197,10 @@ export default function RoomPage() {
     };
   }, [roomCode]);
 
-  useEffect(() => {
-    sessionStorage.removeItem("shortsFeed");
-    sessionStorage.removeItem("shortsStartVideoId");
-  }, []);
+  // useEffect(() => {
+  //   sessionStorage.removeItem("shortsFeed");
+  //   sessionStorage.removeItem("shortsStartVideoId");
+  // }, []);
 
   useEffect(() => {
     selectedMovieRef.current = selectedMovie;
@@ -305,8 +305,9 @@ export default function RoomPage() {
     if (activeCategory !== "SHORT") return;
     if (!selectedMovie) return;
 
-    e.preventDefault();
-
+    if (e.cancelable) {
+      e.preventDefault();
+    }
     if (Math.abs(e.deltaY) < 10) return;
 
     const now = Date.now();
@@ -1972,19 +1973,20 @@ export default function RoomPage() {
         "latest tamil relationship love shorts",
         "new viral love reels shorts tamil",
 
-        "mabu crush shorts tamil",
-        "ismail shorts tamil",
-        "manikandan yt  shorts",
-        "mallesh kannan shorts",
-        "kaathadi club shorts",
-        "shiva entertainer shorts",
-        "the content hub shorts",
+        // "mabu crush shorts tamil",
+        // "ismail shorts tamil",
+        // "manikandan yt  shorts",
+        // "mallesh kannan shorts",
+        // "kaathadi club shorts",
+        // "shiva entertainer shorts",
+        // "the content hub shorts",
 
         "latest tamil comedy reels shorts",
-        "kaathadi club comedy shorts",
-        "shiva entertainer comedy shorts",
+        // "kaathadi club comedy shorts",
+        // "shiva entertainer comedy shorts",
         "tamil friendship reels shorts",
-        "tamil content creators #shorts #reels"
+        "tamil content creators #shorts #reels",
+        "tamil content creators shorts"
       ];
 
       const randomQuery = queries[Math.floor(Math.random() * queries.length)];
@@ -1993,6 +1995,9 @@ export default function RoomPage() {
         params: {
           q: randomQuery,
           category: "SHORT",
+          seenIds: JSON.parse(localStorage.getItem("visionArcSeenReels") || "[]")
+            .slice(-300)
+            .join(","),
           fresh: Date.now(),
         },
       });
@@ -2002,6 +2007,11 @@ export default function RoomPage() {
         "glimpse", "first look", "announcement", "food", "vlog",
         "short film", "short movie", "tamil short film", "tamil short movie",
         "part 01", "part 02", "part 1", "part 2",
+        "movie", "film", "full hd", "hd movie",
+        "short film", "short movie", "tamil short film", "tamil short movie",
+        "part 01", "part 02", "part 1", "part 2", "part 3",
+        "thenandal", "rjs cinemas", "raj video vision",
+        "viswanathan ramamoorthy", "ramki", "vivek", "roja",
         "censor", "rom-com", "solo star", "tsr entertainment", "cinema calendar",
         "full movie", "movie review", "review", "reaction", "explained",
         "story explained", "re release", "rerelease", "episode", "episodes", "ep-",

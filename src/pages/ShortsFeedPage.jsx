@@ -91,6 +91,11 @@ export default function ShortsFeedPage() {
 
       "desi", "north indian", "vadakan", "vadakkans",
       "vlog", "food", "travel",
+      "movie", "film", "full hd", "hd movie",
+      "short film", "short movie", "tamil short film", "tamil short movie",
+      "part 01", "part 02", "part 1", "part 2", "part 3",
+      "thenandal", "rjs cinemas", "raj video vision",
+      "viswanathan ramamoorthy", "ramki", "vivek", "roja",
 
       "trailer", "teaser", "promo", "official trailer", "official teaser",
       "glimpse", "first look", "review", "reaction", "explained",
@@ -104,8 +109,8 @@ export default function ShortsFeedPage() {
       "tamil", "english",
       "tamil short", "tamil shorts", "tamil reel", "tamil reels",
       "love tamil", "tamil couple", "tamil romantic", "tamil relationship",
-      "tamil comedy", "tamil funny", "tamil friend", "tamil friendship",
-      "mallesh", "malleshkannan", "vijay tv", "kathadi club", "tamil content creators",
+      "tamil comedy", "tamil funny", "tamil friend", "tamil friendship","tamil content creators",
+      // "mallesh", "malleshkannan", "vijay tv", "kathadi club", 
     ];
 
     const blocked = blockedWords.some((word) => text.includes(word));
@@ -143,33 +148,33 @@ export default function ShortsFeedPage() {
         "couple goals reels tamil",
         // "tamil romantic couple shorts",
 
-        "Manikandan YT shorts",
-        "Manikandan YT tamil reels",
-        "Manikandan YT latest shorts",
+        // "Manikandan YT shorts",
+        // "Manikandan YT tamil reels",
+        // "Manikandan YT latest shorts",
 
-        "Kaathadi Club shorts",
-        "Kaathadi Club tamil reels",
-        "Kaathadi Club comedy shorts",
+        // "Kaathadi Club shorts",
+        // "Kaathadi Club tamil reels",
+        // "Kaathadi Club comedy shorts",
 
-        "Shiva Entertainer shorts",
-        "Shiva Entertainer tamil reels",
-        "Shiva Entertainer comedy shorts",
+        // "Shiva Entertainer shorts",
+        // "Shiva Entertainer tamil reels",
+        // "Shiva Entertainer comedy shorts",
 
-        "The Content Hub shorts",
-        "The Content Hub tamil reels",
-        "The Content Hub latest shorts",
+        // "The Content Hub shorts",
+        // "The Content Hub tamil reels",
+        // "The Content Hub latest shorts",
 
-        "Mallesh Kannan shorts",
-        "Mallesh Kannan tamil reels",
+        // "Mallesh Kannan shorts",
+        // "Mallesh Kannan tamil reels",
 
-        "VJ Siddhu shorts",
-        "VJ Siddhu latest reels",
-        "VJ Siddhu comedy shorts",
+        // "VJ Siddhu shorts",
+        // "VJ Siddhu latest reels",
+        // "VJ Siddhu comedy shorts",
 
-        // "Eruma Saani shorts",
-        "Black Sheep Tamil shorts",
-        "Parithabangal latest shorts",
-        "Gopi Sudhakar shorts",
+        // // "Eruma Saani shorts",
+        // "Black Sheep Tamil shorts",
+        // "Parithabangal latest shorts",
+        // "Gopi Sudhakar shorts",
 
       ];
 
@@ -191,7 +196,7 @@ export default function ShortsFeedPage() {
         params: {
           q: finalQuery,
           category: "SHORT",
-          seenIds: append ? seenReels.join(",") : "",
+          seenIds: seenReels.join(","),
           fresh: Date.now(),
         },
       });
@@ -208,17 +213,17 @@ export default function ShortsFeedPage() {
           return true;
         });
 
-      if (cleanReels.length === 0) {
-        localStorage.removeItem(REEL_HISTORY_KEY);
-        loadedIdsRef.current = new Set();
+      // if (cleanReels.length === 0) {
+      //   localStorage.removeItem(REEL_HISTORY_KEY);
+      //   loadedIdsRef.current = new Set();
 
-        cleanReels = res.data
-          .filter(isValidReel)
-          .filter((video) => video?.videoId)
-          .slice(0, 50);
+      //   cleanReels = res.data
+      //     .filter(isValidReel)
+      //     .filter((video) => video?.videoId)
+      //     .slice(0, 50);
 
-        cleanReels.forEach((video) => loadedIdsRef.current.add(video.videoId));
-      }
+      //   cleanReels.forEach((video) => loadedIdsRef.current.add(video.videoId));
+      // }
 
       // if (cleanReels.length < 5) {
       //   cleanReels = res.data
@@ -235,10 +240,10 @@ export default function ShortsFeedPage() {
 
       const shuffled = [...cleanReels];
 
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-      }
+      // for (let i = shuffled.length - 1; i > 0; i--) {
+      //   const j = Math.floor(Math.random() * (i + 1));
+      //   [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      // }
 
       preloadThumbnails(shuffled);
 
