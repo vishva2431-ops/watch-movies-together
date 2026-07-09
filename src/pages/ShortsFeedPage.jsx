@@ -131,15 +131,17 @@ export default function ShortsFeedPage() {
       setLoading(true);
 
       const mixedQueries = [
-        "latest tamil love reels shorts",
-        "latest tamil couple reels shorts",
-        "latest tamil friendship reels shorts",
-        "latest tamil comedy reels shorts",
-        "new viral love reels shorts tamil",
+        "latest tamil love reels",
+        "latest tamil couple reels",
+        "latest tamil friendship reels",
+        "latest tamil comedy reels",
+        "new viral love reels tamil",
+        "vijay tv comedy reels",
+        "latest tamil love shorts",
 
         "english love reels shorts",
-        "couple goals shorts tamil",
-        "tamil romantic couple shorts",
+        "couple goals reels tamil",
+        // "tamil romantic couple shorts",
 
         "Manikandan YT shorts",
         "Manikandan YT tamil reels",
@@ -164,7 +166,7 @@ export default function ShortsFeedPage() {
         "VJ Siddhu latest reels",
         "VJ Siddhu comedy shorts",
 
-        "Eruma Saani shorts",
+        // "Eruma Saani shorts",
         "Black Sheep Tamil shorts",
         "Parithabangal latest shorts",
         "Gopi Sudhakar shorts",
@@ -206,7 +208,7 @@ export default function ShortsFeedPage() {
           return true;
         });
 
-      if (cleanReels.length === 0 && !append) {
+      if (cleanReels.length === 0) {
         localStorage.removeItem(REEL_HISTORY_KEY);
         loadedIdsRef.current = new Set();
 
@@ -239,6 +241,10 @@ export default function ShortsFeedPage() {
       }
 
       preloadThumbnails(shuffled);
+
+      if (append && shuffled.length === 0) {
+        return;
+      }
 
       if (append) {
         setShorts((prev) => [...prev, ...shuffled]);

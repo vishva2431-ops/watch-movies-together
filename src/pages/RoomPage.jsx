@@ -1583,38 +1583,38 @@ export default function RoomPage() {
     });
   };
 
+  const getCurrentShortIndex = (feed) => {
+    const currentId = selectedMovieRef.current?.videoUrl;
+    const index = feed.findIndex((v) => v.videoId === currentId);
+    return index >= 0 ? index : shortIndex;
+  };
+
   const nextShort = () => {
-  const feed = shortsFeed.length > 0 ? shortsFeed : roomYoutubeResults;
-  if (feed.length === 0) return;
+    const feed = shortsFeed.length > 0 ? shortsFeed : roomYoutubeResults;
+    if (feed.length === 0) return;
 
-  if (
-    !roomYoutubeLoading &&
-    playedReelsRef.current.length >= feed.length - 5
-  ) {
-    loadTamilReels(true);
-  }
+    if (
+      !roomYoutubeLoading &&
+      playedReelsRef.current.length >= feed.length - 5
+    ) {
+      loadTamilReels(true);
+    }
 
-  let nextIndex;
+    const currentIndex = getCurrentShortIndex(feed);
+
+    let nextIndex;
 
     if (reelForwardHistoryRef.current.length > 0) {
       nextIndex = reelForwardHistoryRef.current.pop();
     } else {
-      reelBackHistoryRef.current.push(shortIndex);
+      reelBackHistoryRef.current.push(currentIndex);
       nextIndex = getRandomShortIndex(feed);
     }
-
-    setShortIndex(nextIndex);
 
     const nextVideo = feed[nextIndex];
     if (!nextVideo) return;
 
-    // setSelectedMovie({
-    //   id: nextVideo.videoId,
-    //   videoUrl: nextVideo.videoId,
-    //   groupTitle: nextVideo.title,
-    //   partTitle: "SHORT",
-    //   youtube: true,
-    // });
+    setShortIndex(nextIndex);
 
     const shortMovie = {
       id: nextVideo.videoId,
@@ -1627,29 +1627,23 @@ export default function RoomPage() {
     setSelectedMovie(shortMovie);
     selectedMovieRef.current = shortMovie;
     syncSelectedShort(nextVideo);
-
   };
 
   const previousShort = () => {
     const feed = shortsFeed.length > 0 ? shortsFeed : roomYoutubeResults;
     if (feed.length === 0) return;
 
+    const currentIndex = getCurrentShortIndex(feed);
+
     const prevIndex = reelBackHistoryRef.current.pop();
     if (prevIndex === undefined) return;
 
-    reelForwardHistoryRef.current.push(shortIndex);
+    reelForwardHistoryRef.current.push(currentIndex);
+
+    const prevVideo = feed[prevIndex];
+    if (!prevVideo) return;
 
     setShortIndex(prevIndex);
-    // setReelLiked(false);
-    const prevVideo = feed[prevIndex];
-
-    // setSelectedMovie({
-    //   id: prevVideo.videoId,
-    //   videoUrl: prevVideo.videoId,
-    //   groupTitle: prevVideo.title,
-    //   partTitle: "SHORT",
-    //   youtube: true,
-    // });
 
     const shortMovie = {
       id: prevVideo.videoId,
@@ -1662,7 +1656,6 @@ export default function RoomPage() {
     setSelectedMovie(shortMovie);
     selectedMovieRef.current = shortMovie;
     syncSelectedShort(prevVideo);
-
   };
 
   const handleShortTouchStart = (e) => {
@@ -1967,8 +1960,8 @@ export default function RoomPage() {
     }
   };
 
-const loadTamilReels = async (append = false) => {
-      try {
+  const loadTamilReels = async (append = false) => {
+    try {
       setRoomYoutubeLoading(true);
 
       const queries = [
@@ -1978,8 +1971,6 @@ const loadTamilReels = async (append = false) => {
         "latest tamil crush love shorts",
         "latest tamil relationship love shorts",
         "new viral love reels shorts tamil",
-        "kollywood love shorts",
-        "tamil romantic couple shorts",
 
         "mabu crush shorts tamil",
         "ismail shorts tamil",
@@ -2009,6 +2000,9 @@ const loadTamilReels = async (append = false) => {
       const blockedWords = [
         "trailer", "teaser", "promo", "official trailer", "official teaser",
         "glimpse", "first look", "announcement", "food", "vlog",
+        "short film", "short movie", "tamil short film", "tamil short movie",
+        "part 01", "part 02", "part 1", "part 2",
+        "censor", "rom-com", "solo star", "tsr entertainment", "cinema calendar",
         "full movie", "movie review", "review", "reaction", "explained",
         "story explained", "re release", "rerelease", "episode", "episodes", "ep-",
         "serial", "episode", "episodes", "web series", "webseries",
