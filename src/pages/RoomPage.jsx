@@ -105,6 +105,11 @@ export default function RoomPage() {
   const [nextEpisode, setNextEpisode] = useState(null);
 
   const suggestionTimerRef = useRef(null);
+  const movieSearchRef = useRef("");
+
+  useEffect(() => {
+    movieSearchRef.current = movieSearch;
+  }, [movieSearch]);
 
   const chatStorageKey = `chat_${roomCode}`;
 
@@ -231,6 +236,23 @@ export default function RoomPage() {
     const feed = shortsFeed.length > 0 ? shortsFeed : roomYoutubeResults;
     preloadShortThumbnails(feed, shortIndex);
   }, [shortIndex, shortsFeed, roomYoutubeResults, activeCategory]);
+
+  useEffect(() => {
+    return () => {
+      if (playerRef.current) {
+        try {
+          playerRef.current.destroy?.();
+        } catch (e) {
+          console.warn("Player destroy failed:", e);
+        }
+        playerRef.current = null;
+      }
+
+      if (youtubeBoxRef.current) {
+        youtubeBoxRef.current.innerHTML = "";
+      }
+    };
+  }, []);
 
 
   const resetRoomListsForCategory = (category) => {
@@ -1724,19 +1746,45 @@ export default function RoomPage() {
 
   const handleSearchTyping = (value) => {
     setMovieSearch(value);
+
     clearTimeout(suggestionTimerRef.current);
 
-    const q = value.trim();
-
-    if (q.length < 3) {
-      setRoomYoutubeResults([]);
+    if (value.trim().length < 3) {
       setSearchSuggestions([]);
       return;
     }
 
-    suggestionTimerRef.current = setTimeout(() => {
-      searchYoutubeInsideRoom(q);
-    }, 400);
+    const typedValue = value;
+
+    suggestionTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await API.get("/youtube/suggestions", {
+          params: {
+            q: typedValue.trim(),
+            category: activeCategoryRef.current,
+          },
+        });
+
+        // User meanwhile vera letters type pannirundha old response ignore
+        if (movieSearchRef.current !== typedValue) return;
+
+        const suggestions = (res.data || [])
+          .filter((item) => item?.title && item?.videoId)
+          .slice(0, 8)
+          .map((item) => ({
+            title: item.title,
+            thumbnail: item.thumbnail,
+            videoId: item.videoId,
+            original: item,
+          }));
+
+        setSearchSuggestions(suggestions);
+      } catch {
+        if (movieSearchRef.current === typedValue) {
+          setSearchSuggestions([]);
+        }
+      }
+    }, 700);
   };
 
   const searchYoutubeInsideRoom = async (customQuery = "") => {
@@ -1863,6 +1911,20 @@ export default function RoomPage() {
   };
 
   const switchRoomCategory = async (category) => {
+
+    if (playerRef.current) {
+      try {
+        playerRef.current.destroy?.();
+      } catch (e) {
+        console.warn("Player cleanup failed:", e);
+      }
+      playerRef.current = null;
+    }
+
+    if (youtubeBoxRef.current) {
+      youtubeBoxRef.current.innerHTML = "";
+    }
+
     applyCategoryOnlySync(category);
 
     try {
