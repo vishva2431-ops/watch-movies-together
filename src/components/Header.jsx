@@ -1,44 +1,56 @@
 import { useNavigate } from "react-router-dom";
+import { API } from "../api";
 
 export default function Header({ userName, onUsersClick }) {
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    localStorage.clear();   // clear login data
-    navigate("/");          // go to login page
+  const handleLogout = async () => {
+    try {
+      const id = localStorage.getItem("id");
+
+      if (id) {
+        await API.post("/auth/logout", { id });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+
+    localStorage.clear();
+    navigate("/");
   };
+
   const isAdmin = localStorage.getItem("isAdmin") === "true";
-  // const [showUsers, setShowUsers] = useState(false);
 
   return (
     <div className="header">
+
       {/* <div>
         <h2>Watch Party</h2>
         <p className="header-sub">Watch movies together in sync</p>
-      </div>
+      </div> */}
 
       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-        <div className="user-pill">{userName || "Guest"}</div>
+        {/* <div className="user-pill">
+          {userName || "Guest"}
+        </div> */}
 
         {isAdmin && (
-          <button className="header-user-btn" onClick={onUsersClick}>
+          <button
+            className="header-user-btn"
+            onClick={onUsersClick}
+          >
             Users
           </button>
         )}
 
         <button
-  className="btn-secondary small-btn"
-  onClick={handleLogout}
->
-  Logout
-</button>
+          className="btn-secondary small-btn"
+          onClick={handleLogout}
+        >
+          Logout
+        </button>
       </div>
-      {/* <button
-  className="btn-secondary small-btn"
-  onClick={() => navigate(-1)}
->
-  Back
-</button> */} 
+
     </div>
   );
 }

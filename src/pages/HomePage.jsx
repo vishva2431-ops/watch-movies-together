@@ -36,10 +36,20 @@ export default function HomePage() {
     }
   };
 
-  const logout = () => {
-    localStorage.clear();
-    navigate("/");
-  };
+ const logout = async () => {
+  try {
+    const id = localStorage.getItem("id");
+
+    if (id) {
+      await API.post("/auth/logout", { id });
+    }
+  } catch (err) {
+    console.error(err);
+  }
+
+  localStorage.clear();
+  navigate("/");
+};
 
   return (
     <div className="page home-page-bg">
