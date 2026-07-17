@@ -141,6 +141,25 @@ export default function AdminPage() {
               <span>Email: {user.email || "-"}</span>
               <span>Login: {user.loginProvider || "-"}</span>
 
+              <span>
+                Created:
+                {user.createdAt
+                  ? new Date(user.createdAt).toLocaleString()
+                  : "-"}
+              </span>
+
+              <span>
+                Last Login:
+                {user.lastLoginAt
+                  ? new Date(user.lastLoginAt).toLocaleString()
+                  : "-"}
+              </span>
+
+              <span>
+                Status:
+                {user.online ? "🟢 Online" : "🔴 Offline"}
+              </span>
+
               <div className="popup-user-actions">
                 <button onClick={() => deleteUser(user.id)}>Delete</button>
               </div>
