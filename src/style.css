@@ -18971,3 +18971,42 @@ iframe {
     font-size: 14px;
   }
 }
+/* Pseudo-fullscreen for the Android APK (native WebView).
+   Real container.requestFullscreen() is unreliable inside the WebView here
+   (it can silently no-op, especially with an embedded YouTube iframe), so on
+   native we drive "fullscreen" purely from React state instead of the
+   Fullscreen API - this class pins the video to cover the entire screen.
+   Orientation itself is handled separately by the native ScreenOrientation
+   plugin, which does work reliably. */
+.native-pseudo-fullscreen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  background: #000 !important;
+  z-index: 999999 !important;
+}
+
+.native-pseudo-fullscreen .youtube-player-box,
+.native-pseudo-fullscreen iframe,
+.native-pseudo-fullscreen #youtube-player {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.native-pseudo-fullscreen .video-overlay-controls {
+  bottom: 78px;
+}
+
+.native-pseudo-fullscreen .video-overlay-progress {
+  bottom: 22px;
+  left: 22px;
+  right: 22px;
+}

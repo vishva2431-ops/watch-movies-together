@@ -196,6 +196,7 @@ export default function RoomPage() {
       isUnmountingRef.current = true;
       clearTimeout(reconnectTimerRef.current);
       sendUserLeave();
+      unlockOrientation();
 
       clearTimeout(singleTapTimerRef.current);
       clearTimeout(holdTimerRef.current);
@@ -1634,21 +1635,35 @@ export default function RoomPage() {
     const isNative = Capacitor.isNativePlatform();
 
     try {
-      if (!document.fullscreenElement) {
-
-        if (shouldForceLandscape && isNative) {
-          // Native orientation lock isn't gated by fullscreen state (unlike
-          // the Web API), so lock first - the video then opens directly in
-          // landscape instead of flashing portrait for a moment.
-          await lockOrientation("landscape");
+      if (isNative) {
+        // The Android WebView here does not reliably honor
+        // container.requestFullscreen() for a plain <div> (this is a known
+        // WebView limitation, especially with an embedded YouTube iframe) -
+        // it can silently fail. That's exactly what was happening: the
+        // orientation lock worked, but fullscreen never actually engaged,
+        // so the video stayed sized as its normal in-page box (the
+        // letterboxed/small video you saw), and because nothing ever
+        // "exited fullscreen", the orientation never got unlocked again
+        // either. So on native we don't touch the Fullscreen API at all -
+        // "fullscreen" is just our own state + CSS pinning the video to
+        // cover the whole screen, and only the (working) native orientation
+        // lock handles the rotation.
+        if (!isFullscreen) {
+          if (shouldForceLandscape) await lockOrientation("landscape");
+          setIsFullscreen(true);
+        } else {
+          if (shouldForceLandscape) await unlockOrientation();
+          setIsFullscreen(false);
         }
+        return;
+      }
 
+      // Plain browser path (not the APK): the real Fullscreen + Screen
+      // Orientation APIs work fine here, so keep using them.
+      if (!document.fullscreenElement) {
         await container.requestFullscreen();
 
-        if (shouldForceLandscape && !isNative) {
-          // The standard Web Screen Orientation API only allows lock()
-          // while the document is actually in fullscreen, so it has to
-          // come after requestFullscreen() here.
+        if (shouldForceLandscape) {
           await lockOrientation("landscape");
         }
 
@@ -2242,6 +2257,11 @@ export default function RoomPage() {
 
   const goBack = () => {
     if (selectedMovie) {
+      // Safety net: whatever state fullscreen/orientation was in, leaving
+      // the video should never leave the app stuck rotated.
+      unlockOrientation();
+      setIsFullscreen(false);
+
       playerRef.current?.destroy?.();
       playerRef.current = null;
 
@@ -2904,9 +2924,12 @@ export default function RoomPage() {
               <div
                 ref={videoContainerRef}
                 className={
-                  activeCategory === "SHORT"
+                  (activeCategory === "SHORT"
                     ? "short-player-frame"
-                    : "movie-player-frame"
+                    : "movie-player-frame") +
+                  (isFullscreen && Capacitor.isNativePlatform()
+                    ? " native-pseudo-fullscreen"
+                    : "")
                 }
               >
                 <div className="youtube-player-box" ref={youtubeBoxRef}></div>
