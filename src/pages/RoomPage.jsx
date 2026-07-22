@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import SockJS from "sockjs-client/dist/sockjs";
 import Stomp from "stompjs";
+import { Capacitor } from "@capacitor/core";
+import { ScreenOrientation } from "@capacitor/screen-orientation";
 import { API, API_BASE_URL, extractYouTubeId } from "../api";
 import {
   buildBaseSyncPayload,
@@ -68,6 +70,13 @@ export default function RoomPage() {
   const roomUserMapRef = useRef(new Map());
   const reconnectTimerRef = useRef(null);
   const isUnmountingRef = useRef(false);
+  // Outgoing chat messages that we are not yet sure reached everyone.
+  // A message is removed once it comes back to us over the /topic/chat
+  // subscription (proof the broker actually broadcast it). Anything still
+  // here when the socket reconnects (or after a short retry delay) gets
+  // resent, so a dropped connection can never silently eat a message.
+  const pendingChatRef = useRef([]);
+  const chatRetryTimerRef = useRef(null);
 
 
   const [selectedMovie, setSelectedMovie] = useState(null);
@@ -191,6 +200,7 @@ export default function RoomPage() {
       clearTimeout(singleTapTimerRef.current);
       clearTimeout(holdTimerRef.current);
       clearTimeout(durationTimerRef.current);
+      clearTimeout(chatRetryTimerRef.current);
 
       if (stompClientRef.current) {
         stompClientRef.current.disconnect(() => { });
@@ -351,7 +361,18 @@ export default function RoomPage() {
   }, [selectedMovie, playerReady]);
 
   useEffect(() => {
-    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    const handler = () => {
+      const nowFullscreen = !!document.fullscreenElement;
+      setIsFullscreen(nowFullscreen);
+
+      // Covers exits that don't go through toggleFullscreen - e.g. the
+      // Android back button/gesture, or the browser's own Esc handling -
+      // so the screen doesn't get stuck locked in landscape.
+      if (!nowFullscreen) {
+        unlockOrientation();
+      }
+    };
+
     document.addEventListener("fullscreenchange", handler);
     return () => document.removeEventListener("fullscreenchange", handler);
   }, []);
@@ -638,6 +659,7 @@ export default function RoomPage() {
           rel: 0,
           modestbranding: 1,
           playsinline: 1,
+          fs:1,
         },
         events: {
           onReady: (event) => {
@@ -826,6 +848,10 @@ export default function RoomPage() {
     const client = Stomp.over(socket);
 
     client.debug = () => { };
+    // Detect a dead-but-not-yet-closed connection quickly instead of letting
+    // sends silently vanish into a socket that looks open but isn't.
+    client.heartbeat.outgoing = 10000;
+    client.heartbeat.incoming = 10000;
 
     socket.onclose = () => {
       console.log("Socket disconnected");
@@ -1185,6 +1211,14 @@ export default function RoomPage() {
       client.subscribe(`/topic/chat/${roomCode}`, (message) => {
         const data = JSON.parse(message.body);
 
+        // This is our own message coming back - it's confirmed delivered,
+        // stop retrying it.
+        if (data.id) {
+          pendingChatRef.current = pendingChatRef.current.filter(
+            (p) => p.id !== data.id
+          );
+        }
+
         setMessages((prev) => {
           const exists = prev.some((msg) =>
             data.id
@@ -1198,6 +1232,11 @@ export default function RoomPage() {
           return [...prev, data];
         });
       });
+
+      // Anything left in the queue was sent before this connection existed
+      // (or during the previous, now-dead one) and never got confirmed -
+      // resend it now that we have a fresh, live connection.
+      flushPendingChat();
 
       const name = getSafeUserName();
 
@@ -1478,27 +1517,109 @@ export default function RoomPage() {
     showDurationTemporarily();
   };
 
-  const sendChat = (text) => {
-    if (!stompClientRef.current || !text.trim()) return;
+  // Actually writes one queued chat payload to the socket. Never removes it
+  // from the pending queue itself - only the echo coming back over
+  // /topic/chat (see the subscribe handler) does that, since that's the only
+  // real proof the broker broadcast it.
+  const writeChatToSocket = (payload) => {
+    if (!stompClientRef.current?.connected) return false;
 
-    stompClientRef.current.send(
-      "/app/room.chat",
-      {},
-      JSON.stringify({
-        id: `${Date.now()}-${getSafeUserName()}-${Math.random()}`,
-        roomCode,
-        sender: userName,
-        text,
-        replyTo: replyTo
-          ? {
-            sender: replyTo.sender,
-            text: replyTo.text,
-          }
-          : null,
-      })
-    );
+    try {
+      stompClientRef.current.send(
+        "/app/room.chat",
+        {},
+        JSON.stringify(payload)
+      );
+      return true;
+    } catch (err) {
+      console.warn("Chat send failed, will retry:", err);
+      return false;
+    }
+  };
+
+  // Resends everything still waiting for confirmation. Safe to call as often
+  // as we like: messages are only ever removed once we see them echoed back,
+  // and the receiver already de-dupes by id, so a resend of something that
+  // actually made it through just gets ignored on arrival.
+  const flushPendingChat = () => {
+    if (!stompClientRef.current?.connected) return;
+    pendingChatRef.current.forEach((payload) => writeChatToSocket(payload));
+  };
+
+  const scheduleChatRetry = () => {
+    clearTimeout(chatRetryTimerRef.current);
+    chatRetryTimerRef.current = setTimeout(() => {
+      if (pendingChatRef.current.length === 0) return;
+      flushPendingChat();
+      scheduleChatRetry();
+    }, 1500);
+  };
+
+  const sendChat = (text) => {
+    if (!text.trim()) return;
+
+    const payload = {
+      id: createRoomClientId(),
+      roomCode,
+      sender: userName,
+      text,
+      replyTo: replyTo
+        ? {
+          sender: replyTo.sender,
+          text: replyTo.text,
+        }
+        : null,
+    };
+
+    pendingChatRef.current = [...pendingChatRef.current, payload];
+    writeChatToSocket(payload);
+    scheduleChatRetry();
 
     setReplyTo(null);
+  };
+
+  // Locks screen orientation. Inside the Android APK, screen.orientation.lock()
+  // from the WebView is unreliable (many WebView/OEM builds silently ignore or
+  // reject it), which is why "maximize" kept opening portrait even with the
+  // old code trying to lock landscape - that lock call was failing silently.
+  // @capacitor/screen-orientation calls the real native Android orientation
+  // API instead, which always works. In a plain desktop/mobile browser (no
+  // Capacitor), it transparently falls back to the standard Web API.
+  const lockOrientation = async (orientation) => {
+    try {
+      await ScreenOrientation.lock({ orientation });
+      return true;
+    } catch (err) {
+      console.warn(`Native ${orientation} lock unavailable, trying Web API:`, err);
+    }
+
+    if (screen.orientation?.lock) {
+      try {
+        await screen.orientation.lock(orientation);
+        return true;
+      } catch (err) {
+        console.warn(`Web ${orientation} lock not supported:`, err);
+      }
+    }
+
+    return false;
+  };
+
+  const unlockOrientation = async () => {
+    try {
+      await ScreenOrientation.unlock();
+      return;
+    } catch (err) {
+      // fall through to web API
+    }
+
+    if (screen.orientation?.unlock) {
+      try {
+        screen.orientation.unlock();
+      } catch (err) {
+        // nothing else we can do
+      }
+    }
   };
 
   const toggleFullscreen = async () => {
@@ -1506,23 +1627,29 @@ export default function RoomPage() {
 
     if (!container) return;
 
+    // Only Movie & Music go fullscreen-landscape; Shorts are already a
+    // vertical format and should stay portrait.
+    const shouldForceLandscape =
+      activeCategory === "MOVIE" || activeCategory === "MUSIC";
+    const isNative = Capacitor.isNativePlatform();
+
     try {
       if (!document.fullscreenElement) {
 
+        if (shouldForceLandscape && isNative) {
+          // Native orientation lock isn't gated by fullscreen state (unlike
+          // the Web API), so lock first - the video then opens directly in
+          // landscape instead of flashing portrait for a moment.
+          await lockOrientation("landscape");
+        }
+
         await container.requestFullscreen();
 
-        // Only Movie & Music => Landscape
-        if (
-          activeCategory === "MOVIE" ||
-          activeCategory === "MUSIC"
-        ) {
-          if (screen.orientation?.lock) {
-            try {
-              await screen.orientation.lock("landscape");
-            } catch (err) {
-              console.log("Landscape lock not supported");
-            }
-          }
+        if (shouldForceLandscape && !isNative) {
+          // The standard Web Screen Orientation API only allows lock()
+          // while the document is actually in fullscreen, so it has to
+          // come after requestFullscreen() here.
+          await lockOrientation("landscape");
         }
 
         setIsFullscreen(true);
@@ -1531,12 +1658,8 @@ export default function RoomPage() {
 
         await document.exitFullscreen();
 
-        if (screen.orientation?.lock) {
-          try {
-            await screen.orientation.lock("portrait");
-          } catch (err) {
-            console.log("Portrait lock not supported");
-          }
+        if (shouldForceLandscape) {
+          await unlockOrientation();
         }
 
         setIsFullscreen(false);

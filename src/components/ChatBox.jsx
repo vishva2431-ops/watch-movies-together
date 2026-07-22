@@ -45,7 +45,7 @@ export default function ChatBox({
         ) : (
           messages.map((msg, index) => (
             <div
-              key={index}
+              key={msg.id || index}
               className={
                 msg.sender === currentUser
                   ? "chat-message my-message"
