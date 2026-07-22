@@ -38,35 +38,42 @@ export default function LoginPage() {
   };
 
   const saveLogin = (user, isAdmin) => {
-    localStorage.setItem("userId", user.id || "");
-    localStorage.setItem("userName", user.name || name.trim());
-    localStorage.setItem("userMobile", user.mobile || mobile.trim());
-    localStorage.setItem("userEmail", user.email || email.trim());
-    localStorage.setItem("loginProvider", user.loginProvider || "EMAIL");
-    localStorage.setItem("isAdmin", isAdmin ? "true" : "false");
-    if (rememberMe) {
-      localStorage.setItem("loggedIn", "true");
-      localStorage.setItem("rememberMe", "true");
-    } else {
-      localStorage.removeItem("loggedIn");
-      localStorage.removeItem("rememberMe");
-    }
+  // Clear previous session
+  localStorage.removeItem("isAdmin");
+  localStorage.removeItem("userId");
+  localStorage.removeItem("userName");
+  localStorage.removeItem("userMobile");
+  localStorage.removeItem("userEmail");
+  localStorage.removeItem("loginProvider");
 
-    localStorage.setItem("rememberedName", user.name || name.trim());
-    localStorage.setItem("rememberedMobile", user.mobile || mobile.trim());
-    localStorage.setItem("rememberedEmail", user.email || email.trim());
+  // Save new session
+  localStorage.setItem("userId", user.id || "");
+  localStorage.setItem("userName", user.name || name.trim());
+  localStorage.setItem("userMobile", user.mobile || mobile.trim());
+  localStorage.setItem("userEmail", user.email || email.trim());
+  localStorage.setItem("loginProvider", user.loginProvider || "EMAIL");
 
-    setAlreadyLoggedIn(true);
-  };
+  localStorage.setItem("isAdmin", isAdmin ? "true" : "false");
+
+  if (rememberMe) {
+    localStorage.setItem("loggedIn", "true");
+    localStorage.setItem("rememberMe", "true");
+  } else {
+    localStorage.removeItem("loggedIn");
+    localStorage.removeItem("rememberMe");
+  }
+
+  localStorage.setItem("rememberedName", user.name || name.trim());
+  localStorage.setItem("rememberedMobile", user.mobile || mobile.trim());
+  localStorage.setItem("rememberedEmail", user.email || email.trim());
+
+  setAlreadyLoggedIn(true);
+};
 
   const continueWithoutOtp = () => {
-    const isAdmin = localStorage.getItem("isAdmin") === "true";
+   const isAdmin = localStorage.getItem("isAdmin") === "true";
 
-    if (isAdmin) {
-      navigate("/admin");
-    } else {
-      navigate("/home");
-    }
+navigate(isAdmin ? "/admin" : "/home");
   };
 
   const logoutSavedUser = () => {

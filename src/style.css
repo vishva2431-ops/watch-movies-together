@@ -15744,10 +15744,9 @@ body,
 
 }
 
-.video-touch-layer {
-
-  z-index: 20 !important;
-
+.video-touch-layer{
+    z-index:20 !important;
+    pointer-events:none !important;
 }
 
 .music-video-frame .video-touch-layer {
@@ -19009,4 +19008,15 @@ iframe {
   bottom: 22px;
   left: 22px;
   right: 22px;
+}
+
+body.native-fullscreen .movie-player-frame{
+position:fixed;
+top:0;
+left:0;
+width:100vw;
+height:100vh;
+z-index:999999;
+border-radius:0;
+background:#000;
 }

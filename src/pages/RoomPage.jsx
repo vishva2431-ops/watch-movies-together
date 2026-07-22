@@ -660,7 +660,7 @@ export default function RoomPage() {
           rel: 0,
           modestbranding: 1,
           playsinline: 1,
-          fs:1,
+          fs: 1,
         },
         events: {
           onReady: (event) => {
@@ -1649,10 +1649,17 @@ export default function RoomPage() {
         // cover the whole screen, and only the (working) native orientation
         // lock handles the rotation.
         if (!isFullscreen) {
-          if (shouldForceLandscape) await lockOrientation("landscape");
+          if (shouldForceLandscape)
+            await lockOrientation("landscape");
+
+
           setIsFullscreen(true);
+
         } else {
-          if (shouldForceLandscape) await unlockOrientation();
+
+          if (shouldForceLandscape)
+            await unlockOrientation();
+
           setIsFullscreen(false);
         }
         return;
@@ -1668,7 +1675,6 @@ export default function RoomPage() {
         }
 
         setIsFullscreen(true);
-
       } else {
 
         await document.exitFullscreen();
