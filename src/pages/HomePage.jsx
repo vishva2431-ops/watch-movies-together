@@ -99,6 +99,8 @@ export default function HomePage() {
             </button>
           </div>
 
+          <button className="btn-secondary home-control-btn" onClick={() => navigate("/friends")}>👥 Friends</button>
+
           {isAdmin && (
             <button
               className="btn-secondary home-control-btn"

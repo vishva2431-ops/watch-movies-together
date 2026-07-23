@@ -11,6 +11,9 @@ import RoomPage from "./pages/RoomPage";
 import MovieDetailsPage from "./pages/MovieDetailsPage";
 import CategoryPage from "./pages/CategoryPage";
 import ShortsFeedPage from "./pages/ShortsFeedPage";
+import FriendsPage from "./pages/FriendsPage";
+import ProfilePage from "./pages/ProfilePage";
+import PrivateChatPage from "./pages/PrivateChatPage";
 
 function BackButtonHandler() {
   const navigate = useNavigate();
@@ -76,6 +79,9 @@ export default function App() {
         <Route path="/movies" element={<ProtectedRoute><CategoryPage category="MOVIE" /></ProtectedRoute>} />
         <Route path="/music" element={<ProtectedRoute><CategoryPage category="MUSIC" /></ProtectedRoute>} />
         <Route path="/shorts" element={<ProtectedRoute><ShortsFeedPage /></ProtectedRoute>} />
+        <Route path="/friends" element={<ProtectedRoute><FriendsPage /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+        <Route path="/chat/:friendId" element={<ProtectedRoute><PrivateChatPage /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
         <Route path="/admin/users" element={<ProtectedRoute><UsersPage /></ProtectedRoute>} />
         <Route path="/room/:roomCode" element={<ProtectedRoute><RoomPage /></ProtectedRoute>} />
