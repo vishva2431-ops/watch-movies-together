@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API } from "../api";
+import "./LoginPage.css";
 
 export default function LoginPage() {
   const [loginType, setLoginType] = useState("USER");
@@ -183,177 +184,280 @@ navigate(isAdmin ? "/admin" : "/home");
     }
   };
 
-  return (
-    <div className="page center-page">
-      <div className="login-shell">
-        <div className="login-card">
-            <img
-    src="/logo.png"
-    alt="Vision Arc Logo"
-    className="login-logo"
-  />
-          <div className="login-badge">Connect Together👻</div>
+   return (
+  <div className="va-login-page">
+    <div className="va-login-stars"></div>
+    <div className="va-login-planet va-login-planet-one"></div>
+    <div className="va-login-planet va-login-planet-two"></div>
+    <div className="va-login-wave va-login-wave-left"></div>
+    <div className="va-login-wave va-login-wave-right"></div>
 
-          {/* <h1 className="login-title">Vision Arc</h1> */}
+    <main className="va-login-content">
+      <section className="va-login-brand-section">
+        <img
+          src="/logo.png"
+          alt="Vision Arc Logo"
+          className="va-login-logo"
+        />
 
-          <p className="login-subtitle">
-            Create Rooms, Sync Together, And Chat With Friends.
-          </p>
+        <h1 className="va-login-title">Vision Arc</h1>
 
-          {alreadyLoggedIn && (
-            <div className="login-message">
-              Saved login found for {localStorage.getItem("rememberedName") || "User"}
-            </div>
-          )}
+        <div className="va-login-badge">
+          Connect Together
+          <span>👥</span>
+        </div>
 
-          {message && <div className="login-message">{message}</div>}
+        <p className="va-login-subtitle">
+          Create Rooms, Sync Together, And
+          <br />
+          Chat With Friends.
+        </p>
+      </section>
 
-          {alreadyLoggedIn && (
-            <div className="room-action-row">
-              <button
-                className="btn-primary"
-                onClick={continueWithoutOtp}
-                type="button"
-              >
-                Continue without OTP
-              </button>
-
-              <button
-                className="btn-secondary"
-                onClick={logoutSavedUser}
-                type="button"
-              >
-                Login with another account
-              </button>
-            </div>
-          )}
-
-          <div className="form-group">
-            <input
-              className="input-modern"
-              placeholder="Enter your name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
+      <section className="va-login-card">
+        {alreadyLoggedIn && (
+          <div className="va-login-message">
+            Saved login found for{" "}
+            {localStorage.getItem("rememberedName") || "User"}
           </div>
+        )}
 
-          <div className="room-action-row">
+        {message && (
+          <div className="va-login-message">
+            {message}
+          </div>
+        )}
+
+        {alreadyLoggedIn && (
+          <div className="va-saved-login-actions">
             <button
-              className={loginType === "USER" ? "btn-primary" : "btn-secondary"}
-              onClick={() => changeLoginType("USER")}
               type="button"
+              className="va-login-main-button"
+              onClick={continueWithoutOtp}
             >
-              User Login
+              Continue without OTP
             </button>
 
             <button
-              className={loginType === "ADMIN" ? "btn-primary" : "btn-secondary"}
-              onClick={() => changeLoginType("ADMIN")}
               type="button"
+              className="va-login-secondary-button"
+              onClick={logoutSavedUser}
             >
-              Admin Login
+              Login with another account
             </button>
           </div>
+        )}
 
-          {loginType === "USER" && (
-            <>
-              <div className="form-group">
+        <div className="va-login-tabs">
+          <button
+            type="button"
+            className={`va-login-tab ${
+              loginType === "USER" ? "active" : ""
+            }`}
+            onClick={() => changeLoginType("USER")}
+          >
+            <span className="va-tab-icon">♙</span>
+            User Login
+          </button>
+
+          <button
+            type="button"
+            className={`va-login-tab ${
+              loginType === "ADMIN" ? "active" : ""
+            }`}
+            onClick={() => changeLoginType("ADMIN")}
+          >
+            <span className="va-tab-icon">♢</span>
+            Admin Login
+          </button>
+        </div>
+
+        <div className="va-login-input-group">
+          <span className="va-input-icon">♙</span>
+
+          <input
+            type="text"
+            className="va-login-input"
+            placeholder={
+              loginType === "ADMIN"
+                ? "Enter admin name"
+                : "Enter your name"
+            }
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            autoComplete="name"
+          />
+        </div>
+
+        {loginType === "USER" && (
+          <>
+            <div className="va-login-input-group">
+              <span className="va-input-icon">♧</span>
+
+              <input
+                type="tel"
+                inputMode="numeric"
+                className="va-login-input"
+                placeholder="Enter mobile number"
+                value={mobile}
+                onChange={(e) =>
+                  setMobile(
+                    e.target.value
+                      .replace(/\D/g, "")
+                      .slice(0, 10)
+                  )
+                }
+                autoComplete="tel"
+              />
+            </div>
+
+            <div className="va-login-input-group">
+              <span className="va-input-icon">✉</span>
+
+              <input
+                type="email"
+                inputMode="email"
+                className="va-login-input"
+                placeholder="Enter email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+              />
+            </div>
+
+            <label className="va-remember-row">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) =>
+                  setRememberMe(e.target.checked)
+                }
+              />
+
+              <span className="va-custom-checkbox">
+                ✓
+              </span>
+
+              <span>Remember Me</span>
+            </label>
+
+            {otpSent && (
+              <div className="va-login-input-group">
+                <span className="va-input-icon">#</span>
+
                 <input
-                  className="input-modern"
-                  placeholder="Enter mobile number"
-                  value={mobile}
+                  type="text"
+                  inputMode="numeric"
+                  className="va-login-input va-otp-input"
+                  placeholder="Enter email OTP"
+                  value={otp}
                   onChange={(e) =>
-                    setMobile(e.target.value.replace(/\D/g, "").slice(0, 10))
+                    setOtp(
+                      e.target.value
+                        .replace(/\D/g, "")
+                        .slice(0, 6)
+                    )
                   }
                 />
               </div>
+            )}
 
-              <div className="form-group">
-                <input
-                  className="input-modern"
-                  placeholder="Enter email address"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              <div className="remember-me-row">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                  />
-                  Remember Me
-                </label>
-              </div>
-
-              {otpSent && (
-                <div className="form-group">
-                  <input
-                    className="input-modern"
-                    placeholder="Enter email OTP"
-                    value={otp}
-                    onChange={(e) =>
-                      setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
-                    }
-                  />
-                </div>
-              )}
-
-              {!otpSent ? (
-                <button
-                  className="btn-primary"
-                  onClick={sendEmailOtp}
-                  disabled={loading}
-                >
-                  {loading ? "Sending..." : "Send Email OTP"}
-                </button>
-              ) : (
-                <button
-                  className="btn-primary"
-                  onClick={verifyEmailOtp}
-                  disabled={loading}
-                >
-                  {loading ? "Verifying..." : "Verify OTP & Login"}
-                </button>
-              )}
-            </>
-          )}
-
-          {loginType === "ADMIN" && (
-            <>
-              <div className="form-group">
-                <input
-                  className="input-modern"
-                  placeholder="Admin mobile number"
-                  value={mobile}
-                  onChange={(e) =>
-                    setMobile(e.target.value.replace(/\D/g, "").slice(0, 10))
-                  }
-                />
-              </div>
-
-              <div className="form-group">
-                <input
-                  className="input-modern"
-                  type="password"
-                  placeholder="Admin password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-
+            {!otpSent ? (
               <button
-                className="btn-primary"
-                onClick={adminLogin}
+                type="button"
+                className="va-login-main-button"
+                onClick={sendEmailOtp}
                 disabled={loading}
               >
-                {loading ? "Checking..." : "Login as Admin"}
+                <span>➤</span>
+                {loading
+                  ? "Sending..."
+                  : "Send Email OTP"}
               </button>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+            ) : (
+              <button
+                type="button"
+                className="va-login-main-button"
+                onClick={verifyEmailOtp}
+                disabled={loading}
+              >
+                <span>✓</span>
+                {loading
+                  ? "Verifying..."
+                  : "Verify OTP & Login"}
+              </button>
+            )}
+          </>
+        )}
+
+        {loginType === "ADMIN" && (
+          <>
+            <div className="va-login-input-group">
+              <span className="va-input-icon">♧</span>
+
+              <input
+                type="tel"
+                inputMode="numeric"
+                className="va-login-input"
+                placeholder="Admin mobile number"
+                value={mobile}
+                onChange={(e) =>
+                  setMobile(
+                    e.target.value
+                      .replace(/\D/g, "")
+                      .slice(0, 10)
+                  )
+                }
+                autoComplete="tel"
+              />
+            </div>
+
+            <div className="va-login-input-group">
+              <span className="va-input-icon">⌾</span>
+
+              <input
+                type="password"
+                className="va-login-input"
+                placeholder="Admin password"
+                value={password}
+                onChange={(e) =>
+                  setPassword(e.target.value)
+                }
+                autoComplete="current-password"
+              />
+            </div>
+
+            <label className="va-remember-row">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) =>
+                  setRememberMe(e.target.checked)
+                }
+              />
+
+              <span className="va-custom-checkbox">
+                ✓
+              </span>
+
+              <span>Remember Me</span>
+            </label>
+
+            <button
+              type="button"
+              className="va-login-main-button"
+              onClick={adminLogin}
+              disabled={loading}
+            >
+              <span>♢</span>
+              {loading
+                ? "Checking..."
+                : "Login as Admin"}
+            </button>
+          </>
+        )}
+      </section>
+    </main>
+  </div>
+);
 }

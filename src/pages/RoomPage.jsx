@@ -25,12 +25,7 @@ import {
   FaExpand,
   FaBolt
 } from "react-icons/fa";
-import { FiCopy } from "react-icons/fi";
-import { FiShare2 } from "react-icons/fi";
-// import {
-//   HiOutlineClipboardDocument,
-//   HiOutlineShare
-// } from "react-icons/hi2";
+import { FiCopy, FiShare2, FiUsers } from "react-icons/fi";
 
 export default function RoomPage() {
   const { roomCode } = useParams();
@@ -112,6 +107,10 @@ export default function RoomPage() {
   const [searchSuggestions, setSearchSuggestions] = useState([]);
   const [nextSuggestion, setNextSuggestion] = useState(null);
   const [nextEpisode, setNextEpisode] = useState(null);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [incomingInvite, setIncomingInvite] = useState(null);
+  const [showInvitePopup, setShowInvitePopup] = useState(false);
+  const [friends, setFriends] = useState([]);
 
   const suggestionTimerRef = useRef(null);
   const movieSearchRef = useRef("");
@@ -1233,6 +1232,18 @@ export default function RoomPage() {
           return [...prev, data];
         });
       });
+
+      client.subscribe(
+        `/topic/private-room-invite/${localStorage.getItem("userId")}`,
+        (message) => {
+
+          const invite = JSON.parse(message.body);
+
+          setIncomingInvite(invite);
+          setShowInvitePopup(true);
+
+        }
+      );
 
       // Anything left in the queue was sent before this connection existed
       // (or during the previous, now-dead one) and never got confirmed -
@@ -2451,6 +2462,47 @@ export default function RoomPage() {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const loadFriends = async () => {
+    try {
+      const userId = localStorage.getItem("userId");
+
+      const res = await API.get(`/friends/${userId}`);
+
+      setFriends(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const sendRoomInvite = (friend) => {
+
+    if (!stompClientRef.current?.connected) return;
+
+    stompClientRef.current.send(
+      "/app/room.sync",
+      {},
+      JSON.stringify({
+
+        action: "ROOM_INVITE",
+
+        senderId: localStorage.getItem("userId"),
+
+        receiverId: friend.id,
+
+        senderName: getSafeUserName(),
+
+        roomCode: roomCode,
+
+        roomTitle: selectedMovie?.groupTitle || "Vision Arc"
+
+      })
+    );
+
+    alert(`Invitation sent to ${friend.name}`);
+
+    setShowInviteModal(false);
+  };
+
   if (selectedMovie && activeCategory === "SHORT") {
     return (
       <div
@@ -2617,6 +2669,27 @@ export default function RoomPage() {
                   >
                     <FiShare2 />
                   </button>
+
+                  <div className="room-header-buttons">
+
+                    <button
+                      className="room-users-btn"
+                      onClick={() => setShowUsers(true)}
+                    >
+                      👥 {roomUsers.length}
+                    </button>
+
+                    <button
+                      className="room-invite-btn"
+                      onClick={() => {
+                        loadFriends();
+                        setShowInviteModal(true);
+                      }}
+                    >
+                      ➕ Invite
+                    </button>
+
+                  </div>
                 </div>
               </div>
 
@@ -2702,27 +2775,134 @@ export default function RoomPage() {
           )} */}
         </div>
       </div>
-      {copyMessage && (
-        <div className="room-copy-toast">
-          <span>✅</span>
-          <p>{copyMessage}</p>
-        </div>
-      )}
 
-      {roomNotification && (
-        <div className="room-join-toast">
-          {roomNotification}
-        </div>
-      )}
+      {
+        showInviteModal && (
+          <div
+            className="invite-overlay"
+            onClick={() => setShowInviteModal(false)}
+          >
+            <div
+              className="invite-popup"
+              onClick={(e) => e.stopPropagation()}
+            >
+
+              <h3>Invite Friends</h3>
+
+              <div className="invite-friends-list">
+
+                {friends.length === 0 ? (
+
+                  <p>No Friends Found</p>
+
+                ) : (
+
+                  friends.map(friend => (
+
+                    <div
+                      key={friend.id}
+                      className="invite-friend-row"
+                    >
+
+                      <div className="invite-friend-info">
+
+                        <img
+                          src={friend.profileImage || "/default-avatar.png"}
+                          className="invite-avatar"
+                          alt=""
+                        />
+
+                        <span>{friend.name}</span>
+
+                      </div>
+
+                      <button
+                        className="invite-send-btn"
+                        onClick={() => sendRoomInvite(friend)}
+                      >
+                        Invite
+                      </button>
+
+                    </div>
+
+                  ))
+
+                )}
+
+              </div>
+            </div>
+          </div>
+        )
+      }
+
+      {
+        copyMessage && (
+          <div className="room-copy-toast">
+            <span>✅</span>
+            <p>{copyMessage}</p>
+          </div>
+        )
+      }
+
+      {
+        roomNotification && (
+          <div className="room-join-toast">
+            {roomNotification}
+          </div>
+        )
+      }
 
       <div className="room-body-clean">
         <div className="room-player-right">
           {!selectedMovie ? (
             <div className="room-grid-area">
               {roomYoutubeLoading ? (
-                <div className="page-loader">
-                  <div className="loader"></div>
-                  <span>Loading...</span>
+                <div className={`page-loader ${activeCategory.toLowerCase()}`}>
+
+                  <div className="loader-ring">
+
+                    <div className="loader-icon">
+
+                      {activeCategory === "MOVIE" && "🍿"}
+
+                      {activeCategory === "MUSIC" && "🎵"}
+
+                      {activeCategory === "SHORT" && "📱"}
+
+                    </div>
+
+                  </div>
+
+                  <h2>
+
+                    {activeCategory === "MOVIE" && "Loading Movies"}
+
+                    {activeCategory === "MUSIC" && "Loading Music"}
+
+                    {activeCategory === "SHORT" && "Loading Shorts"}
+
+                  </h2>
+
+                  <p>
+
+                    {activeCategory === "MOVIE" && "Fetching the best movies for you..."}
+
+                    {activeCategory === "MUSIC" && "Preparing your playlist..."}
+
+                    {activeCategory === "SHORT" && "Loading trending shorts..."}
+
+                  </p>
+
+                  <div className="loader-dots">
+
+                    <span></span>
+
+                    <span></span>
+
+                    <span></span>
+
+                  </div>
+
                 </div>
               ) : roomYoutubeResults.length > 0 ? (
                 <div className="room-content-grid">
@@ -3100,28 +3280,71 @@ export default function RoomPage() {
 
       </div>
 
-      {showUsers && (
-        <div className="users-modal">
-          <div className="users-box">
-            <h3>Room Members</h3>
+      {
+        showUsers && (
+          <div className="users-modal">
+            <div className="users-box">
+              <h3>Room Members</h3>
 
-            {roomUsers.length === 0 ? (
-              <p>No users connected</p>
-            ) : (
-              roomUsers.map((user, index) => (
-                <div key={index} className="user-row">
-                  👤 {user}
-                  {user === roomHostName && <span className="host-badge"> 👑 Host</span>}
-                </div>
-              ))
-            )}
+              {roomUsers.length === 0 ? (
+                <p>No users connected</p>
+              ) : (
+                roomUsers.map((user, index) => (
+                  <div key={index} className="user-row">
+                    👤 {user}
+                    {user === roomHostName && <span className="host-badge"> 👑 Host</span>}
+                  </div>
+                ))
+              )}
 
-            <button className="btn-primary" onClick={() => setShowUsers(false)}>
-              Close
-            </button>
+              <button className="btn-primary" onClick={() => setShowUsers(false)}>
+                Close
+              </button>
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+
+      {
+        showInvitePopup && incomingInvite && (
+          <div className="invite-popup-overlay">
+            <div className="invite-popup">
+
+              <h3>🎬 Room Invitation</h3>
+
+              <p>
+                <strong>{incomingInvite.senderName}</strong> invited you
+              </p>
+
+              <p>
+                Room: <strong>{incomingInvite.roomCode}</strong>
+              </p>
+
+              <div className="invite-actions">
+
+                <button
+                  className="invite-join"
+                  onClick={() => {
+                    setShowInvitePopup(false);
+                    navigate(`/room/${incomingInvite.roomCode}`);
+                  }}
+                >
+                  Join
+                </button>
+
+                <button
+                  className="invite-decline"
+                  onClick={() => setShowInvitePopup(false)}
+                >
+                  Decline
+                </button>
+
+              </div>
+
+            </div>
+          </div>
+        )
+      }
+    </div >
   );
 }

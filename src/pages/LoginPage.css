@@ -1,0 +1,592 @@
+.va-login-page {
+  position: relative;
+  min-height: 100vh;
+  overflow-x: hidden;
+  padding: 28px 18px 100px;
+  color: #ffffff;
+
+  background:
+    radial-gradient(
+      circle at 92% 2%,
+      rgba(119, 35, 255, 0.28),
+      transparent 25%
+    ),
+    radial-gradient(
+      circle at 4% 96%,
+      rgba(98, 36, 255, 0.25),
+      transparent 27%
+    ),
+    linear-gradient(
+      160deg,
+      #030410 0%,
+      #08051b 48%,
+      #060316 100%
+    );
+
+  isolation: isolate;
+}
+
+.va-login-page,
+.va-login-page * {
+  box-sizing: border-box;
+}
+
+.va-login-stars {
+  position: fixed;
+  inset: 0;
+  z-index: -6;
+  pointer-events: none;
+  opacity: 0.65;
+
+  background-image:
+    radial-gradient(
+      circle at 10% 12%,
+      #a55cff 0 1px,
+      transparent 2px
+    ),
+    radial-gradient(
+      circle at 22% 37%,
+      #ffffff 0 1px,
+      transparent 2px
+    ),
+    radial-gradient(
+      circle at 71% 17%,
+      #7f4dff 0 1px,
+      transparent 2px
+    ),
+    radial-gradient(
+      circle at 88% 52%,
+      #c65cff 0 1px,
+      transparent 2px
+    ),
+    radial-gradient(
+      circle at 16% 78%,
+      #a15cff 0 1px,
+      transparent 2px
+    ),
+    radial-gradient(
+      circle at 63% 84%,
+      #ffffff 0 1px,
+      transparent 2px
+    );
+
+  background-size:
+    170px 170px,
+    220px 220px,
+    190px 190px,
+    250px 250px,
+    205px 205px,
+    240px 240px;
+
+  animation: vaStarsMove 24s linear infinite;
+}
+
+.va-login-planet {
+  position: fixed;
+  z-index: -5;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.va-login-planet-one {
+  top: -105px;
+  right: -115px;
+  width: 240px;
+  height: 240px;
+
+  border: 2px solid rgba(138, 54, 255, 0.65);
+
+  background:
+    radial-gradient(
+      circle at 30% 28%,
+      rgba(131, 60, 255, 0.4),
+      rgba(32, 7, 82, 0.2) 55%,
+      transparent 72%
+    );
+
+  box-shadow:
+    0 0 38px rgba(114, 42, 255, 0.5),
+    inset 0 0 45px rgba(89, 31, 220, 0.38);
+}
+
+.va-login-planet-two {
+  bottom: -165px;
+  left: -150px;
+  width: 320px;
+  height: 320px;
+
+  border: 2px solid rgba(132, 48, 255, 0.58);
+
+  background:
+    radial-gradient(
+      circle at 60% 20%,
+      rgba(108, 48, 255, 0.38),
+      rgba(31, 9, 74, 0.2) 58%,
+      transparent 76%
+    );
+
+  box-shadow:
+    0 0 60px rgba(116, 42, 255, 0.46),
+    inset 0 0 65px rgba(79, 25, 194, 0.35);
+}
+
+.va-login-wave {
+  position: fixed;
+  z-index: -4;
+  pointer-events: none;
+  width: 360px;
+  height: 180px;
+  opacity: 0.18;
+  border-radius: 50%;
+  border-top: 1px solid #9c52ff;
+  transform: rotate(-15deg);
+}
+
+.va-login-wave-left {
+  top: 180px;
+  left: -190px;
+  box-shadow:
+    0 -13px 0 rgba(140, 74, 255, 0.22),
+    0 -26px 0 rgba(140, 74, 255, 0.18),
+    0 -39px 0 rgba(140, 74, 255, 0.12);
+}
+
+.va-login-wave-right {
+  right: -210px;
+  bottom: 140px;
+  transform: rotate(19deg);
+  box-shadow:
+    0 -13px 0 rgba(140, 74, 255, 0.22),
+    0 -26px 0 rgba(140, 74, 255, 0.18),
+    0 -39px 0 rgba(140, 74, 255, 0.12);
+}
+
+.va-login-content {
+  width: min(410px, 100%);
+  margin: 0 auto;
+}
+
+.va-login-brand-section {
+  text-align: center;
+  animation: vaLoginFade 0.7s ease both;
+}
+
+.va-login-logo {
+  display: block;
+  width: 116px;
+  height: 116px;
+  margin: 0 auto;
+  object-fit: cover;
+  border-radius: 22px;
+
+  box-shadow:
+    0 0 0 1px rgba(206, 117, 255, 0.7),
+    0 0 18px rgba(173, 73, 255, 0.7),
+    0 18px 42px rgba(91, 25, 176, 0.42);
+}
+
+.va-login-title {
+  margin: 20px 0 0;
+  font-size: clamp(2.5rem, 12vw, 3.7rem);
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+
+  background:
+    linear-gradient(
+      90deg,
+      #ffffff 4%,
+      #d9b4ff 50%,
+      #765cff 100%
+    );
+
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.va-login-badge {
+  width: fit-content;
+  margin: 20px auto 0;
+  padding: 9px 20px;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  border-radius: 999px;
+  border: 1px solid rgba(178, 97, 255, 0.36);
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(60, 29, 115, 0.8),
+      rgba(93, 28, 146, 0.72)
+    );
+
+  color: #f0dfff;
+  font-size: 0.92rem;
+  font-weight: 750;
+
+  box-shadow: 0 10px 30px rgba(89, 31, 159, 0.24);
+}
+
+.va-login-subtitle {
+  margin: 19px 0 25px;
+  color: #c0bfd0;
+  font-size: 0.94rem;
+  line-height: 1.65;
+}
+
+.va-login-card {
+  padding: 21px;
+  border-radius: 25px;
+  border: 1px solid rgba(173, 94, 255, 0.35);
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(19, 17, 43, 0.86),
+      rgba(8, 10, 30, 0.9)
+    );
+
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+
+  animation: vaLoginFade 0.75s 0.1s ease both;
+}
+
+.va-login-tabs {
+  width: 100%;
+  padding: 3px;
+  margin-bottom: 18px;
+
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+
+  border-radius: 15px;
+  border: 1px solid rgba(139, 116, 189, 0.23);
+  background: rgba(4, 6, 22, 0.5);
+}
+
+.va-login-tab {
+  min-height: 47px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 12px;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 7px;
+
+  color: #d5d4df;
+  background: transparent;
+
+  font-size: 0.83rem;
+  font-weight: 750;
+  cursor: pointer;
+
+  transition:
+    transform 0.22s ease,
+    background 0.22s ease,
+    color 0.22s ease,
+    box-shadow 0.22s ease;
+}
+
+.va-login-tab.active {
+  color: #ffffff;
+
+  background:
+    linear-gradient(
+      135deg,
+      #9a2fff,
+      #642ff2
+    );
+
+  box-shadow: 0 8px 20px rgba(113, 38, 229, 0.36);
+}
+
+.va-login-tab:not(.active):hover {
+  background: rgba(73, 41, 122, 0.35);
+}
+
+.va-tab-icon {
+  font-size: 1.1rem;
+}
+
+.va-login-input-group {
+  position: relative;
+  width: 100%;
+  margin-bottom: 13px;
+}
+
+.va-input-icon {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: 14px;
+  transform: translateY(-50%);
+
+  color: #b96bff;
+  font-size: 1.15rem;
+  pointer-events: none;
+}
+
+.va-login-input {
+  width: 100%;
+  height: 53px;
+  padding: 0 15px 0 45px;
+
+  border-radius: 13px;
+  border: 1px solid rgba(137, 133, 172, 0.26);
+  outline: none;
+
+  color: #ffffff;
+  background: rgba(20, 22, 44, 0.67);
+
+  font-size: 0.9rem;
+
+  transition:
+    border-color 0.23s ease,
+    box-shadow 0.23s ease,
+    background 0.23s ease;
+}
+
+.va-login-input::placeholder {
+  color: #9291a6;
+}
+
+.va-login-input:focus {
+  border-color: rgba(180, 86, 255, 0.82);
+  background: rgba(25, 21, 54, 0.82);
+
+  box-shadow:
+    0 0 0 3px rgba(157, 64, 255, 0.12),
+    0 0 20px rgba(124, 45, 211, 0.12);
+}
+
+.va-otp-input {
+  letter-spacing: 0.3em;
+  font-weight: 800;
+}
+
+.va-remember-row {
+  width: fit-content;
+  margin: 3px 0 17px;
+
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  color: #f1eff6;
+  font-size: 0.85rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.va-remember-row input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.va-custom-checkbox {
+  width: 21px;
+  height: 21px;
+  border-radius: 6px;
+
+  display: grid;
+  place-items: center;
+
+  color: transparent;
+  background: rgba(30, 31, 58, 0.9);
+  border: 1px solid rgba(168, 113, 232, 0.45);
+
+  font-size: 0.85rem;
+  font-weight: 900;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.va-remember-row input:checked + .va-custom-checkbox {
+  color: white;
+
+  background:
+    linear-gradient(
+      135deg,
+      #c339e6,
+      #6e2df3
+    );
+
+  box-shadow: 0 5px 14px rgba(139, 45, 226, 0.42);
+}
+
+.va-login-main-button,
+.va-login-secondary-button {
+  width: 100%;
+  min-height: 53px;
+  border-radius: 13px;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 9px;
+
+  color: #ffffff;
+  font-size: 0.88rem;
+  font-weight: 850;
+  cursor: pointer;
+
+  transition:
+    transform 0.23s ease,
+    box-shadow 0.23s ease,
+    opacity 0.23s ease;
+}
+
+.va-login-main-button {
+  border: 0;
+
+  background:
+    linear-gradient(
+      100deg,
+      #7c28f6,
+      #c23ee9
+    );
+
+  box-shadow: 0 13px 28px rgba(111, 31, 219, 0.32);
+}
+
+.va-login-main-button:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 17px 34px rgba(136, 37, 226, 0.44);
+}
+
+.va-login-main-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.va-login-secondary-button {
+  margin-top: 10px;
+
+  border: 1px solid rgba(160, 117, 224, 0.3);
+  background: rgba(28, 29, 55, 0.72);
+}
+
+.va-login-secondary-button:hover {
+  transform: translateY(-2px);
+  background: rgba(55, 36, 91, 0.78);
+}
+
+.va-saved-login-actions {
+  margin-bottom: 17px;
+}
+
+.va-login-message {
+  margin-bottom: 14px;
+  padding: 11px 13px;
+
+  border-radius: 11px;
+  border: 1px solid rgba(189, 108, 255, 0.3);
+
+  color: #eadbff;
+  background: rgba(72, 31, 115, 0.36);
+
+  font-size: 0.82rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
+@keyframes vaLoginFade {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes vaStarsMove {
+  from {
+    transform: translateY(0);
+  }
+
+  to {
+    transform: translateY(-60px);
+  }
+}
+
+@media (min-width: 700px) {
+  .va-login-page {
+    display: grid;
+    place-items: center;
+    padding-top: 45px;
+  }
+
+  .va-login-content {
+    width: min(430px, 100%);
+  }
+
+  .va-login-logo {
+    width: 135px;
+    height: 135px;
+  }
+
+  .va-login-card {
+    padding: 26px;
+  }
+}
+
+@media (max-width: 380px) {
+  .va-login-page {
+    padding-left: 13px;
+    padding-right: 13px;
+  }
+
+  .va-login-logo {
+    width: 100px;
+    height: 100px;
+  }
+
+  .va-login-title {
+    font-size: 2.45rem;
+  }
+
+  .va-login-card {
+    padding: 16px;
+    border-radius: 21px;
+  }
+
+  .va-login-tab {
+    font-size: 0.74rem;
+  }
+
+  .va-login-input {
+    height: 50px;
+  }
+
+  .va-login-main-button {
+    min-height: 51px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .va-login-page *,
+  .va-login-page *::before,
+  .va-login-page *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

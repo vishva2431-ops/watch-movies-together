@@ -18807,38 +18807,159 @@ iframe {
   animation: fadeDown .3s ease;
 }
 
-.page-loader {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 12px;
-  padding: 25px;
+.page-loader{
+
+    width:100%;
+    min-height:360px;
+
+    display:flex;
+    flex-direction:column;
+
+    justify-content:center;
+    align-items:center;
+
+    border-radius:26px;
+
+    background:
+    radial-gradient(circle at top,#23164d,#111827);
+
+    border:1px solid rgba(255,255,255,.08);
+
 }
 
-.loader {
-  width: 32px;
-  height: 32px;
-  border: 3px solid rgba(255,255,255,.2);
-  border-top-color: #8b5cf6;
-  border-radius: 50%;
-  animation: spin .8s linear infinite;
+.loader-ring{
+
+    width:130px;
+    height:130px;
+
+    border-radius:50%;
+
+    border:7px solid rgba(255,255,255,.08);
+
+    border-top:7px solid #8B5CF6;
+
+    display:flex;
+
+    justify-content:center;
+    align-items:center;
+
+    animation:loaderSpin 1.2s linear infinite;
+
+    box-shadow:
+    0 0 35px rgba(139,92,246,.45);
+
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+.loader-icon{
+
+    font-size:60px;
+
+    animation:loaderBounce 1.2s infinite;
+
 }
 
-@keyframes fadeDown {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -15px);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, 0);
-  }
+.page-loader h2{
+
+    margin-top:25px;
+
+    color:white;
+
+    font-size:34px;
+
+}
+
+.page-loader p{
+
+    margin-top:10px;
+
+    color:#9CA3AF;
+
+}
+
+.loader-dots{
+
+    display:flex;
+
+    gap:10px;
+
+    margin-top:25px;
+
+}
+
+.loader-dots span{
+
+    width:10px;
+
+    height:10px;
+
+    border-radius:50%;
+
+    background:#8B5CF6;
+
+    animation:loaderDots 1s infinite;
+
+}
+
+.loader-dots span:nth-child(2){
+
+    animation-delay:.2s;
+
+}
+
+.loader-dots span:nth-child(3){
+
+    animation-delay:.4s;
+
+}
+
+.movie .loader-ring{
+
+    border-top-color:#8B5CF6;
+
+}
+
+.music .loader-ring{
+
+    border-top-color:#00E5A8;
+
+}
+
+.short .loader-ring{
+
+    border-top-color:#FF4DA6;
+
+}
+
+@keyframes loaderSpin{
+
+    to{
+
+        transform:rotate(360deg);
+
+    }
+
+}
+
+@keyframes loaderBounce{
+
+    50%{
+
+        transform:translateY(-8px);
+
+    }
+
+}
+
+@keyframes loaderDots{
+
+    50%{
+
+        transform:translateY(-8px);
+
+        opacity:.5;
+
+    }
+
 }
 
 .room-content-grid,

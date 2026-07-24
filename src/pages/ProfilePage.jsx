@@ -9,6 +9,10 @@ export default function ProfilePage() {
     [bio, setBio] = useState(localStorage.getItem("bio") || ""),
     [gender, setGender] = useState(localStorage.getItem("gender") || "");
 
+  const [profileImage, setProfileImage] = useState(
+    localStorage.getItem("profileImage") || ""
+  );
+
   const save = async () => {
     localStorage.setItem("userName", name);
     localStorage.setItem("bio", bio);
@@ -16,13 +20,29 @@ export default function ProfilePage() {
 
     const publicKey = JSON.stringify(await exportPublicKey());
 
-    await API.put(`/profiles/${localStorage.getItem("userId")}`, {
-      name,
-      bio,
-      gender,
-      publicKey,
-    });
+  await API.put(`/profiles/${localStorage.getItem("userId")}`, {
+    name,
+    bio,
+    gender,
+    profileImage,
+    publicKey,
+});
   };
+
+  const handleImageChange = (e) => {
+  const file = e.target.files[0];
+
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    setProfileImage(reader.result);
+    localStorage.setItem("profileImage", reader.result);
+  };
+
+  reader.readAsDataURL(file);
+};
 
   return (
     <div className="page profile-page">
@@ -33,9 +53,25 @@ export default function ProfilePage() {
       </div>
 
       <div className="profile-card">
-        <label>
-          Profile Image
-          <input type="file" accept="image/*" />
+        <label className="profile-image-upload">
+          <div className="profile-avatar-preview">
+            {profileImage ? (
+              <img src={profileImage} alt="Profile" />
+            ) : (
+              name?.charAt(0)?.toUpperCase() || "V"
+            )}
+          </div>
+
+          <input
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={handleImageChange}
+          />
+
+          <span className="change-photo-btn">
+            Change Photo
+          </span>
         </label>
 
         <label>

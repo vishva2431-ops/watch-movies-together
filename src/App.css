@@ -53,12 +53,11 @@
   text-align: left;
 }
 
-.friend-card > div:nth-child(2),
-.friend-card > div:first-child {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
+.friend-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .friend-card span {
@@ -67,19 +66,23 @@
 }
 
 .friend-avatar {
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.1);
-}
+  width: 56px;
+  height: 56px;
+  min-width: 56px;
+  min-height: 56px;
+  flex-shrink: 0;
 
-.friend-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+  overflow: hidden;
+
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  color: #fff;
+  font-size: 22px;
+  font-weight: 700;
 }
 
 .profile-card {
@@ -192,4 +195,760 @@
   border: 0;
   color: inherit;
   cursor: pointer;
+}
+
+.join-room-input {
+  width: 100%;
+  padding: 14px 18px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+  outline: none;
+  font-size: 16px;
+}
+
+.join-room-input:focus {
+  border-color: rgba(142, 75, 255, 0.8);
+  box-shadow: 0 0 0 4px rgba(142, 75, 255, 0.14);
+}
+
+.friend-search-result {
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.friend-search-result:hover {
+  transform: translateY(-2px);
+  border-color: rgba(168, 85, 247, 0.55);
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.friend-details {
+  min-width: 0;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.friend-details strong,
+.friend-details span,
+.friend-details small {
+  overflow-wrap: anywhere;
+}
+
+.friend-details small {
+  color: #c4b5fd;
+  opacity: 0.85;
+}
+
+.send-request-btn {
+  flex-shrink: 0;
+  width: auto;
+  min-width: 150px;
+}
+
+.friend-request-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.friend-request-actions button {
+  width: auto;
+  padding: 10px 16px;
+}
+
+.friends-message {
+  max-width: 720px;
+  margin: 18px auto 0;
+  padding: 13px 16px;
+  border-radius: 14px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.friends-message.success {
+  color: #bbf7d0;
+  background: rgba(34, 197, 94, 0.14);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.friends-message.error {
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.friends-empty {
+  padding: 28px 18px;
+  border-radius: 18px;
+  text-align: center;
+  color: #b8bfd1;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.friend-profile-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(2, 6, 23, 0.76);
+  backdrop-filter: blur(10px);
+}
+
+.friend-profile-modal {
+  position: relative;
+  width: min(100%, 480px);
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 30px;
+  border-radius: 28px;
+  text-align: center;
+  color: #fff;
+  background: rgba(16, 18, 30, 0.96);
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+}
+
+.friend-profile-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 28px;
+  line-height: 1;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.friend-profile-avatar {
+  width: 108px;
+  height: 108px;
+  margin: 4px auto 18px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  font-size: 40px;
+  font-weight: 700;
+  background: linear-gradient(
+    135deg,
+    rgba(124, 58, 237, 0.8),
+    rgba(168, 85, 247, 0.65)
+  );
+  border: 3px solid rgba(255, 255, 255, 0.18);
+}
+
+.friend-profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.friend-profile-modal h2 {
+  margin: 0 0 8px;
+}
+
+.friend-profile-bio {
+  margin: 0 0 22px;
+  color: #b8bfd1;
+  line-height: 1.5;
+}
+
+.friend-profile-information {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 22px;
+  text-align: left;
+}
+
+.friend-profile-information > div {
+  display: grid;
+  gap: 4px;
+  padding: 13px 15px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.friend-profile-information span {
+  color: #aeb4c6;
+  font-size: 13px;
+}
+
+.friend-profile-information strong {
+  overflow-wrap: anywhere;
+}
+
+.friend-profile-send {
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .friend-search-result {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .send-request-btn {
+    width: 100%;
+  }
+
+  .friend-request-actions {
+    width: 100%;
+  }
+
+  .friend-request-actions button {
+    flex: 1;
+  }
+
+  .friend-profile-modal {
+    padding: 26px 18px 20px;
+    border-radius: 22px;
+  }
+}
+
+.profile-image-upload{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:14px;
+    cursor:pointer;
+}
+
+.profile-avatar-preview{
+    width:130px;
+    height:130px;
+    border-radius:50%;
+    overflow:hidden;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    background:linear-gradient(135deg,#7c3aed,#a855f7);
+    border:4px solid rgba(255,255,255,.15);
+
+    font-size:48px;
+    font-weight:700;
+    color:#fff;
+
+    box-shadow:0 12px 30px rgba(124,58,237,.35);
+
+    transition:.3s;
+}
+
+.profile-avatar-preview:hover{
+    transform:scale(1.05);
+}
+
+.profile-avatar-preview img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+
+.change-photo-btn{
+    padding:10px 18px;
+    border-radius:12px;
+    background:#7c3aed;
+    color:#fff;
+    font-weight:600;
+    transition:.3s;
+}
+
+.change-photo-btn:hover{
+    background:#8b5cf6;
+}
+
+.room-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:20px;
+
+    width:100%;
+
+    padding:18px 22px;
+
+    margin-bottom:18px;
+
+    border-radius:20px;
+
+    background:rgba(255,255,255,.05);
+
+    backdrop-filter:blur(18px);
+
+    border:1px solid rgba(255,255,255,.08);
+}
+
+.room-title{
+    flex:1;
+
+    text-align:center;
+
+    font-size:28px;
+
+    font-weight:700;
+
+    white-space:nowrap;
+
+    overflow:hidden;
+
+    text-overflow:ellipsis;
+}
+
+.room-header-actions{
+    display:flex;
+
+    align-items:center;
+
+    gap:12px;
+}
+
+.room-header-btn{
+    width:auto;
+
+    padding:12px 22px;
+}
+
+.icon-btn{
+    width:48px;
+
+    height:48px;
+
+    border-radius:14px;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    font-size:22px;
+
+    background:rgba(255,255,255,.08);
+
+    color:white;
+
+    transition:.25s;
+}
+
+.icon-btn:hover{
+    background:#7c3aed;
+
+    transform:translateY(-2px);
+}
+
+@media(max-width:768px){
+
+.room-header{
+
+    display:flex;
+
+    flex-wrap:nowrap;
+
+    align-items:center;
+
+    justify-content:space-between;
+
+    gap:8px;
+
+    padding:12px;
+}
+
+.room-header-btn{
+
+    padding:10px 14px;
+
+    font-size:13px;
+}
+
+.room-title{
+
+    font-size:17px;
+
+    flex:1;
+}
+
+.room-header-actions{
+
+    gap:6px;
+}
+
+.icon-btn{
+
+    width:40px;
+
+    height:40px;
+
+    font-size:18px;
+}
+
+}
+
+.room-header-buttons{
+    display:flex;
+    gap:10px;
+    align-items:center;
+}
+
+.room-invite-btn{
+    background:#7c3aed;
+    color:#fff;
+    border:none;
+    padding:8px 16px;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.invite-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.65);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    z-index:9999;
+}
+
+.invite-popup{
+    width:320px;
+    background:#222;
+    color:white;
+    border-radius:14px;
+    padding:20px;
+}
+
+.invite-item{
+    width:100%;
+    margin-top:12px;
+    padding:10px;
+}
+
+.invite-close{
+    width:100%;
+    margin-top:15px;
+    padding:10px;
+}
+
+.invite-popup-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.45);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    z-index:9999;
+}
+
+.invite-popup{
+    width:340px;
+    background:#1d1d2b;
+    color:white;
+    border-radius:18px;
+    padding:22px;
+    text-align:center;
+}
+
+.invite-actions{
+    display:flex;
+    justify-content:space-between;
+    margin-top:20px;
+}
+
+.invite-join{
+    background:#7c4dff;
+    color:white;
+    border:none;
+    padding:10px 20px;
+    border-radius:10px;
+    cursor:pointer;
+}
+
+.invite-decline{
+    background:#444;
+    color:white;
+    border:none;
+    padding:10px 20px;
+    border-radius:10px;
+    cursor:pointer;
+}
+
+.friends-menu{
+
+display:grid;
+
+grid-template-columns:repeat(3,1fr);
+
+gap:16px;
+
+margin:18px 0 24px;
+
+}
+
+.menu-card{
+
+height:120px;
+
+padding:18px;
+
+border-radius:18px;
+
+display:flex;
+
+flex-direction:column;
+
+justify-content:center;
+
+align-items:center;
+
+background:rgba(255,255,255,.05);
+
+border:1px solid rgba(255,255,255,.08);
+
+backdrop-filter:blur(20px);
+
+transition:.3s;
+
+}
+
+.menu-card:hover{
+
+transform:translateY(-8px);
+
+box-shadow:0 20px 45px rgba(124,58,237,.3);
+
+}
+
+.menu-card.active{
+
+border:2px solid #8b5cf6;
+
+background:rgba(139,92,246,.15);
+
+box-shadow:0 12px 30px rgba(139,92,246,.3);
+
+}
+
+.search-box{
+
+margin-top:10px;
+
+margin-bottom:18px;
+
+height:54px;
+
+}
+
+.menu-icon{
+
+font-size:30px;
+
+margin-bottom:10px;
+
+}
+.menu-card h3{
+
+margin:6px 0;
+
+font-size:20px;
+
+color:white;
+
+}
+
+.menu-card p{
+
+font-size:15px;
+
+margin:0;
+
+color:#cdb8ff;
+
+}
+
+@media (max-width: 768px) {
+
+  .friends-actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin: 12px 0;
+  }
+
+  .action-item {
+    min-height: 72px;
+    padding: 8px 6px;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    border-radius: 14px;
+  }
+
+  .menu-icon {
+    font-size: 22px;
+    margin-bottom: 4px;
+  }
+
+  .action-item h3 {
+    font-size: 14px;
+    margin: 2px 0;
+    line-height: 1.1;
+  }
+
+  .action-item p {
+    font-size: 10px;
+    margin: 0;
+    line-height: 1.1;
+    text-align: center;
+  }
+
+  .action-item span {
+    font-size: 13px;
+    margin-top: 2px;
+  }
+}
+
+@media(max-width:768px){
+
+.friend-search{
+
+    margin-top:10px;
+
+}
+
+.friend-search input{
+
+    height:46px;
+
+    font-size:14px;
+
+    border-radius:14px;
+
+}
+
+}
+
+@media(max-width:768px){
+
+.friends-header{
+
+display:grid;
+
+grid-template-columns:auto 1fr auto;
+
+align-items:center;
+
+}
+
+.friends-header h2{
+
+text-align:center;
+
+font-size:24px;
+
+}
+
+.home-btn,
+.profile-btn{
+
+height:40px;
+
+padding:0 14px;
+
+font-size:13px;
+
+}
+
+}
+
+/* ===========================
+   Friends Page Mobile Fix
+   Paste this at the END of CSS
+=========================== */
+
+@media screen and (max-width: 768px) {
+
+  .friends-menu {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 6px !important;
+    margin: 12px 0 14px !important;
+  }
+
+  .menu-card {
+    height: 72px !important;
+    min-height: 72px !important;
+    padding: 6px 4px !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+
+    border-radius: 12px !important;
+  }
+
+  .menu-icon {
+    font-size: 18px !important;
+    margin-bottom: 3px !important;
+  }
+
+  .menu-card h3 {
+    margin: 2px 0 !important;
+    font-size: 12px !important;
+    line-height: 1.1 !important;
+    text-align: center;
+  }
+
+  .menu-card p {
+    margin: 0 !important;
+    font-size: 9px !important;
+    line-height: 1 !important;
+    text-align: center;
+  }
+
+  .menu-card span {
+    font-size: 11px !important;
+    margin-top: 2px !important;
+  }
+
+  .friend-search {
+    margin-top: 10px !important;
+  }
+
+  .friend-search input,
+  .join-room-input {
+    height: 42px !important;
+    font-size: 13px !important;
+    border-radius: 12px !important;
+  }
+
+  .friends-nav {
+    gap: 8px !important;
+  }
+
+  .friends-nav h2 {
+    font-size: 22px !important;
+  }
+
+  .friends-nav button {
+    padding: 8px 12px !important;
+    font-size: 12px !important;
+  }
 }

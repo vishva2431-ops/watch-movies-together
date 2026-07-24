@@ -1,23 +1,29 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API } from "../api";
-import Header from "../components/Header";
+import "./HomePage.css";
 
 export default function HomePage() {
   const [joinCode, setJoinCode] = useState("");
   const [alertMessage, setAlertMessage] = useState("");
 
   const navigate = useNavigate();
+
   const currentUser = localStorage.getItem("userName") || "Guest";
   const isAdmin = localStorage.getItem("isAdmin") === "true";
 
   const createEmptyRoom = async () => {
-    const res = await API.post("/rooms/create", {
-      userName: currentUser,
-      movieId: "",
-    });
+    try {
+      const res = await API.post("/rooms/create", {
+        userName: currentUser,
+        movieId: "",
+      });
 
-    navigate(`/room/${res.data.roomCode}`);
+      navigate(`/room/${res.data.roomCode}`);
+    } catch (err) {
+      console.error("Room creation failed:", err);
+      setAlertMessage("Unable to create room");
+    }
   };
 
   const joinRoom = async () => {
@@ -32,111 +38,285 @@ export default function HomePage() {
       await API.get(`/rooms/${code}`);
       navigate(`/room/${code}`);
     } catch (err) {
+      console.error("Room join failed:", err);
       setAlertMessage("Invalid room code");
     }
   };
 
- const logout = async () => {
-  try {
-    const id = localStorage.getItem("id");
-
-    if (id) {
-      await API.post("/auth/logout", { id });
+  const handleJoinKeyDown = (event) => {
+    if (event.key === "Enter") {
+      joinRoom();
     }
-  } catch (err) {
-    console.error(err);
-  }
+  };
 
-  localStorage.clear();
-  navigate("/");
-};
+  const logout = async () => {
+    try {
+      const id =
+        localStorage.getItem("userId") ||
+        localStorage.getItem("id");
+
+      if (id) {
+        await API.post("/auth/logout", { id });
+      }
+    } catch (err) {
+      console.error("Logout failed:", err);
+    }
+
+    localStorage.clear();
+    navigate("/");
+  };
 
   return (
-    <div className="page home-page-bg">
-      <div className="home-top-bar">
-        <div className="home-brand">
+    <div className="va-home-page">
+      <div className="va-background-grid" />
+      <div className="va-glow va-glow-one" />
+      <div className="va-glow va-glow-two" />
+      <div className="va-glow va-glow-three" />
+
+      <header className="va-header">
+        <button
+          type="button"
+          className="va-brand"
+          onClick={() => navigate("/home")}
+          aria-label="Vision Arc home"
+        >
           <img
             src="/logo.png"
             alt="Vision Arc Logo"
-            className="home-logo"
+            className="va-logo"
           />
-          <h1 className="vision-title">Vision Arc</h1>
-        </div>
 
-        <div className="home-mobile-user-row">
-          <div className="user-pill">{currentUser}</div>
+          <h1 className="va-brand-title">
+            Vision Arc
+          </h1>
+        </button>
 
-          <button className="btn-secondary home-logout-btn" onClick={logout}>
-            Logout
-          </button>
-        </div>
-      </div>
-
-      {alertMessage && (
-        <div className="custom-alert-overlay">
-          <div className="custom-alert-box">
-            <h3>Room Code Required</h3>
-            <p>{alertMessage}</p>
-            <button className="btn-primary" onClick={() => setAlertMessage("")}>
-              OK
-            </button>
+        <div className="va-user-actions">
+          <div className="va-user-pill">
+            <span className="va-user-indicator" />
+            <span>{currentUser}</span>
           </div>
-        </div>
-      )}
-
-      <div className="home-controls-container">
-        <div className="home-controls-row">
-          <div className="join-room-wrapper">
-            <input
-              className="join-room-input"
-              value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-              placeholder="Enter room code"
-            />
-
-            <button className="join-room-inside-btn" onClick={joinRoom}>
-              Join
-            </button>
-          </div>
-
-          <button className="btn-secondary home-control-btn" onClick={() => navigate("/friends")}>👥 Friends</button>
 
           {isAdmin && (
             <button
-              className="btn-secondary home-control-btn"
+              type="button"
+              className="va-outline-button"
               onClick={() => navigate("/admin")}
             >
               Admin
             </button>
           )}
+
+          <button
+            type="button"
+            className="va-outline-button"
+            onClick={logout}
+          >
+            Logout
+          </button>
         </div>
-      </div>
+      </header>
 
-      <div className="home-hero-card">
-        <div className="section-badge">🌟 Unlimited Entertainment Together</div>
-        <h1>Watch Movies, Music and Shorts Together</h1>
-        <p>Select category, search content, create a room, and watch together in sync.</p>
-      </div>
+      <main className="va-main">
+        <section className="va-room-panel">
+          <div className="va-room-input-wrapper">
+            <span className="va-room-input-icon">
+              🔗
+            </span>
 
-      <div className="category-choice-grid">
-        <button className="category-choice-card" onClick={() => navigate("/movies")}>
-          <span>🎬</span>
-          <h2>Movies</h2>
-          <p>Trailers, scenes and full movie content</p>
-        </button>
+            <input
+              type="text"
+              className="va-room-input"
+              value={joinCode}
+              onChange={(event) =>
+                setJoinCode(event.target.value.toUpperCase())
+              }
+              onKeyDown={handleJoinKeyDown}
+              placeholder="Enter room code"
+              maxLength={12}
+            />
 
-        <button className="category-choice-card" onClick={() => navigate("/music")}>
-          <span>🎵</span>
-          <h2>Music</h2>
-          <p>Songs, albums and live performances</p>
-        </button>
+            <button
+              type="button"
+              className="va-join-button"
+              onClick={joinRoom}
+            >
+              Join Room
+            </button>
+          </div>
 
-        <button className="category-choice-card" onClick={() => navigate("/shorts")}>
-          <span>⚡</span>
-          <h2>Shorts</h2>
-          <p>Funny, love, gym, cooking and reels-style videos</p>
-        </button>
-      </div>
+          <div className="va-panel-divider" />
+
+          <button
+            type="button"
+            className="va-friends-button"
+            onClick={() => navigate("/friends")}
+          >
+            <span>👥</span>
+            Friends
+          </button>
+        </section>
+
+        <section className="va-hero">
+          <div className="va-hero-content">
+            <div className="va-section-badge">
+              <span>🌟</span>
+              Unlimited Entertainment Together
+            </div>
+
+            <h2 className="va-hero-title">
+              Watch Movies, Music and Shorts{" "}
+              <span>Together</span>
+            </h2>
+
+            <p className="va-hero-description">
+              Create a private room, invite your friends and enjoy
+              perfectly synchronized entertainment in real time.
+            </p>
+
+            <div className="va-hero-actions">
+              <button
+                type="button"
+                className="va-primary-button"
+                onClick={createEmptyRoom}
+              >
+                <span>＋</span>
+                Create Room
+              </button>
+
+              <button
+                type="button"
+                className="va-secondary-button"
+                onClick={() => navigate("/movies")}
+              >
+                Explore Content
+                <span>→</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="va-hero-visual">
+            <div className="va-visual-orbit va-orbit-large" />
+            <div className="va-visual-orbit va-orbit-small" />
+
+            <div className="va-floating-icon va-popcorn">
+              🍿
+            </div>
+
+            <div className="va-floating-icon va-clapper">
+              🎬
+            </div>
+
+            <div className="va-floating-icon va-play-icon">
+              ▶
+            </div>
+
+            <div className="va-visual-platform" />
+          </div>
+        </section>
+
+        <section className="va-category-grid">
+          <button
+            type="button"
+            className="va-category-card va-movie-card"
+            onClick={() => navigate("/movies")}
+          >
+            <div className="va-category-pattern" />
+
+            <div className="va-category-icon">
+              🎬
+            </div>
+
+            <div className="va-category-content">
+              <h3>Movies</h3>
+
+              <p>
+                Trailers, scenes and full movie content
+              </p>
+            </div>
+
+            <div className="va-category-arrow">
+              →
+            </div>
+          </button>
+
+          <button
+            type="button"
+            className="va-category-card va-music-card"
+            onClick={() => navigate("/music")}
+          >
+            <div className="va-category-pattern" />
+
+            <div className="va-category-icon">
+              🎵
+            </div>
+
+            <div className="va-category-content">
+              <h3>Music</h3>
+
+              <p>
+                Songs, albums and live performances
+              </p>
+            </div>
+
+            <div className="va-category-arrow">
+              →
+            </div>
+          </button>
+
+          <button
+            type="button"
+            className="va-category-card va-shorts-card"
+            onClick={() => navigate("/shorts")}
+          >
+            <div className="va-category-pattern" />
+
+            <div className="va-category-icon">
+              ▶
+            </div>
+
+            <div className="va-category-content">
+              <h3>Shorts</h3>
+
+              <p>
+                Funny, love, gym, cooking and reels-style videos
+              </p>
+            </div>
+
+            <div className="va-category-arrow">
+              →
+            </div>
+          </button>
+        </section>
+      </main>
+
+      {alertMessage && (
+        <div
+          className="va-alert-overlay"
+          onClick={() => setAlertMessage("")}
+        >
+          <div
+            className="va-alert-box"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="va-alert-icon">
+              !
+            </div>
+
+            <h3>Room Notice</h3>
+
+            <p>{alertMessage}</p>
+
+            <button
+              type="button"
+              className="va-primary-button va-alert-button"
+              onClick={() => setAlertMessage("")}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
